@@ -1,0 +1,2 @@
+# kazkaz-ai
+future star
