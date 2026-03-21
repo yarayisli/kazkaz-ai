@@ -262,7 +262,7 @@ def show_sector_tab(df, rapor, sirket_adi="Şirketim", gemini=None):
                 return f"color: {c}" if c else ""
 
             st.dataframe(
-                df_bm.style.applymap(color_durum, subset=["Durum"])
+                df_bm.style.map(color_durum, subset=["Durum"])
                            .format({"Skor": "{:.0f}"}),
                 use_container_width=True, hide_index=True,
             )
@@ -536,7 +536,7 @@ def show_sector_tab(df, rapor, sirket_adi="Şirketim", gemini=None):
             return f"color:{c};font-weight:600" if c else ""
 
         st.dataframe(
-            df_det.style.applymap(color_durum, subset=["Durum"]),
+            df_det.style.map(color_durum, subset=["Durum"]),
             use_container_width=True, hide_index=True,
         )
 

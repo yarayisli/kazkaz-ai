@@ -275,7 +275,7 @@ def _single_investment_ui():
             "Nakit Akışı":    "{:,.0f} ₺",
             "PV Nakit Akışı": "{:,.0f} ₺",
             "Kümülatif":      "{:,.0f} ₺",
-        }).applymap(
+        }).map(
             lambda v: "color: #10d994" if isinstance(v, (int, float)) and v >= 0
                       else "color: #ff4757" if isinstance(v, (int, float)) and v < 0
                       else "",

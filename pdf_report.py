@@ -76,7 +76,7 @@ def _find_font(filename: str) -> Optional[str]:
     """Fontu sırasıyla çeşitli konumlarda arar."""
     candidates = [
         # Linux sistem
-        f"/usr/share/fonts/truetype/dejavu/{filename}",
+        os.path.join("/usr/share/fonts/truetype/dejavu", filename),  # Linux
         # Proje klasörü
         os.path.join(os.path.dirname(os.path.abspath(__file__)), "fonts", filename),
         os.path.join(os.path.dirname(os.path.abspath(__file__)), filename),

@@ -215,7 +215,7 @@ def show_cashflow_tab(fin_engine=None, fin_rapor=None):
                 "Nakit Çıkışı": "{:,.0f} ₺",
                 "Net Nakit":    "{:,.0f} ₺",
                 "Kümülatif":    "{:,.0f} ₺",
-            }).applymap(
+            }).map(
                 lambda v: "color:#10d994" if isinstance(v,(int,float)) and v>=0
                           else "color:#ff4757" if isinstance(v,(int,float)) and v<0
                           else "",
@@ -331,7 +331,7 @@ def show_cashflow_tab(fin_engine=None, fin_rapor=None):
                      "Sağlıklı":C_GREEN,"Dikkat":C_YELLOW,"Kritik":C_RED}.get(val,"")
                 return f"color:{c};font-weight:600" if c else ""
             st.dataframe(
-                lik_df.style.applymap(color_d, subset=["Durum"]),
+                lik_df.style.map(color_d, subset=["Durum"]),
                 use_container_width=True, hide_index=True)
 
     # ──────────────────────────────────────────
@@ -383,7 +383,7 @@ def show_cashflow_tab(fin_engine=None, fin_rapor=None):
                 "Proj. Çıkış": "{:,.0f} ₺",
                 "Net":         "{:,.0f} ₺",
                 "Kümülatif":   "{:,.0f} ₺",
-            }).applymap(
+            }).map(
                 lambda v: "color:#10d994" if isinstance(v,(int,float)) and v>=0
                           else "color:#ff4757" if isinstance(v,(int,float)) and v<0
                           else "",
@@ -551,7 +551,7 @@ def show_debt_tab(fin_rapor=None):
                      "Veri Yok":"#4a6fa5"}.get(v,"")
                 return f"color:{c};font-weight:600" if c else ""
             st.dataframe(
-                metrik_df.style.applymap(color_d, subset=["Durum"]),
+                metrik_df.style.map(color_d, subset=["Durum"]),
                 use_container_width=True, hide_index=True)
 
         with col2:
@@ -669,7 +669,7 @@ def show_debt_tab(fin_rapor=None):
                     "Kalan Anapara": "{:,.0f} ₺",
                     "Toplam Faiz":   "{:,.0f} ₺",
                     "Faiz (%)":      "{:.1f}%",
-                }).applymap(
+                }).map(
                     lambda v: "color:#ff4757;font-weight:700"
                     if v == 1 else "",
                     subset=["Öncelik"]
