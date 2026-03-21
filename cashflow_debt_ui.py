@@ -142,8 +142,14 @@ def show_cashflow_tab(fin_engine=None, fin_rapor=None):
         st.info("Sol panelden finansal veri yükleyin veya parametreleri girin.")
         return
 
-    engine  = st.session_state.cf_engine
-    rapor   = engine.full_report()
+    engine = st.session_state.get("cf_engine")
+    if not engine:
+        return
+    try:
+        rapor = engine.full_report()
+    except Exception as ex:
+        st.error(f"Nakit akışı hesaplama hatası: {ex}")
+        return
     ozet    = rapor["nakit_ozet"]
     liq     = rapor["likidite"]
     burn    = rapor["burn_rate"]
