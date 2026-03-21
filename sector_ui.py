@@ -64,6 +64,20 @@ def score_color(k: str) -> str:
             "Sektör Ortalaması":"#fbbf24","Ortalamanın Altı":"#f97316",
             "Sektörde Zayıf":"#ff4757"}.get(k,"#e8eaf0")
 
+def pt_merge(**overrides):
+    """PT temasını override parametrelerle birleştirir."""
+    merged = dict(
+        paper_bgcolor="rgba(0,0,0,0)", plot_bgcolor="rgba(0,0,0,0)",
+        font=dict(color="#8899bb", family="DM Sans"),
+        margin=dict(l=10, r=10, t=30, b=10),
+    )
+    merged.update(overrides)
+    return merged
+
+    return {"Sektör Lideri":"#10d994","Ortalamanın Üstü":"#60a5fa",
+            "Sektör Ortalaması":"#fbbf24","Ortalamanın Altı":"#f97316",
+            "Sektörde Zayıf":"#ff4757"}.get(k,"#e8eaf0")
+
 
 # ─────────────────────────────────────────────
 # ANA FONKSİYON
@@ -400,8 +414,7 @@ def show_sector_tab(df, rapor, sirket_adi="Şirketim", gemini=None):
         ))
         fig.update_layout(
             title="Kar Marjı (%) — Sektör Karşılaştırması",
-            height=280, **PT,
-            xaxis=dict(ticksuffix="%", gridcolor="#1e2d4a", showgrid=True, zeroline=False),
+            height=280, **pt_merge(xaxis=dict(ticksuffix="%", gridcolor="#1e2d4a", showgrid=True, zeroline=False)),
         )
         st.plotly_chart(fig, use_container_width=True)
 
@@ -459,8 +472,7 @@ def show_sector_tab(df, rapor, sirket_adi="Şirketim", gemini=None):
         )
         fig.update_layout(
             title=f"{tespit['sektor']} Sektörü Aylık Büyüme Trendi (%)",
-            height=320, **PT,
-            yaxis=dict(ticksuffix="%", gridcolor="#1e2d4a", showgrid=True, zeroline=False),
+            height=320, **pt_merge(yaxis=dict(ticksuffix="%", gridcolor="#1e2d4a", showgrid=True, zeroline=False)),
         )
         st.plotly_chart(fig, use_container_width=True)
 
@@ -488,8 +500,7 @@ def show_sector_tab(df, rapor, sirket_adi="Şirketim", gemini=None):
         ))
         fig2.update_layout(
             title="Sektörel Ortalama Büyüme Karşılaştırması",
-            height=380, **PT,
-            xaxis=dict(ticksuffix="%", gridcolor="#1e2d4a", showgrid=True, zeroline=False),
+            height=380, **pt_merge(xaxis=dict(ticksuffix="%", gridcolor="#1e2d4a", showgrid=True, zeroline=False)),
         )
         st.plotly_chart(fig2, use_container_width=True)
 
