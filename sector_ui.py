@@ -126,9 +126,15 @@ def show_sector_tab(df, rapor, sirket_adi="Şirketim", gemini=None):
     # ── Rapor üret (cache) ──
     if "sector_rapor" not in st.session_state:
         with st.spinner("Benchmark hesaplanıyor..."):
-            st.session_state.sector_rapor = se.full_report()
+            try:
+                st.session_state.sector_rapor = se.full_report()
+            except Exception as ex:
+                st.error(f"Sektör analizi hatası: {ex}")
+                return
 
-    sr     = st.session_state.sector_rapor
+    sr = st.session_state.get("sector_rapor")
+    if not sr:
+        return
     tespit = sr["tespit"]
     bm     = sr["benchmark"]
     rakip  = sr["rakip"]
