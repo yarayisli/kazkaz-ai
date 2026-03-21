@@ -552,7 +552,11 @@ with tab_gider:
             fig = px.bar(ce, x="Toplam Gider", y="Kategori", orientation="h",
                          color_discrete_sequence=["#ff4757"])
             fig.update_layout(title="Kategoriye Göre Gider", height=280,
-                              yaxis=dict(autorange="reversed"), **PLOTLY_THEME)
+                              yaxis=dict(autorange="reversed", gridcolor="#1e2d4a", showgrid=True, zeroline=False),
+                              paper_bgcolor="rgba(0,0,0,0)", plot_bgcolor="rgba(0,0,0,0)",
+                              font=dict(color="#8899bb", family="DM Sans"),
+                              xaxis=dict(gridcolor="#1e2d4a", showgrid=True, zeroline=False),
+                              margin=dict(l=10, r=10, t=30, b=10))
             st.plotly_chart(fig, use_container_width=True)
     with col2:
         fv  = engine.expense.fixed_vs_variable()
