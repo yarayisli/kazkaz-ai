@@ -20,7 +20,7 @@ import json
 # AYARLAR
 # ─────────────────────────────────────────────
 
-GEMINI_MODEL = "gemini-2.5-flash-preview-04-17"
+GEMINI_MODEL = "gemini-2.5-flash-lite-preview-06-17"
 
 SYSTEM_PROMPT = """
 Sen KazKaz AI'nın finansal analiz asistanısın. Adın "KazKaz".
