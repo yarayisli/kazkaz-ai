@@ -401,7 +401,7 @@ def show_sector_tab(df, rapor, sirket_adi="Şirketim", gemini=None):
         fig.update_layout(
             title="Kar Marjı (%) — Sektör Karşılaştırması",
             height=280, **PT,
-            xaxis=dict(ticksuffix="%", **PT["xaxis"]),
+            xaxis=dict(ticksuffix="%", gridcolor="#1e2d4a", showgrid=True, zeroline=False),
         )
         st.plotly_chart(fig, use_container_width=True)
 
@@ -460,7 +460,7 @@ def show_sector_tab(df, rapor, sirket_adi="Şirketim", gemini=None):
         fig.update_layout(
             title=f"{tespit['sektor']} Sektörü Aylık Büyüme Trendi (%)",
             height=320, **PT,
-            yaxis=dict(ticksuffix="%", **PT["yaxis"]),
+            yaxis=dict(ticksuffix="%", gridcolor="#1e2d4a", showgrid=True, zeroline=False),
         )
         st.plotly_chart(fig, use_container_width=True)
 
@@ -489,7 +489,7 @@ def show_sector_tab(df, rapor, sirket_adi="Şirketim", gemini=None):
         fig2.update_layout(
             title="Sektörel Ortalama Büyüme Karşılaştırması",
             height=380, **PT,
-            xaxis=dict(ticksuffix="%", **PT["xaxis"]),
+            xaxis=dict(ticksuffix="%", gridcolor="#1e2d4a", showgrid=True, zeroline=False),
         )
         st.plotly_chart(fig2, use_container_width=True)
 
@@ -558,7 +558,7 @@ def show_sector_tab(df, rapor, sirket_adi="Şirketim", gemini=None):
                       annotation_text="Sektör Ortalaması")
         fig.update_layout(
             title="Sektör Benchmark Alt Skorları (0-100)",
-            yaxis=dict(range=[0,115], **PT["yaxis"]),
+            yaxis=dict(range=[0,115], gridcolor="#1e2d4a", showgrid=True, zeroline=False),
             height=290, **PT,
         )
         st.plotly_chart(fig, use_container_width=True)
