@@ -43,19 +43,77 @@ from reportlab.graphics import renderPDF
 
 
 # ─────────────────────────────────────────────
-# FONT KAYIT
+# FONT KAYIT (Streamlit Cloud uyumlu)
 # ─────────────────────────────────────────────
 
-FONT_PATHS = {
-    "Regular": "/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf",
-    "Bold":    "/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf",
-}
+import urllib.request
+import tempfile
+
+FONT_REGISTERED = False
+
+def _try_download_font(filename: str) -> Optional[str]:
+    """Fontu internetten temp klasörüne indirir."""
+    urls = {
+        "DejaVuSans.ttf":
+            "https://github.com/dejavu-fonts/dejavu-fonts/raw/master/ttf/DejaVuSans.ttf",
+        "DejaVuSans-Bold.ttf":
+            "https://github.com/dejavu-fonts/dejavu-fonts/raw/master/ttf/DejaVuSans-Bold.ttf",
+    }
+    url = urls.get(filename)
+    if not url:
+        return None
+    try:
+        tmp = os.path.join(tempfile.gettempdir(), filename)
+        if not os.path.exists(tmp) or os.path.getsize(tmp) < 1000:
+            urllib.request.urlretrieve(url, tmp)
+        if os.path.getsize(tmp) > 1000:
+            return tmp
+    except Exception:
+        pass
+    return None
+
+def _find_font(filename: str) -> Optional[str]:
+    """Fontu sırasıyla çeşitli konumlarda arar."""
+    candidates = [
+        # Linux sistem
+        f"/usr/share/fonts/truetype/dejavu/{filename}",
+        # Proje klasörü
+        os.path.join(os.path.dirname(os.path.abspath(__file__)), "fonts", filename),
+        os.path.join(os.path.dirname(os.path.abspath(__file__)), filename),
+        # Windows
+        os.path.join(os.environ.get("WINDIR", "C:/Windows"), "Fonts", filename),
+        # macOS
+        f"/Library/Fonts/{filename}",
+        f"/System/Library/Fonts/{filename}",
+    ]
+    for path in candidates:
+        if os.path.exists(path) and os.path.getsize(path) > 1000:
+            return path
+    # İnternetten indir
+    return _try_download_font(filename)
 
 def register_fonts():
-    pdfmetrics.registerFont(TTFont("KazFont",     FONT_PATHS["Regular"]))
-    pdfmetrics.registerFont(TTFont("KazFont-Bold", FONT_PATHS["Bold"]))
+    global FONT_REGISTERED
+    reg  = _find_font("DejaVuSans.ttf")
+    bold = _find_font("DejaVuSans-Bold.ttf")
+    if reg and bold:
+        try:
+            pdfmetrics.registerFont(TTFont("KazFont",      reg))
+            pdfmetrics.registerFont(TTFont("KazFont-Bold", bold))
+            FONT_REGISTERED = True
+            return
+        except Exception:
+            pass
+    # Fallback: Helvetica (her sistemde mevcut, Türkçe desteği sınırlı)
+    FONT_REGISTERED = False
 
 register_fonts()
+
+# Font adları — kayıt başarısızsa Helvetica kullan
+def _f(bold=False) -> str:
+    if FONT_REGISTERED:
+        return "KazFont-Bold" if bold else "KazFont"
+    return "Helvetica-Bold" if bold else "Helvetica"
 
 
 # ─────────────────────────────────────────────
@@ -82,51 +140,51 @@ C_DARK_HDR = colors.HexColor("#0a1628")
 # ─────────────────────────────────────────────
 
 def make_styles() -> Dict[str, ParagraphStyle]:
-    base = dict(fontName="KazFont", leading=16, textColor=colors.HexColor("#1a2540"))
+    base = dict(fontName=_f(), leading=16, textColor=colors.HexColor("#1a2540"))
     return {
         "title": ParagraphStyle("title",
-            fontName="KazFont-Bold", fontSize=28, leading=34,
+            fontName=_f(bold=True), fontSize=28, leading=34,
             textColor=C_WHITE, alignment=TA_CENTER, spaceAfter=6),
         "subtitle": ParagraphStyle("subtitle",
-            fontName="KazFont", fontSize=11, leading=14,
+            fontName=_f(), fontSize=11, leading=14,
             textColor=colors.HexColor("#7090c0"), alignment=TA_CENTER, spaceAfter=4),
         "section": ParagraphStyle("section",
-            fontName="KazFont-Bold", fontSize=13, leading=18,
+            fontName=_f(bold=True), fontSize=13, leading=18,
             textColor=C_DARK_HDR, spaceBefore=16, spaceAfter=8,
             borderPad=4),
         "body": ParagraphStyle("body",
-            fontName="KazFont", fontSize=9.5, leading=15,
+            fontName=_f(), fontSize=9.5, leading=15,
             textColor=colors.HexColor("#2a3a5a"), spaceAfter=6),
         "body_small": ParagraphStyle("body_small",
-            fontName="KazFont", fontSize=8.5, leading=13,
+            fontName=_f(), fontSize=8.5, leading=13,
             textColor=colors.HexColor("#4a6fa5")),
         "kpi_label": ParagraphStyle("kpi_label",
-            fontName="KazFont", fontSize=7.5, leading=10,
+            fontName=_f(), fontSize=7.5, leading=10,
             textColor=colors.HexColor("#4a6fa5"), alignment=TA_CENTER),
         "kpi_value": ParagraphStyle("kpi_value",
-            fontName="KazFont-Bold", fontSize=16, leading=20,
+            fontName=_f(bold=True), fontSize=16, leading=20,
             textColor=C_DARK_HDR, alignment=TA_CENTER),
         "kpi_delta": ParagraphStyle("kpi_delta",
-            fontName="KazFont", fontSize=8, leading=11,
+            fontName=_f(), fontSize=8, leading=11,
             textColor=C_GREEN, alignment=TA_CENTER),
         "table_header": ParagraphStyle("table_header",
-            fontName="KazFont-Bold", fontSize=8.5, leading=12,
+            fontName=_f(bold=True), fontSize=8.5, leading=12,
             textColor=C_WHITE, alignment=TA_CENTER),
         "table_cell": ParagraphStyle("table_cell",
-            fontName="KazFont", fontSize=8.5, leading=12,
+            fontName=_f(), fontSize=8.5, leading=12,
             textColor=colors.HexColor("#1a2a4a"), alignment=TA_CENTER),
         "ai_text": ParagraphStyle("ai_text",
-            fontName="KazFont", fontSize=9, leading=15,
+            fontName=_f(), fontSize=9, leading=15,
             textColor=colors.HexColor("#1a3060"),
             leftIndent=12, rightIndent=12, spaceAfter=6),
         "footer": ParagraphStyle("footer",
-            fontName="KazFont", fontSize=7.5, leading=10,
+            fontName=_f(), fontSize=7.5, leading=10,
             textColor=colors.HexColor("#8899bb"), alignment=TA_CENTER),
         "cover_company": ParagraphStyle("cover_company",
-            fontName="KazFont-Bold", fontSize=14, leading=18,
+            fontName=_f(bold=True), fontSize=14, leading=18,
             textColor=C_ACCENT2, alignment=TA_CENTER),
         "toc_item": ParagraphStyle("toc_item",
-            fontName="KazFont", fontSize=10, leading=16,
+            fontName=_f(), fontSize=10, leading=16,
             textColor=colors.HexColor("#2a3a5a"), leftIndent=20),
     }
 
@@ -161,17 +219,17 @@ class KazkazTemplate(SimpleDocTemplate):
             # Üst çizgi
             canvas.setFillColor(C_ACCENT1)
             canvas.rect(0, h - 28, w, 28, fill=1, stroke=0)
-            canvas.setFont("KazFont-Bold", 10)
+            canvas.setFont(_f(bold=True), 10)
             canvas.setFillColor(C_WHITE)
             canvas.drawString(1.5*cm, h - 19, "KazKaz AI")
-            canvas.setFont("KazFont", 8)
+            canvas.setFont(_f(), 8)
             canvas.drawRightString(w - 1.5*cm, h - 19,
                                    f"{self._sirket_adi}  |  {self._rapor_tarihi}")
 
         # Alt çizgi + sayfa numarası
         canvas.setFillColor(C_DARK_HDR)
         canvas.rect(0, 0, w, 22, fill=1, stroke=0)
-        canvas.setFont("KazFont", 7.5)
+        canvas.setFont(_f(), 7.5)
         canvas.setFillColor(colors.HexColor("#4a6fa5"))
         canvas.drawString(1.5*cm, 7, "KazKaz AI | Finansal Analiz Platformu")
         canvas.setFillColor(colors.HexColor("#60a5fa"))
@@ -277,7 +335,7 @@ def _df_table(df: pd.DataFrame, S: Dict,
     style = [
         ("BACKGROUND",    (0,0), (-1, 0), C_DARK_HDR),
         ("TEXTCOLOR",     (0,0), (-1, 0), C_WHITE),
-        ("FONTNAME",      (0,0), (-1, 0), "KazFont-Bold"),
+        ("FONTNAME", (0,0), (-1, 0), _f(bold=True)),
         ("FONTSIZE",      (0,0), (-1, 0), 8.5),
         ("ALIGN",         (0,0), (-1,-1), "CENTER"),
         ("VALIGN",        (0,0), (-1,-1), "MIDDLE"),
@@ -310,9 +368,9 @@ def _bar_chart(labels: List[str], values: List[float],
     chart.categoryAxis.labels.angle  = 35
     chart.categoryAxis.labels.dy     = -10
     chart.categoryAxis.labels.fontSize = 7
-    chart.categoryAxis.labels.fontName = "KazFont"
+    chart.categoryAxis.labels.fontName = _f()
     chart.valueAxis.labels.fontSize    = 7
-    chart.valueAxis.labels.fontName    = "KazFont"
+    chart.valueAxis.labels.fontName = _f()
     chart.valueAxis.labelTextFormat    = lambda v: fmt(v)
 
     chart.bars[0].fillColor   = bar_color
@@ -350,7 +408,7 @@ def _pie_chart(labels: List[str], values: List[float],
         pie.slices[i].strokeWidth  = 1
         pie.slices[i].labelRadius  = 1.3
         pie.slices[i].fontSize     = 7
-        pie.slices[i].fontName     = "KazFont"
+        pie.slices[i].fontName = _f()
 
     d.add(pie)
     return d
@@ -370,11 +428,11 @@ def _score_gauge(skor: float, kategori: str, width=6*cm, height=3.5*cm) -> Drawi
                fillColor=renk, strokeColor=colors.transparent))
     # Skor yazısı
     d.add(String(width/2, height/2-4, f"{skor}/100",
-                 fontName="KazFont-Bold", fontSize=12,
+                 fontName=_f(bold=True), fontSize=12,
                  fillColor=colors.HexColor("#1a2a4a"),
                  textAnchor="middle"))
     d.add(String(width/2, height/2-18, kategori,
-                 fontName="KazFont-Bold", fontSize=9,
+                 fontName=_f(bold=True), fontSize=9,
                  fillColor=renk, textAnchor="middle"))
     return d
 
@@ -1026,7 +1084,7 @@ class PDFReportGenerator:
                 f"Uyarı: Gecmis veride {tahmin['anomali_sayisi']} anomali tespit edilmistir. "
                 "Tahmin hassasiyeti etkilenmiş olabilir.",
                 ParagraphStyle("warn", parent=S["body"],
-                               textColor=C_YELLOW, fontName="KazFont-Bold")))
+                               textColor=C_YELLOW, fontName=_f(bold=True))))
 
         story.append(PageBreak())
         return story
