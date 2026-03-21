@@ -154,9 +154,14 @@ def _single_investment_ui():
             st.error(f"Hesaplama hatası: {e}")
 
     if "inv_rapor" not in st.session_state:
+        st.info("👆 Yukarıdaki parametreleri doldurup 'Analizi Hesapla' butonuna tıklayın.")
         return
 
-    rapor  = st.session_state["inv_rapor"]
+    rapor  = st.session_state.get("inv_rapor", {})
+    if not rapor or "ozet" not in rapor:
+        st.info("Analiz sonuçları henüz hazır değil.")
+        return
+
     ozet   = rapor["ozet"]
     skor   = rapor["skor"]
     kdf    = rapor["kumulatif_df"]
