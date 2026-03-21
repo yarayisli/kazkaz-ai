@@ -569,7 +569,7 @@ def show_sector_tab(df, rapor, sirket_adi="Şirketim", gemini=None):
                       annotation_text="Sektör Ortalaması")
         fig.update_layout(
             title="Sektör Benchmark Alt Skorları (0-100)",
-            yaxis=dict(range=[0,115], gridcolor="#1e2d4a", showgrid=True, zeroline=False),
-            height=290, **PT,
+            height=290,
+            **pt_merge(yaxis=dict(range=[0,115], gridcolor="#1e2d4a", showgrid=True, zeroline=False)),
         )
         st.plotly_chart(fig, use_container_width=True)
