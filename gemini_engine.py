@@ -1,26 +1,13 @@
 """
-KazKaz AI - Gemini AI Entegrasyon Motoru
-=========================================
-Görevler:
-  - Finansal yorum üretmek
-  - Stratejik öneriler
-  - Yönetici raporu
-  - Sohbet asistanı (şirket verisi üzerinden)
-
-Kurulum:
-  pip install google-generativeai
+KazKaz AI - AI Analiz Motoru (Groq + Gemini destekli)
+======================================================
+Groq (ücretsiz, hızlı) veya Gemini ile çalışır.
+Groq modelleri: llama-3.3-70b-versatile, mixtral-8x7b-32768
 """
 
-import google.generativeai as genai
-from typing import Optional, Dict, Any, List
+from typing import Dict, Any, List, Optional
 import json
 
-
-# ─────────────────────────────────────────────
-# AYARLAR
-# ─────────────────────────────────────────────
-
-GEMINI_MODEL = "gemini-2.0-flash"
 
 SYSTEM_PROMPT = """
 Sen KazKaz AI'nın finansal analiz asistanısın. Adın "KazKaz".
@@ -39,72 +26,116 @@ Cevaplarında:
 """
 
 
-# ─────────────────────────────────────────────
-# GEMİNİ MOTORU
-# ─────────────────────────────────────────────
-
 class GeminiEngine:
     """
-    KazKaz AI için Gemini tabanlı yapay zeka motoru.
+    KazKaz AI için AI motoru.
+    Groq (varsayılan) veya Gemini ile çalışır.
 
     Kullanım:
-        ai = GeminiEngine(api_key="YOUR_KEY")
+        ai = GeminiEngine(api_key="gsk_...", provider="groq")
         yorum = ai.analyze(rapor)
     """
 
-    def __init__(self, api_key: str):
-        genai.configure(api_key=api_key)
-        self.model = genai.GenerativeModel(
-            model_name=GEMINI_MODEL,
-            system_instruction=SYSTEM_PROMPT,
-        )
+    def __init__(self, api_key: str, provider: str = "groq"):
+        self.api_key  = api_key
+        self.provider = provider.lower()
         self.chat_history: List[Dict[str, str]] = []
+        self._client = None
+        self._init_client()
+
+    def _init_client(self):
+        if self.provider == "groq":
+            try:
+                from groq import Groq
+                self._client = Groq(api_key=self.api_key)
+                self._model  = "llama-3.3-70b-versatile"
+            except ImportError:
+                raise ImportError("groq kurulu değil: pip install groq")
+
+        elif self.provider == "gemini":
+            try:
+                import google.generativeai as genai
+                genai.configure(api_key=self.api_key)
+                self._client = genai.GenerativeModel(
+                    model_name="gemini-2.0-flash",
+                    system_instruction=SYSTEM_PROMPT,
+                )
+                self._model = "gemini-2.0-flash"
+            except ImportError:
+                raise ImportError("google-generativeai kurulu değil")
+
+        elif self.provider == "openai":
+            try:
+                from openai import OpenAI
+                self._client = OpenAI(api_key=self.api_key)
+                self._model  = "gpt-4o-mini"
+            except ImportError:
+                raise ImportError("openai kurulu değil: pip install openai")
+
+        else:
+            raise ValueError(f"Bilinmeyen provider: {self.provider}")
+
+    def _call(self, prompt: str) -> str:
+        """Provider'a göre API çağrısı yapar."""
+        try:
+            if self.provider == "groq":
+                response = self._client.chat.completions.create(
+                    model=self._model,
+                    messages=[
+                        {"role": "system", "content": SYSTEM_PROMPT},
+                        {"role": "user",   "content": prompt},
+                    ],
+                    max_tokens=1500,
+                    temperature=0.7,
+                )
+                return response.choices[0].message.content
+
+            elif self.provider == "gemini":
+                response = self._client.generate_content(prompt)
+                return response.text
+
+            elif self.provider == "openai":
+                response = self._client.chat.completions.create(
+                    model=self._model,
+                    messages=[
+                        {"role": "system", "content": SYSTEM_PROMPT},
+                        {"role": "user",   "content": prompt},
+                    ],
+                    max_tokens=1500,
+                )
+                return response.choices[0].message.content
+
+        except Exception as e:
+            return f"⚠️ AI yanıt üretemedi: {str(e)}"
 
     # ─────────────────────────────────────────
     # 1. FİNANSAL ANALİZ YORUMU
     # ─────────────────────────────────────────
 
     def analyze(self, rapor: Dict[str, Any]) -> str:
-        """
-        full_report() çıktısını alır, kapsamlı yorum üretir.
-        """
         prompt = self._build_analysis_prompt(rapor)
-        try:
-            response = self.model.generate_content(prompt)
-            return response.text
-        except Exception as e:
-            return f"⚠️ AI analizi şu anda kullanılamıyor: {str(e)}"
+        return self._call(prompt)
 
     def _build_analysis_prompt(self, rapor: Dict[str, Any]) -> str:
-        gelir   = rapor.get("gelir", {})
-        gider   = rapor.get("gider", {})
-        kar     = rapor.get("karlilik", {})
-        saglik  = rapor.get("saglik_skoru", {})
-
+        g = rapor.get("gelir", {})
+        e = rapor.get("gider", {})
+        k = rapor.get("karlilik", {})
+        s = rapor.get("saglik_skoru", {})
         return f"""
 Aşağıdaki finansal verileri analiz et ve kapsamlı bir yönetici raporu yaz.
 
 ## Finansal Özet
+- Toplam Gelir: {g.get('toplam_gelir', 0):,.0f} ₺
+- Ortalama Aylık Gelir: {g.get('ortalama_aylik_gelir', 0):,.0f} ₺
+- Ortalama Büyüme: %{g.get('ortalama_buyume_orani', 0)}
+- En Karlı Kategori: {g.get('en_karli_kategori', {}).get('kategori', '-')}
+- Toplam Gider: {e.get('toplam_gider', 0):,.0f} ₺
+- Sabit Gider Oranı: %{e.get('sabit_gider_orani', 0)}
+- Net Kar: {k.get('toplam_net_kar', 0):,.0f} ₺
+- Kar Marjı: %{k.get('kar_marji', 0)}
+- Trend: {k.get('kar_trendi', '-')}
+- Sağlık Skoru: {s.get('skor', 0)}/100 → {s.get('kategori', '-')}
 
-**Gelir:**
-- Toplam Gelir: {gelir.get('toplam_gelir', 0):,.0f} ₺
-- Ortalama Aylık Gelir: {gelir.get('ortalama_aylik_gelir', 0):,.0f} ₺
-- Ortalama Büyüme Oranı: %{gelir.get('ortalama_buyume_orani', 0)}
-- En Karlı Kategori: {gelir.get('en_karli_kategori', {}).get('kategori', '-')} ({gelir.get('en_karli_kategori', {}).get('gelir', 0):,.0f} ₺)
-
-**Gider:**
-- Toplam Gider: {gider.get('toplam_gider', 0):,.0f} ₺
-- En Yüksek Gider Kalemi: {gider.get('en_yuksek_gider_kalemi', {}).get('kategori', '-')}
-- Sabit Gider Oranı: %{gider.get('sabit_gider_orani', 0)}
-
-**Karlılık:**
-- Net Kar: {kar.get('toplam_net_kar', 0):,.0f} ₺
-- Kar Marjı: %{kar.get('kar_marji', 0)}
-- Trend: {kar.get('kar_trendi', '-')}
-
-**Finansal Sağlık Skoru:** {saglik.get('skor', 0)} / 100 → {saglik.get('kategori', '-')}
-
----
 Lütfen şunları içeren bir rapor yaz:
 1. 📊 Genel Değerlendirme (2-3 cümle)
 2. ✅ Güçlü Yönler
@@ -117,65 +148,64 @@ Lütfen şunları içeren bir rapor yaz:
     # ─────────────────────────────────────────
 
     def strategic_recommendations(self, rapor: Dict[str, Any]) -> str:
-        """Sadece stratejik öneriler üretir."""
-        kar_marji = rapor.get("karlilik", {}).get("kar_marji", 0)
-        saglik    = rapor.get("saglik_skoru", {}).get("skor", 50)
-        trend     = rapor.get("karlilik", {}).get("kar_trendi", "Stabil")
-
+        k = rapor.get("karlilik", {})
+        s = rapor.get("saglik_skoru", {})
         prompt = f"""
 Şirketin finansal durumu:
-- Kar Marjı: %{kar_marji}
-- Sağlık Skoru: {saglik}/100
-- Karlılık Trendi: {trend}
+- Kar Marjı: %{k.get('kar_marji', 0)}
+- Sağlık Skoru: {s.get('skor', 50)}/100
+- Karlılık Trendi: {k.get('kar_trendi', 'Stabil')}
 
 Bu verilere göre yöneticiye 5 somut ve uygulanabilir stratejik öneri sun.
 Her öneri için: ne yapılmalı, neden yapılmalı, beklenen etki.
 """
-        try:
-            response = self.model.generate_content(prompt)
-            return response.text
-        except Exception as e:
-            return f"⚠️ Öneri üretilemedi: {str(e)}"
+        return self._call(prompt)
 
     # ─────────────────────────────────────────
     # 3. SOHBET ASİSTANI
     # ─────────────────────────────────────────
 
     def chat(self, user_message: str, rapor: Dict[str, Any]) -> str:
-        """
-        Şirket verisi üzerinden sohbet.
-        Konuşma geçmişini korur (çok turlu).
-        """
-        # İlk mesajda şirket verisini context olarak ekle
         if not self.chat_history:
             self.chat_history.append({
                 "role": "user",
                 "content": f"Şirket verim:\n{json.dumps(rapor, ensure_ascii=False, indent=2)}\n\nBu veriler üzerinden sorularıma cevap ver."
             })
             self.chat_history.append({
-                "role": "model",
+                "role": "assistant",
                 "content": "Anladım! Şirketinizin finansal verilerini inceledim. Sorularınızı yanıtlamaya hazırım."
             })
 
         self.chat_history.append({"role": "user", "content": user_message})
 
-        # Gemini formatına dönüştür
-        messages = [
-            {"role": m["role"], "parts": [m["content"]]}
-            for m in self.chat_history
-        ]
-
         try:
-            chat_session = self.model.start_chat(history=messages[:-1])
-            response = chat_session.send_message(user_message)
-            ai_reply = response.text
-            self.chat_history.append({"role": "model", "content": ai_reply})
-            return ai_reply
+            if self.provider in ["groq", "openai"]:
+                messages = [{"role": "system", "content": SYSTEM_PROMPT}] + [
+                    {"role": m["role"], "content": m["content"]}
+                    for m in self.chat_history
+                ]
+                response = self._client.chat.completions.create(
+                    model=self._model,
+                    messages=messages,
+                    max_tokens=1000,
+                )
+                reply = response.choices[0].message.content
+
+            elif self.provider == "gemini":
+                history = [
+                    {"role": m["role"], "parts": [m["content"]]}
+                    for m in self.chat_history[:-1]
+                ]
+                session = self._client.start_chat(history=history)
+                reply   = session.send_message(user_message).text
+
+            self.chat_history.append({"role": "assistant", "content": reply})
+            return reply
+
         except Exception as e:
             return f"⚠️ Sohbet hatası: {str(e)}"
 
     def reset_chat(self):
-        """Sohbet geçmişini temizler."""
         self.chat_history = []
 
     # ─────────────────────────────────────────
@@ -183,24 +213,11 @@ Her öneri için: ne yapılmalı, neden yapılmalı, beklenen etki.
     # ─────────────────────────────────────────
 
     def scenario_comment(self, mevcut: Dict, senaryo: Dict) -> str:
-        """Senaryo analizi sonucunu yorumlar."""
         prompt = f"""
-Bir senaryo analizi yapıldı. Sonuçları yöneticiye yorum:
-
-Mevcut Durum:
-- Gelir: {mevcut.get('gelir', 0):,.0f} ₺
-- Net Kar: {mevcut.get('net_kar', 0):,.0f} ₺
-- Kar Marjı: %{mevcut.get('kar_marji', 0)}
-
-Senaryo (gelir artışı + gider azalışı):
-- Yeni Gelir: {senaryo.get('gelir', 0):,.0f} ₺
-- Yeni Net Kar: {senaryo.get('net_kar', 0):,.0f} ₺
-- Yeni Kar Marjı: %{senaryo.get('kar_marji', 0)}
+Bir senaryo analizi yapıldı:
+Mevcut: Gelir {mevcut.get('gelir', 0):,.0f} ₺, Net Kar {mevcut.get('net_kar', 0):,.0f} ₺, Kar Marjı %{mevcut.get('kar_marji', 0)}
+Senaryo: Gelir {senaryo.get('gelir', 0):,.0f} ₺, Net Kar {senaryo.get('net_kar', 0):,.0f} ₺, Kar Marjı %{senaryo.get('kar_marji', 0)}
 
 Bu senaryonun gerçekçiliği ve uygulanabilirliği hakkında 3-4 cümle yorum yaz.
 """
-        try:
-            response = self.model.generate_content(prompt)
-            return response.text
-        except Exception as e:
-            return f"⚠️ Senaryo yorumu üretilemedi: {str(e)}"
+        return self._call(prompt)

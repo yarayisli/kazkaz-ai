@@ -95,6 +95,7 @@ FIREBASE_WEB_API_KEY = get_secret("FIREBASE_WEB_API_KEY")
 FIREBASE_CRED_PATH   = get_secret("FIREBASE_CRED_PATH", "firebase_credentials.json")
 FIREBASE_PROJECT_ID  = get_secret("FIREBASE_PROJECT_ID")
 GEMINI_API_KEY_ENV   = get_secret("GEMINI_API_KEY")
+GROQ_API_KEY_ENV     = get_secret("GROQ_API_KEY")
 
 # ─────────────────────────────────────────────
 # CSS
@@ -329,22 +330,39 @@ with st.sidebar:
     # AI aktivasyonu
     sec("🤖 Yapay Zeka")
     if not GEMINI_OK:
-        st.caption("google-generativeai kurulu değil.")
+        st.caption("AI motoru yüklenemedi.")
     elif not can("ai_yorum"):
         st.caption("🔒 Pro veya Uzman paket gerekli.")
     else:
-        st.markdown('<div class="ai-badge">Gemini Powered</div>', unsafe_allow_html=True)
+        # Provider seçimi
+        provider = st.radio("AI Servisi", ["Groq (Ücretsiz)", "Gemini"],
+                            horizontal=True, key="ai_provider")
+
         ai_toggle = st.toggle("AI Aktif Et", value=st.session_state.ai_active)
         if ai_toggle and not st.session_state.ai_active:
-            api_key = GEMINI_API_KEY_ENV or st.text_input(
-                "Gemini API Key", type="password",
-                help="https://aistudio.google.com/app/apikey"
-            )
+            if "Groq" in provider:
+                st.markdown('<div class="ai-badge">Groq — Llama 3.3</div>',
+                            unsafe_allow_html=True)
+                api_key = GROQ_API_KEY_ENV or st.text_input(
+                    "Groq API Key", type="password",
+                    help="console.groq.com → API Keys → Create"
+                )
+                chosen_provider = "groq"
+            else:
+                st.markdown('<div class="ai-badge">Gemini 2.0 Flash</div>',
+                            unsafe_allow_html=True)
+                api_key = GEMINI_API_KEY_ENV or st.text_input(
+                    "Gemini API Key", type="password",
+                    help="aistudio.google.com/app/apikey"
+                )
+                chosen_provider = "gemini"
+
             if api_key and st.button("🔓 Etkinleştir", use_container_width=True):
                 try:
-                    st.session_state.gemini    = GeminiEngine(api_key=api_key)
+                    st.session_state.gemini    = GeminiEngine(
+                        api_key=api_key, provider=chosen_provider)
                     st.session_state.ai_active = True
-                    st.success("🤖 AI aktif!")
+                    st.success(f"🤖 {provider} aktif!")
                     st.rerun()
                 except Exception as e:
                     st.error(f"Hata: {e}")
