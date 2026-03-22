@@ -329,8 +329,10 @@ def _comparison_ui():
     if "comp_df" not in st.session_state:
         return
 
-    df   = st.session_state["comp_df"]
-    best = st.session_state["comp_best"]
+    df   = st.session_state.get("comp_df")
+    best = st.session_state.get("comp_best")
+    if df is None or df.empty:
+        return
 
     st.markdown(f"""
     <div style="background:#0a1a10;border:1px solid #10d99444;border-radius:10px;
@@ -413,7 +415,10 @@ def _monte_carlo_ui():
     if "mc_sonuc" not in st.session_state:
         return
 
-    mc = st.session_state["mc_sonuc"]
+    mc = st.session_state.get("mc_sonuc", {})
+    if not mc or "risk_seviyesi" not in mc:
+        st.info("Simülasyonu çalıştırmak için butona tıklayın.")
+        return
 
     # Risk özeti
     risk_renk = {
