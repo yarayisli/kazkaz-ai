@@ -40,20 +40,50 @@ def get_size(calissan: int) -> CompanySize:
 
 @dataclass
 class CompanyProfile:
-    """Şirket temel bilgileri."""
-    sirket_adi:       str
-    sektor:           str
-    alt_sektor:       str   = ""
-    kuruluş_yili:     int   = 2020
-    calissan_sayisi:  int   = 10
-    sehir:            str   = "İstanbul"
-    web_sitesi:       str   = ""
-    vergi_no:         str   = ""
-    sermaye:          float = 0.0
-    ortak_sayisi:     int   = 1
-    ihracat_yapıyor:  bool  = False
-    borsada_mi:       bool  = False
-    aciklama:         str   = ""
+    """Şirket temel bilgileri — genişletilmiş profil."""
+    # Temel bilgiler
+    sirket_adi:         str
+    sektor:             str
+    alt_sektor:         str   = ""
+    kuruluş_yili:       int   = 2020
+    calissan_sayisi:    int   = 10
+    sehir:              str   = "İstanbul"
+
+    # Finansal yapı
+    sermaye:            float = 0.0
+    ortak_sayisi:       int   = 1
+    yillik_ciro_hedef:  float = 0.0   # Bu yılki hedef ciro
+    buyume_hedefi:      float = 0.0   # Yıllık büyüme hedefi (%)
+    kar_marji_hedefi:   float = 0.0   # Hedef kar marjı (%)
+
+    # Operasyonel bilgiler
+    urun_hizmet_sayisi: int   = 1     # Kaç ürün/hizmet sunuluyor
+    musteri_sayisi:     int   = 0     # Aktif müşteri sayısı
+    aylik_yeni_musteri: int   = 0     # Aylık ortalama yeni müşteri
+    musteri_kayip_orani:float = 0.0   # Aylık churn oranı (%)
+    ortalama_sepet:     float = 0.0   # Ortalama işlem/sipariş tutarı
+
+    # Pazar bilgisi
+    hedef_pazar:        str   = "Yurt İçi"   # Yurt İçi / Yurt Dışı / Her İkisi
+    ana_rakipler:       str   = ""            # Rakip şirket isimleri (virgülle)
+    rekabet_avantaji:   str   = ""            # Fark yaratan özellik
+
+    # Maliyet yapısı
+    en_buyuk_gider:     str   = ""            # En büyük gider kalemi
+    sabit_gider_orani:  float = 0.0           # Tahmini sabit gider oranı (%)
+    personel_gider_orani:float= 0.0           # Personel giderinin payı (%)
+
+    # Teknoloji & Dijital
+    dijital_satis_orani:float = 0.0   # Online satış oranı (%)
+    crm_kullaniyor:     bool  = False
+    erp_kullaniyor:     bool  = False
+
+    # Diğer
+    ihracat_yapıyor:    bool  = False
+    ihracat_orani:      float = 0.0   # Toplam gelirdeki ihracat payı (%)
+    borsada_mi:         bool  = False
+    web_sitesi:         str   = ""
+    aciklama:           str   = ""    # Serbest açıklama
 
     @property
     def buyukluk(self) -> CompanySize:
@@ -66,16 +96,42 @@ class CompanyProfile:
 
     def to_dict(self) -> Dict:
         return {
-            "sirket_adi":      self.sirket_adi,
-            "sektor":          self.sektor,
-            "alt_sektor":      self.alt_sektor,
-            "kuruluş_yili":    self.kuruluş_yili,
-            "calissan_sayisi": self.calissan_sayisi,
-            "sehir":           self.sehir,
-            "buyukluk":        self.buyukluk.value,
-            "yas":             self.yas,
-            "ihracat":         self.ihracat_yapıyor,
-            "borsada":         self.borsada_mi,
+            # Temel
+            "sirket_adi":          self.sirket_adi,
+            "sektor":              self.sektor,
+            "alt_sektor":          self.alt_sektor,
+            "kuruluş_yili":        self.kuruluş_yili,
+            "calissan_sayisi":     self.calissan_sayisi,
+            "sehir":               self.sehir,
+            "buyukluk":            self.buyukluk.value,
+            "yas":                 self.yas,
+            # Finansal hedefler
+            "yillik_ciro_hedef":   self.yillik_ciro_hedef,
+            "buyume_hedefi":       self.buyume_hedefi,
+            "kar_marji_hedefi":    self.kar_marji_hedefi,
+            # Operasyonel
+            "musteri_sayisi":      self.musteri_sayisi,
+            "aylik_yeni_musteri":  self.aylik_yeni_musteri,
+            "musteri_kayip_orani": self.musteri_kayip_orani,
+            "ortalama_sepet":      self.ortalama_sepet,
+            "urun_hizmet_sayisi":  self.urun_hizmet_sayisi,
+            # Pazar
+            "hedef_pazar":         self.hedef_pazar,
+            "ana_rakipler":        self.ana_rakipler,
+            "rekabet_avantaji":    self.rekabet_avantaji,
+            # Maliyet
+            "en_buyuk_gider":      self.en_buyuk_gider,
+            "sabit_gider_orani":   self.sabit_gider_orani,
+            "personel_gider_orani":self.personel_gider_orani,
+            # Dijital
+            "dijital_satis_orani": self.dijital_satis_orani,
+            "crm_kullaniyor":      self.crm_kullaniyor,
+            "erp_kullaniyor":      self.erp_kullaniyor,
+            # Diğer
+            "ihracat":             self.ihracat_yapıyor,
+            "ihracat_orani":       self.ihracat_orani,
+            "borsada":             self.borsada_mi,
+            "aciklama":            self.aciklama,
         }
 
 
