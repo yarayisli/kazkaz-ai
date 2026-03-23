@@ -522,7 +522,14 @@ class CFOAgent:
                 "portfolio_ozet", {}).get("toplam_borc", 0)
             faiz_orani  = self.debt_rapor.get(
                 "portfolio_ozet", {}).get("agirlikli_faiz", 40) / 100
-        debt_oneri = self.debt_tool.run(self.fin_rapor, toplam_borc, faiz_orani)
+        try:
+            debt_oneri = self.debt_tool.run(self.fin_rapor, toplam_borc, faiz_orani)
+        except Exception:
+            debt_oneri = {
+                "mevcut_borc": 0, "faiz_orani_pct": 0,
+                "max_yillik_borc_servis": 0, "oneriler": [],
+                "borc_gelir_orani": 0,
+            }
 
         # 5. Uyarıları önceliklendir
         tum_uyarilar.sort(key=lambda x: (
