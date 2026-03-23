@@ -275,15 +275,11 @@ def show_budget_tab(df: pd.DataFrame, fin_rapor: dict = None):
                 x=kars["Dönem"], y=kars["Gelir Sapma (₺)"],
                 name="Sapma (₺)", yaxis="y2",
                 mode="lines+markers",
-                line=dict(
-                    color=[C_GREEN if v>=0 else C_RED
-                           for v in kars["Gelir Sapma (₺)"]],
-                    width=2,
-                ),
+                line=dict(color=C_CYAN, width=2),
                 marker=dict(
                     color=[C_GREEN if v>=0 else C_RED
                            for v in kars["Gelir Sapma (₺)"]],
-                    size=7,
+                    size=8,
                 ),
             )
             fig.add_hline(y=0, line_dash="dash",
