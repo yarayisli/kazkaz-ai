@@ -76,6 +76,12 @@ try:
 except ImportError:
     CFO_OK = False
 
+try:
+    from company_ui import show_company_tab
+    COMPANY_OK = True
+except ImportError:
+    COMPANY_OK = False
+
 # ─────────────────────────────────────────────
 # SAYFA AYARLARI
 # ─────────────────────────────────────────────
@@ -458,11 +464,12 @@ df     = st.session_state.df
 (tab_genel, tab_gelir, tab_gider, tab_kar,
  tab_tahmin, tab_senaryo, tab_yatirim,
  tab_nakit, tab_borc, tab_sektor,
- tab_cfo, tab_ai, tab_sohbet) = st.tabs([
+ tab_profil, tab_cfo, tab_ai, tab_sohbet) = st.tabs([
     "📊 Genel", "💰 Gelir", "📉 Gider", "📈 Karlılık",
     "🔮 Tahmin", "🎯 Senaryo", "💼 Yatırım",
     "💧 Nakit Akışı", "🏦 Borç Analizi",
-    "🏭 Sektör", "🧠 CFO Agent", "🤖 AI Analiz", "💬 AI Sohbet",
+    "🏭 Sektör", "🏢 Şirket Profili", "🧠 CFO Agent",
+    "🤖 AI Analiz", "💬 AI Sohbet",
 ])
 
 # ══ GENEL ══
@@ -740,6 +747,13 @@ with tab_sektor:
             sirket_adi = st.session_state.get("sirket_adi", "Şirketim"),
             gemini     = gemini_inst,
         )
+
+# ══ ŞİRKET PROFİLİ ══
+with tab_profil:
+    if not COMPANY_OK:
+        st.error("`company_profile.py` ve `company_ui.py` dosyaları klasörde olmalı.")
+    else:
+        show_company_tab(fin_rapor=rapor)
 
 # ══ CFO AGENT ══
 with tab_cfo:
