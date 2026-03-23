@@ -82,6 +82,12 @@ try:
 except ImportError:
     COMPANY_OK = False
 
+try:
+    from customer_ui import show_customer_tab
+    CUSTOMER_OK = True
+except ImportError:
+    CUSTOMER_OK = False
+
 # ─────────────────────────────────────────────
 # SAYFA AYARLARI
 # ─────────────────────────────────────────────
@@ -464,7 +470,7 @@ df     = st.session_state.df
 (tab_genel, tab_gelir, tab_gider, tab_kar,
  tab_tahmin, tab_senaryo, tab_yatirim,
  tab_nakit, tab_borc, tab_sektor,
- tab_profil, tab_cfo, tab_ai, tab_sohbet) = st.tabs([
+ tab_profil, tab_musteri, tab_cfo, tab_ai, tab_sohbet) = st.tabs([
     "📊 Genel", "💰 Gelir", "📉 Gider", "📈 Karlılık",
     "🔮 Tahmin", "🎯 Senaryo", "💼 Yatırım",
     "💧 Nakit Akışı", "🏦 Borç Analizi",
@@ -754,6 +760,13 @@ with tab_profil:
         st.error("`company_profile.py` ve `company_ui.py` dosyaları klasörde olmalı.")
     else:
         show_company_tab(fin_rapor=rapor)
+
+# ══ MÜŞTERİ & ÜRÜN ANALİZİ ══
+with tab_musteri:
+    if not CUSTOMER_OK:
+        st.error("`customer_engine.py` ve `customer_ui.py` dosyaları klasörde olmalı.")
+    else:
+        show_customer_tab(df=df)
 
 # ══ CFO AGENT ══
 with tab_cfo:
