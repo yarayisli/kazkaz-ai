@@ -70,6 +70,12 @@ try:
 except ImportError:
     CASHFLOW_OK = False
 
+try:
+    from cfo_ui import show_cfo_tab
+    CFO_OK = True
+except ImportError:
+    CFO_OK = False
+
 # ─────────────────────────────────────────────
 # SAYFA AYARLARI
 # ─────────────────────────────────────────────
@@ -452,11 +458,11 @@ df     = st.session_state.df
 (tab_genel, tab_gelir, tab_gider, tab_kar,
  tab_tahmin, tab_senaryo, tab_yatirim,
  tab_nakit, tab_borc, tab_sektor,
- tab_ai, tab_sohbet) = st.tabs([
+ tab_cfo, tab_ai, tab_sohbet) = st.tabs([
     "📊 Genel", "💰 Gelir", "📉 Gider", "📈 Karlılık",
     "🔮 Tahmin", "🎯 Senaryo", "💼 Yatırım",
     "💧 Nakit Akışı", "🏦 Borç Analizi",
-    "🏭 Sektör", "🤖 AI Analiz", "💬 AI Sohbet",
+    "🏭 Sektör", "🧠 CFO Agent", "🤖 AI Analiz", "💬 AI Sohbet",
 ])
 
 # ══ GENEL ══
@@ -733,6 +739,20 @@ with tab_sektor:
             rapor      = rapor,
             sirket_adi = st.session_state.get("sirket_adi", "Şirketim"),
             gemini     = gemini_inst,
+        )
+
+# ══ CFO AGENT ══
+with tab_cfo:
+    if not CFO_OK:
+        st.error("`cfo_agent.py` ve `cfo_ui.py` dosyaları klasörde olmalı.")
+    else:
+        ai_inst = st.session_state.gemini if st.session_state.ai_active else None
+        show_cfo_tab(
+            fin_rapor  = rapor,
+            sirket_adi = st.session_state.get("sirket_adi", "Şirketim"),
+            ai_engine  = ai_inst,
+            cf_rapor   = st.session_state.get("cf_rapor"),
+            debt_rapor = st.session_state.get("debt_rapor"),
         )
 
 # ══ AI ANALİZ ══
