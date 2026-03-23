@@ -72,72 +72,204 @@ def durum_renk(d):
 # ─────────────────────────────────────────────
 
 def show_profile_form() -> CompanyProfile:
-    """Şirket profili giriş formu."""
-    sec("🏢 Şirket Profili")
+    """Şirket profili — 4 kategorili detaylı form."""
+    sec("🏢 Şirket Profili Bilgileri")
 
-    col1, col2, col3 = st.columns(3)
+    st.markdown(
+        '<div style="color:#4a6fa5;font-size:.82rem;margin-bottom:16px;">'
+        'Ne kadar çok bilgi girerseniz analizlerimiz o kadar isabetli olur. '
+        'Tüm alanlar opsiyonel — bildiğiniz kadarını doldurun.</div>',
+        unsafe_allow_html=True)
 
-    with col1:
-        sirket_adi = st.text_input(
-            "Şirket Adı", 
-            value=st.session_state.get("sirket_adi", "Şirketim"),
-            key="cp_adi"
-        )
-        sektor = st.selectbox(
-            "Ana Sektör",
-            options=list(TURKEY_MARKET_DATA.keys()),
-            index=0, key="cp_sektor"
-        )
-        alt_sektor = st.text_input(
-            "Alt Sektör (opsiyonel)",
-            placeholder="Örn: SaaS, B2B, Gıda Üretimi...",
-            key="cp_alt"
-        )
+    f1, f2, f3, f4 = st.tabs([
+        "🏢 Temel Bilgiler",
+        "📊 Finansal Hedefler",
+        "👥 Müşteri & Pazar",
+        "⚙️ Operasyonel",
+    ])
 
-    with col2:
-        kuruluş_yili = st.number_input(
-            "Kuruluş Yılı", min_value=1900,
-            max_value=datetime.now().year,
-            value=2020, key="cp_yil"
-        )
-        calissan = st.number_input(
-            "Çalışan Sayısı", min_value=1,
-            max_value=100_000, value=15, key="cp_calissan"
-        )
-        sehir = st.selectbox(
-            "Merkez Şehir",
-            ["İstanbul", "Ankara", "İzmir", "Bursa", "Antalya",
-             "Konya", "Adana", "Gaziantep", "Diğer"],
-            key="cp_sehir"
-        )
-
-    with col3:
-        sermaye = st.number_input(
-            "Ödenmiş Sermaye (₺)", min_value=0,
-            value=500_000, step=50_000, key="cp_sermaye"
-        )
-        ihracat = st.checkbox("İhracat Yapıyor", key="cp_ihracat")
-        borsada = st.checkbox("Borsada İşlem Görüyor", key="cp_borsa")
+    # ── TAB 1: TEMEL ──
+    with f1:
+        c1, c2, c3 = st.columns(3)
+        with c1:
+            sirket_adi = st.text_input(
+                "Şirket Adı *",
+                value=st.session_state.get("sirket_adi", "Şirketim"),
+                key="cp_adi")
+            sektor = st.selectbox(
+                "Ana Sektör *",
+                options=list(TURKEY_MARKET_DATA.keys()),
+                key="cp_sektor")
+            alt_sektor = st.text_input(
+                "Alt Sektör",
+                placeholder="Örn: SaaS, B2B, Gıda Üretimi...",
+                key="cp_alt")
+        with c2:
+            kuruluş_yili = st.number_input(
+                "Kuruluş Yılı", min_value=1900,
+                max_value=datetime.now().year,
+                value=2020, key="cp_yil")
+            calissan = st.number_input(
+                "Çalışan Sayısı", min_value=1,
+                max_value=100_000, value=15, key="cp_calissan")
+            sehir = st.selectbox(
+                "Merkez Şehir",
+                ["İstanbul","Ankara","İzmir","Bursa","Antalya",
+                 "Konya","Adana","Gaziantep","Diğer"],
+                key="cp_sehir")
+        with c3:
+            sermaye = st.number_input(
+                "Ödenmiş Sermaye (₺)", min_value=0,
+                value=500_000, step=50_000, key="cp_sermaye")
+            hedef_pazar = st.selectbox(
+                "Hedef Pazar",
+                ["Yurt İçi","Yurt Dışı","Her İkisi"],
+                key="cp_pazar")
+            ihracat = st.checkbox("İhracat Yapıyor", key="cp_ihracat")
+            ihracat_orani = st.slider(
+                "İhracat Oranı (%)", 0, 100, 0,
+                key="cp_ihracat_oran",
+                disabled=not ihracat)
+            borsada = st.checkbox("Borsada İşlem Görüyor", key="cp_borsa")
         aciklama = st.text_area(
-            "Şirket Açıklaması (opsiyonel)",
-            placeholder="Şirketin ne yaptığını kısaca açıklayın...",
-            height=80, key="cp_aciklama"
-        )
+            "Şirket Ne Yapıyor? (Özet)",
+            placeholder="Örn: B2B SaaS muhasebe yazılımı geliştiriyoruz. "
+                        "250 KOBİ müşterimiz var. Abonelik modeliyle çalışıyoruz.",
+            height=90, key="cp_aciklama")
+        rekabet_avantaji = st.text_area(
+            "Rekabet Avantajı / Fark Yaratan Özellik",
+            placeholder="Örn: Rakiplerimizden %40 daha hızlı kurulum, "
+                        "Türkçe destek, entegre muhasebe modülü...",
+            height=70, key="cp_rekabet")
 
-    # Session state güncelle
+    # ── TAB 2: FİNANSAL HEDEFLER ──
+    with f2:
+        c1, c2 = st.columns(2)
+        with c1:
+            yillik_ciro_hedef = st.number_input(
+                "Bu Yıl Ciro Hedefiniz (₺)",
+                min_value=0, value=0, step=100_000,
+                key="cp_ciro_hedef",
+                help="Yıl sonunda ulaşmak istediğiniz ciro")
+            buyume_hedefi = st.slider(
+                "Yıllık Büyüme Hedefiniz (%)",
+                0, 200, 20, key="cp_buyume_hedef")
+            kar_marji_hedefi = st.slider(
+                "Hedef Kar Marjı (%)",
+                0, 60, 15, key="cp_km_hedef")
+        with c2:
+            ortalama_sepet = st.number_input(
+                "Ortalama Sipariş/İşlem Tutarı (₺)",
+                min_value=0, value=0, step=100,
+                key="cp_sepet",
+                help="Müşteri başına ortalama satış tutarı")
+            sabit_gider_orani = st.slider(
+                "Tahmini Sabit Gider Oranı (%)",
+                0, 100, 40, key="cp_sabit_gider",
+                help="Toplam giderlerin kaçı sabit (kira, maaş vb.)?")
+            personel_gider_orani = st.slider(
+                "Personel Gideri Oranı (%)",
+                0, 80, 30, key="cp_personel_gider",
+                help="Toplam giderlerin kaçı personel maliyeti?")
+        en_buyuk_gider = st.text_input(
+            "En Büyük Gider Kaleminiz",
+            placeholder="Örn: Personel, Kira, Hammadde, Pazarlama...",
+            key="cp_buyuk_gider")
+
+    # ── TAB 3: MÜŞTERİ & PAZAR ──
+    with f3:
+        c1, c2 = st.columns(2)
+        with c1:
+            musteri_sayisi = st.number_input(
+                "Aktif Müşteri Sayısı",
+                min_value=0, value=0, step=10,
+                key="cp_musteri")
+            aylik_yeni_musteri = st.number_input(
+                "Aylık Ortalama Yeni Müşteri",
+                min_value=0, value=0, key="cp_yeni_musteri")
+            musteri_kayip = st.slider(
+                "Aylık Müşteri Kaybı / Churn (%)",
+                0, 30, 0, key="cp_churn",
+                help="Her ay müşterilerin kaçı ayrılıyor?")
+        with c2:
+            urun_sayisi = st.number_input(
+                "Ürün / Hizmet Sayısı",
+                min_value=1, value=1, key="cp_urun")
+            ana_rakipler = st.text_input(
+                "Ana Rakipleriniz (virgülle ayırın)",
+                placeholder="Örn: Logo, Netsis, Mikro...",
+                key="cp_rakipler")
+        st.markdown(
+            '<div style="background:#0d1520;border:1px solid #1e3a5f;'
+            'border-radius:10px;padding:12px 16px;margin-top:10px;">'
+            '<div style="color:#60a5fa;font-size:.8rem;font-weight:600;'
+            'margin-bottom:6px;">💡 Bu bilgiler ne işe yarar?</div>'
+            '<div style="color:#4a6fa5;font-size:.8rem;line-height:1.6;">'
+            'Müşteri sayısı ve churn oranından LTV hesaplanır. '
+            'Yeni müşteri sayısından büyüme potansiyeli görülür. '
+            'Rakip bilgisiyle karşılaştırmalı analiz yapılır.</div></div>',
+            unsafe_allow_html=True)
+
+    # ── TAB 4: OPERASYONEL ──
+    with f4:
+        c1, c2 = st.columns(2)
+        with c1:
+            dijital_satis = st.slider(
+                "Dijital / Online Satış Oranı (%)",
+                0, 100, 0, key="cp_dijital",
+                help="Satışlarınızın kaçı online/dijital kanaldan?")
+            crm = st.checkbox(
+                "CRM Sistemi Kullanıyor", key="cp_crm",
+                help="Salesforce, HubSpot, Zoho vb.")
+            erp = st.checkbox(
+                "ERP Sistemi Kullanıyor", key="cp_erp",
+                help="SAP, Logo, Mikro, Netsis vb.")
+        with c2:
+            st.markdown(
+                '<div style="background:#0a1a10;border:1px solid #10d99422;'
+                'border-radius:10px;padding:12px 14px;">'
+                '<div style="color:#10d994;font-size:.8rem;font-weight:600;'
+                'margin-bottom:8px;">🎯 Doldurunca neler açılır?</div>'
+                '<div style="color:#4a6fa5;font-size:.78rem;line-height:1.7;">'
+                '✅ Dijital oran → E-ticaret KPI karşılaştırması<br>'
+                '✅ CRM → Müşteri yönetimi skoru<br>'
+                '✅ ERP → Operasyonel verimlilik puanı<br>'
+                '✅ Churn → Gelir riski hesabı<br>'
+                '✅ Rakipler → Özel karşılaştırma tablosu'
+                '</div></div>',
+                unsafe_allow_html=True)
+
     st.session_state["sirket_adi"] = sirket_adi
 
     return CompanyProfile(
-        sirket_adi      = sirket_adi,
-        sektor          = sektor,
-        alt_sektor      = alt_sektor,
-        kuruluş_yili    = kuruluş_yili,
-        calissan_sayisi = calissan,
-        sehir           = sehir,
-        sermaye         = sermaye,
-        ihracat_yapıyor = ihracat,
-        borsada_mi      = borsada,
-        aciklama        = aciklama,
+        sirket_adi           = sirket_adi,
+        sektor               = sektor,
+        alt_sektor           = alt_sektor,
+        kuruluş_yili         = int(kuruluş_yili),
+        calissan_sayisi      = int(calissan),
+        sehir                = sehir,
+        sermaye              = float(sermaye),
+        yillik_ciro_hedef    = float(yillik_ciro_hedef),
+        buyume_hedefi        = float(buyume_hedefi),
+        kar_marji_hedefi     = float(kar_marji_hedefi),
+        musteri_sayisi       = int(musteri_sayisi),
+        aylik_yeni_musteri   = int(aylik_yeni_musteri),
+        musteri_kayip_orani  = float(musteri_kayip),
+        ortalama_sepet       = float(ortalama_sepet),
+        urun_hizmet_sayisi   = int(urun_sayisi),
+        hedef_pazar          = hedef_pazar,
+        ana_rakipler         = ana_rakipler,
+        rekabet_avantaji     = rekabet_avantaji,
+        en_buyuk_gider       = en_buyuk_gider,
+        sabit_gider_orani    = float(sabit_gider_orani),
+        personel_gider_orani = float(personel_gider_orani),
+        dijital_satis_orani  = float(dijital_satis),
+        crm_kullaniyor       = crm,
+        erp_kullaniyor       = erp,
+        ihracat_yapıyor      = ihracat,
+        ihracat_orani        = float(ihracat_orani),
+        borsada_mi           = borsada,
+        aciklama             = aciklama,
     )
 
 
