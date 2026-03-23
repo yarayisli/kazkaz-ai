@@ -55,8 +55,9 @@ def sec(text):
         f'margin:16px 0 14px;">{text}</div>', unsafe_allow_html=True)
 
 def kpi(label, value, color="#e8eaf0", delta="", positive=True):
-    dc = C_GREEN if positive else C_RED
-    di = "▲" if positive else "▼"
+    _pos = bool(positive) if positive is not None else True
+    dc = C_GREEN if _pos else C_RED
+    di = "▲" if _pos else "▼"
     dh = f'<div style="font-size:.75rem;color:{dc};margin-top:3px;">{di} {delta}</div>' if delta else ""
     st.markdown(
         f'<div style="background:linear-gradient(135deg,#111827,#1a2540);'
@@ -259,15 +260,36 @@ def show_cfo_tab(
         c1,c2,c3 = st.columns(3)
         with c1: kpi("Toplam Borç", fmt(debt["mevcut_borc"]),
                      positive=False, color=C_RED)
-        faiz_pct = float(debt.get("faiz_orani_pct") or 0)
-        bgr      = float(debt.get("borc_gelir_orani") or 0)
-        with c2: kpi("Ort. Faiz", f'%{faiz_pct:.1f}',
-                     positive=faiz_pct<35,
-                     color=C_GREEN if faiz_pct<35 else C_RED)
-        with c3: kpi("B/G Oranı", f'{bgr:.2f}',
-                     "Hedef: < 2",
-                     positive=bgr<2,
-                     color=C_GREEN if bgr<2 else C_RED)
+        faiz_pct  = float(debt.get("faiz_orani_pct") or 0)
+        bgr       = float(debt.get("borc_gelir_orani") or 0)
+        faiz_renk = C_GREEN if faiz_pct < 35 else C_RED
+        bgr_renk  = C_GREEN if bgr < 2 else C_RED
+        with c2:
+            st.markdown(
+                f'<div style="background:linear-gradient(135deg,#111827,#1a2540);'
+                f'border:1px solid #1e3a5f;border-radius:14px;padding:16px 18px;'
+                f'position:relative;overflow:hidden;margin-bottom:8px;">'
+                f'<div style="position:absolute;top:0;left:0;right:0;height:3px;'
+                f'background:linear-gradient(90deg,#00d4ff,#0066ff);"></div>'
+                f'<div style="font-size:.7rem;color:#4a6fa5;letter-spacing:1.5px;'
+                f'text-transform:uppercase;margin-bottom:5px;">ORT. FAİZ</div>'
+                f'<div style="font-family:Syne,sans-serif;font-size:1.5rem;'
+                f'font-weight:700;color:{faiz_renk};">%{faiz_pct:.1f}</div></div>',
+                unsafe_allow_html=True)
+        with c3:
+            st.markdown(
+                f'<div style="background:linear-gradient(135deg,#111827,#1a2540);'
+                f'border:1px solid #1e3a5f;border-radius:14px;padding:16px 18px;'
+                f'position:relative;overflow:hidden;margin-bottom:8px;">'
+                f'<div style="position:absolute;top:0;left:0;right:0;height:3px;'
+                f'background:linear-gradient(90deg,#00d4ff,#0066ff);"></div>'
+                f'<div style="font-size:.7rem;color:#4a6fa5;letter-spacing:1.5px;'
+                f'text-transform:uppercase;margin-bottom:5px;">B/G ORANI</div>'
+                f'<div style="font-family:Syne,sans-serif;font-size:1.5rem;'
+                f'font-weight:700;color:{bgr_renk};">{bgr:.2f}</div>'
+                f'<div style="font-size:.75rem;color:#4a6fa5;margin-top:3px;">'
+                f'Hedef: &lt; 2</div></div>',
+                unsafe_allow_html=True)
 
         st.markdown("---")
         if debt["oneriler"]:
