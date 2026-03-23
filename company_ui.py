@@ -357,25 +357,30 @@ def show_company_tab(fin_rapor: dict):
         rakip_df = cp["rakip_tablosu"]
         toplam = cp["toplam_rakip"]
 
-        # sirket_sirasi güvenli dönüşüm
+        # Sıralama — tüm hesaplamalar güvenli
+        raw_sira = cp.get("sirket_sirasi", toplam + 1)
         try:
-            sirket_sirasi = int(cp["sirket_sirasi"])
-        except (TypeError, ValueError):
+            sirket_sirasi = int(float(str(raw_sira)))
+        except Exception:
             sirket_sirasi = toplam + 1
 
-        # Sıralama özeti
-        yuzdelik = round((1 - sirket_sirasi / max(toplam + 1, 1)) * 100, 0)
-        y_renk = C_GREEN if yuzdelik >= 60 else C_YELLOW if yuzdelik >= 40 else C_RED
+        toplam_n   = max(int(toplam), 1)
+        yuzdelik   = float(round((1 - sirket_sirasi / (toplam_n + 1)) * 100, 0))
+        y_renk     = C_GREEN if yuzdelik >= 60 else C_YELLOW if yuzdelik >= 40 else C_RED
+        ust_yarida = sirket_sirasi <= (toplam_n // 2 + 1)
 
         c1,c2,c3 = st.columns(3)
-        with c1: kpi("Segment Rakip Sayısı", str(toplam),
-                     f'{profil["sektor"]} · {profil["buyukluk"].split("(")[0].strip()} segment')
-        with c2: kpi("Kar Marjı Sıralaması",
-                     f'{sirket_sirasi}. / {toplam+1}',
-                     "Rakipler arasında",
-                     color=y_renk, positive=bool(sirket_sirasi <= toplam//2+1))
-        with c3: kpi("Yüzdelik Dilim", f'%{int(yuzdelik)}',
-                     "Üst % daha iyi", color=y_renk, positive=bool(yuzdelik>=50))
+        with c1:
+            kpi("Segment Rakip Sayısı", str(toplam_n),
+                f'{profil["sektor"]} segmenti')
+        with c2:
+            kpi("Kar Marjı Sıralaması",
+                f'{sirket_sirasi}. / {toplam_n+1}',
+                "Rakipler arasında",
+                color=y_renk, positive=ust_yarida)
+        with c3:
+            kpi("Yüzdelik Dilim", f'%{int(yuzdelik)}',
+                "Üst % daha iyi", color=y_renk, positive=yuzdelik>=50)
 
         # Tablo
         sec("📋 Detaylı Rakip Tablosu")
