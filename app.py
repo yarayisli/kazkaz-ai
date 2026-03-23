@@ -783,13 +783,23 @@ with tab_ai:
         with c1:
             if st.button("📊 Tam Analiz Üret", use_container_width=True):
                 with st.spinner("Analiz yapılıyor..."):
+                    # Şirket profilini rapor'a ekle
+                    rapor_with_profil = dict(rapor)
+                    if "cp_profile" in st.session_state:
+                        rapor_with_profil["sirket_profili"] = \
+                            st.session_state["cp_profile"].to_dict()
                     st.session_state["ai_analiz"] = \
-                        st.session_state.gemini.analyze(rapor)
+                        st.session_state.gemini.analyze(rapor_with_profil)
         with c2:
             if st.button("🎯 Stratejik Öneriler", use_container_width=True):
                 with st.spinner("Öneriler üretiliyor..."):
+                    rapor_with_profil = dict(rapor)
+                    if "cp_profile" in st.session_state:
+                        rapor_with_profil["sirket_profili"] = \
+                            st.session_state["cp_profile"].to_dict()
                     st.session_state["ai_strateji"] = \
-                        st.session_state.gemini.strategic_recommendations(rapor)
+                        st.session_state.gemini.strategic_recommendations(
+                            rapor_with_profil)
         for key, title in [("ai_analiz","📋 Analiz Raporu"),
                             ("ai_strateji","🎯 Stratejik Öneriler")]:
             if st.session_state.get(key):
