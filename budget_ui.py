@@ -38,7 +38,10 @@ def fmt(v):
     return f"{v:,.0f} ₺"
 
 def kpi(label, value, color="#e8eaf0", delta="", positive=True):
-    _pos = bool(positive)
+    try:
+        _pos = bool(positive)
+    except Exception:
+        _pos = True
     dc = C_GREEN if _pos else C_RED
     di = "▲" if _pos else "▼"
     dh = f'<div style="font-size:.75rem;color:{dc};margin-top:3px;">{di} {delta}</div>' if delta else ""
@@ -242,7 +245,7 @@ def show_budget_tab(df: pd.DataFrame, fin_rapor: dict = None):
     with c1: kpi("Bütçe Gelir",   fmt(ozet.get("toplam_butce_gelir",0)))
     with c2: kpi("Gerçekleşen",   fmt(ozet.get("toplam_gercek_gelir",0)),
                  delta=fmt(abs(ozet.get("gelir_sapma",0))),
-                 positive=ozet.get("gelir_sapma",0)>=0,
+                 positive=bool(float(ozet.get("gelir_sapma",0) or 0) >= 0),
                  color=C_GREEN if ozet.get("gelir_sapma",0)>=0 else C_RED)
     with c3: kpi("Başarı Oranı",  f'%{ozet.get("gelir_basari_pct",0)}',
                  color=perf_renk)
@@ -251,7 +254,7 @@ def show_budget_tab(df: pd.DataFrame, fin_rapor: dict = None):
                  "Gelir hedefine ulaşılan ay")
     with c5: kpi("Performans",    ozet.get("performans","-"),
                  color=perf_renk,
-                 positive=ozet.get("gelir_basari_pct",0)>=100)
+                 positive=bool(float(ozet.get("gelir_basari_pct",0) or 0) >= 100))
 
     # ── Alt Sekmeler ──
     s1, s2, s3, s4 = st.tabs([
@@ -382,13 +385,13 @@ def show_budget_tab(df: pd.DataFrame, fin_rapor: dict = None):
                 fark = proj.get("butce_fark",0)
                 kpi("Bütçeye Göre Fark", fmt(abs(fark)),
                     "Bütçe Üstü" if fark>=0 else "Bütçe Altı",
-                    positive=fark>=0,
+                    positive=bool(fark>=0),
                     color=C_GREEN if fark>=0 else C_RED)
             with c3:
                 yp = proj.get("yillik_basari_pct",0)
                 kpi("Yıllık Başarı Tahmini", f'%{yp}',
                     color=C_GREEN if yp>=100 else C_YELLOW if yp>=85 else C_RED,
-                    positive=yp>=100)
+                    positive=bool(yp>=100))
 
             st.markdown("---")
 
