@@ -88,6 +88,12 @@ try:
 except ImportError:
     CUSTOMER_OK = False
 
+try:
+    from budget_ui import show_budget_tab
+    BUDGET_OK = True
+except ImportError:
+    BUDGET_OK = False
+
 # ─────────────────────────────────────────────
 # SAYFA AYARLARI
 # ─────────────────────────────────────────────
@@ -470,7 +476,7 @@ df     = st.session_state.df
 (tab_genel, tab_gelir, tab_gider, tab_kar,
  tab_tahmin, tab_senaryo, tab_yatirim,
  tab_nakit, tab_borc, tab_sektor,
- tab_profil, tab_musteri, tab_cfo, tab_ai, tab_sohbet) = st.tabs([
+ tab_profil, tab_musteri, tab_butce, tab_cfo, tab_ai, tab_sohbet) = st.tabs([
     "📊 Genel", "💰 Gelir", "📉 Gider", "📈 Karlılık",
     "🔮 Tahmin", "🎯 Senaryo", "💼 Yatırım",
     "💧 Nakit Akışı", "🏦 Borç Analizi",
@@ -767,6 +773,13 @@ with tab_musteri:
         st.error("`customer_engine.py` ve `customer_ui.py` dosyaları klasörde olmalı.")
     else:
         show_customer_tab(df=df)
+
+# ══ BÜTÇE VS GERÇEKLEŞen ══
+with tab_butce:
+    if not BUDGET_OK:
+        st.error("`budget_engine.py` ve `budget_ui.py` dosyaları klasörde olmalı.")
+    else:
+        show_budget_tab(df=df, fin_rapor=rapor)
 
 # ══ CFO AGENT ══
 with tab_cfo:
