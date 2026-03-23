@@ -369,18 +369,49 @@ def show_company_tab(fin_rapor: dict):
         y_renk     = C_GREEN if yuzdelik >= 60 else C_YELLOW if yuzdelik >= 40 else C_RED
         ust_yarida = sirket_sirasi <= (toplam_n // 2 + 1)
 
-        c1,c2,c3 = st.columns(3)
-        with c1:
-            kpi("Segment Rakip Sayısı", str(toplam_n),
-                f'{profil["sektor"]} segmenti')
-        with c2:
-            kpi("Kar Marjı Sıralaması",
-                f'{sirket_sirasi}. / {toplam_n+1}',
-                "Rakipler arasında",
-                color=y_renk, positive=ust_yarida)
-        with c3:
-            kpi("Yüzdelik Dilim", f'%{int(yuzdelik)}',
-                "Üst % daha iyi", color=y_renk, positive=yuzdelik>=50)
+        col_r1, col_r2, col_r3 = st.columns(3)
+        with col_r1:
+            st.markdown(
+                f'''<div style="background:linear-gradient(135deg,#111827,#1a2540);
+                border:1px solid #1e3a5f;border-radius:14px;padding:16px 18px;
+                position:relative;overflow:hidden;margin-bottom:8px;">
+                <div style="position:absolute;top:0;left:0;right:0;height:3px;
+                background:linear-gradient(90deg,#00d4ff,#0066ff);"></div>
+                <div style="font-size:.7rem;color:#4a6fa5;letter-spacing:1.5px;
+                text-transform:uppercase;margin-bottom:5px;">SEGMENT RAKİP SAYISI</div>
+                <div style="font-family:Syne,sans-serif;font-size:1.5rem;
+                font-weight:700;color:#e8eaf0;">{toplam_n}</div>
+                <div style="font-size:.75rem;color:#4a6fa5;margin-top:3px;">
+                {profil["sektor"]} segmenti</div></div>''',
+                unsafe_allow_html=True)
+        with col_r2:
+            st.markdown(
+                f'''<div style="background:linear-gradient(135deg,#111827,#1a2540);
+                border:1px solid #1e3a5f;border-radius:14px;padding:16px 18px;
+                position:relative;overflow:hidden;margin-bottom:8px;">
+                <div style="position:absolute;top:0;left:0;right:0;height:3px;
+                background:linear-gradient(90deg,#00d4ff,#0066ff);"></div>
+                <div style="font-size:.7rem;color:#4a6fa5;letter-spacing:1.5px;
+                text-transform:uppercase;margin-bottom:5px;">KAR MARJI SIRALAMASI</div>
+                <div style="font-family:Syne,sans-serif;font-size:1.5rem;
+                font-weight:700;color:{y_renk};">{sirket_sirasi}. / {toplam_n+1}</div>
+                <div style="font-size:.75rem;color:#4a6fa5;margin-top:3px;">
+                Rakipler arasında</div></div>''',
+                unsafe_allow_html=True)
+        with col_r3:
+            st.markdown(
+                f'''<div style="background:linear-gradient(135deg,#111827,#1a2540);
+                border:1px solid #1e3a5f;border-radius:14px;padding:16px 18px;
+                position:relative;overflow:hidden;margin-bottom:8px;">
+                <div style="position:absolute;top:0;left:0;right:0;height:3px;
+                background:linear-gradient(90deg,#00d4ff,#0066ff);"></div>
+                <div style="font-size:.7rem;color:#4a6fa5;letter-spacing:1.5px;
+                text-transform:uppercase;margin-bottom:5px;">YÜZDELİK DİLİM</div>
+                <div style="font-family:Syne,sans-serif;font-size:1.5rem;
+                font-weight:700;color:{y_renk};">%{int(yuzdelik)}</div>
+                <div style="font-size:.75rem;color:#4a6fa5;margin-top:3px;">
+                Üst % daha iyi</div></div>''',
+                unsafe_allow_html=True)
 
         # Tablo
         sec("📋 Detaylı Rakip Tablosu")
