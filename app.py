@@ -480,7 +480,7 @@ df     = st.session_state.df
     "📊 Genel", "💰 Gelir", "📉 Gider", "📈 Karlılık",
     "🔮 Tahmin", "🎯 Senaryo", "💼 Yatırım",
     "💧 Nakit Akışı", "🏦 Borç Analizi",
-    "🏭 Sektör", "🏢 Şirket Profili", "👥 Müşteri & Ürün",
+    "🏭 Sektör", "🏢 Şirket Profili", "👥 Müşteri & Ürün", "🎯 Bütçe",
     "🧠 CFO Agent", "🤖 AI Analiz", "💬 AI Sohbet",
 ])
 
