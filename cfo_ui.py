@@ -253,19 +253,21 @@ def show_cfo_tab(
 
     # ════════════ BORÇ ÖNERİLERİ ════════════
     with s3:
-        debt = analiz["debt"]
+        debt = analiz.get("debt") or {}
         sec("🏦 Borç Yönetimi Analizi")
 
         c1,c2,c3 = st.columns(3)
         with c1: kpi("Toplam Borç", fmt(debt["mevcut_borc"]),
                      positive=False, color=C_RED)
-        with c2: kpi("Ort. Faiz", f'%{debt["faiz_orani_pct"]}',
-                     positive=debt["faiz_orani_pct"]<35,
-                     color=C_GREEN if debt["faiz_orani_pct"]<35 else C_RED)
-        with c3: kpi("B/G Oranı", str(debt["borc_gelir_orani"]),
+        faiz_pct = float(debt.get("faiz_orani_pct") or 0)
+        bgr      = float(debt.get("borc_gelir_orani") or 0)
+        with c2: kpi("Ort. Faiz", f'%{faiz_pct:.1f}',
+                     positive=faiz_pct<35,
+                     color=C_GREEN if faiz_pct<35 else C_RED)
+        with c3: kpi("B/G Oranı", f'{bgr:.2f}',
                      "Hedef: < 2",
-                     positive=debt["borc_gelir_orani"]<2,
-                     color=C_GREEN if debt["borc_gelir_orani"]<2 else C_RED)
+                     positive=bgr<2,
+                     color=C_GREEN if bgr<2 else C_RED)
 
         st.markdown("---")
         if debt["oneriler"]:
