@@ -121,9 +121,34 @@ class GeminiEngine:
         e = rapor.get("gider", {})
         k = rapor.get("karlilik", {})
         s = rapor.get("saglik_skoru", {})
-        return f"""
-Aşağıdaki finansal verileri analiz et ve kapsamlı bir yönetici raporu yaz.
 
+        # Şirket profili varsa ekle
+        profil = rapor.get("sirket_profili", {})
+        profil_metni = ""
+        if profil:
+            profil_metni = f"""
+## Şirket Profili
+- Şirket: {profil.get('sirket_adi', '-')}
+- Sektör: {profil.get('sektor', '-')} / {profil.get('alt_sektor', '')}
+- Büyüklük: {profil.get('buyukluk', '-')} ({profil.get('calissan_sayisi', 0)} çalışan)
+- Kuruluş: {profil.get('kuruluş_yili', '-')} ({profil.get('yas', 0)} yaşında)
+- Şehir: {profil.get('sehir', '-')}
+- Aktif Müşteri: {profil.get('musteri_sayisi', 0)}
+- Aylık Yeni Müşteri: {profil.get('aylik_yeni_musteri', 0)}
+- Churn Oranı: %{profil.get('musteri_kayip_orani', 0)}
+- Ortalama Sepet: {profil.get('ortalama_sepet', 0):,.0f} ₺
+- Hedef Pazar: {profil.get('hedef_pazar', '-')}
+- Dijital Satış: %{profil.get('dijital_satis_orani', 0)}
+- Ana Rakipler: {profil.get('ana_rakipler', 'Belirtilmemiş')}
+- Rekabet Avantajı: {profil.get('rekabet_avantaji', 'Belirtilmemiş')}
+- En Büyük Gider: {profil.get('en_buyuk_gider', 'Belirtilmemiş')}
+- Büyüme Hedefi: %{profil.get('buyume_hedefi', 0)}
+- Ciro Hedefi: {profil.get('yillik_ciro_hedef', 0):,.0f} ₺
+- Şirket Açıklaması: {profil.get('aciklama', '-')}
+"""
+
+        return f"""
+{profil_metni}
 ## Finansal Özet
 - Toplam Gelir: {g.get('toplam_gelir', 0):,.0f} ₺
 - Ortalama Aylık Gelir: {g.get('ortalama_aylik_gelir', 0):,.0f} ₺
@@ -136,11 +161,11 @@ Aşağıdaki finansal verileri analiz et ve kapsamlı bir yönetici raporu yaz.
 - Trend: {k.get('kar_trendi', '-')}
 - Sağlık Skoru: {s.get('skor', 0)}/100 → {s.get('kategori', '-')}
 
-Lütfen şunları içeren bir rapor yaz:
-1. 📊 Genel Değerlendirme (2-3 cümle)
-2. ✅ Güçlü Yönler
-3. ⚠️ Riskler ve Dikkat Edilmesi Gerekenler
-4. 🎯 Stratejik Öneriler (en az 3 madde)
+Şirkete özel, somut ve uygulanabilir bir rapor yaz:
+1. 📊 Genel Değerlendirme — şirkete özel (2-3 cümle)
+2. ✅ Güçlü Yönler — verilerden destekle
+3. ⚠️ Riskler — rakipler ve pazar bağlamında
+4. 🎯 Stratejik Öneriler — en az 3 somut adım, bu şirkete özgü
 """
 
     # ─────────────────────────────────────────
