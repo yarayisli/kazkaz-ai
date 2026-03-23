@@ -355,11 +355,16 @@ def show_company_tab(fin_rapor: dict):
         sec(f"🏆 {profil['buyukluk'].split('(')[0].strip()} Segment Rakip Analizi")
 
         rakip_df = cp["rakip_tablosu"]
-        sirket_sirasi = cp["sirket_sirasi"]
         toplam = cp["toplam_rakip"]
 
+        # sirket_sirasi güvenli dönüşüm
+        try:
+            sirket_sirasi = int(cp["sirket_sirasi"])
+        except (TypeError, ValueError):
+            sirket_sirasi = toplam + 1
+
         # Sıralama özeti
-        yuzdelik = round((1 - sirket_sirasi / (toplam + 1)) * 100, 0)
+        yuzdelik = round((1 - sirket_sirasi / max(toplam + 1, 1)) * 100, 0)
         y_renk = C_GREEN if yuzdelik >= 60 else C_YELLOW if yuzdelik >= 40 else C_RED
 
         c1,c2,c3 = st.columns(3)
@@ -368,9 +373,9 @@ def show_company_tab(fin_rapor: dict):
         with c2: kpi("Kar Marjı Sıralaması",
                      f'{sirket_sirasi}. / {toplam+1}',
                      "Rakipler arasında",
-                     color=y_renk, positive=sirket_sirasi<=toplam//2+1)
+                     color=y_renk, positive=bool(sirket_sirasi <= toplam//2+1))
         with c3: kpi("Yüzdelik Dilim", f'%{int(yuzdelik)}',
-                     "Üst % daha iyi", color=y_renk, positive=yuzdelik>=50)
+                     "Üst % daha iyi", color=y_renk, positive=bool(yuzdelik>=50))
 
         # Tablo
         sec("📋 Detaylı Rakip Tablosu")
