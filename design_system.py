@@ -85,33 +85,25 @@ class DS:
 # PLOTLY TEMA — inline, CSS'e bağımlı değil
 # ─────────────────────────────────────────────
 
+# PLOTLY_THEME: sadece çakışmayan temel anahtarlar
+# xaxis/yaxis/legend her update_layout'ta ayrıca verilmeli
 PLOTLY_THEME = dict(
     paper_bgcolor="rgba(0,0,0,0)",
     plot_bgcolor="rgba(0,0,0,0)",
     font=dict(color=DS.TEXT_SEC, family=DS.FONT, size=11),
-    xaxis=dict(
-        gridcolor=DS.BORDER, showgrid=True, zeroline=False,
-        tickfont=dict(size=10, color=DS.TEXT_TER),
-        linecolor=DS.BORDER,
-    ),
-    yaxis=dict(
-        gridcolor=DS.BORDER, showgrid=True, zeroline=False,
-        tickfont=dict(size=10, color=DS.TEXT_TER),
-        linecolor=DS.BORDER,
-    ),
     margin=dict(l=8, r=8, t=36, b=8),
-    legend=dict(
-        bgcolor="rgba(13,20,36,0.9)",
-        bordercolor=DS.BORDER,
-        borderwidth=1,
-        font=dict(size=11, color=DS.TEXT_SEC),
-    ),
     hoverlabel=dict(
         bgcolor=DS.BG_ELEVATED,
         bordercolor=DS.BORDER_STR,
         font=dict(size=11, color=DS.TEXT_PRI),
     ),
 )
+
+# Grafik eksenleri için yardımcı — update_layout'ta kullan
+AXIS = dict(gridcolor=DS.BORDER, showgrid=True, zeroline=False,
+            tickfont=dict(size=10, color=DS.TEXT_TER), linecolor=DS.BORDER)
+LEGEND = dict(bgcolor="rgba(13,20,36,0.9)", bordercolor=DS.BORDER,
+              borderwidth=1, font=dict(size=11, color=DS.TEXT_SEC))
 
 # Renk kısayolları (eski kodlarla uyumluluk)
 C_BLUE   = DS.C1

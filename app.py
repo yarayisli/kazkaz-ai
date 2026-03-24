@@ -686,7 +686,7 @@ with tab_gelir:
         mr  = engine.revenue.monthly_revenue()
         fig = px.bar(mr, x="Dönem", y="Toplam Gelir",
                      color_discrete_sequence=["#1D4ED8"])
-        fig.update_layout(title="Aylık Gelir Trendi", height=280, **PLOTLY_THEME)
+        fig.update_layout(title="Aylık Gelir Trendi", height=280, **{k:v for k,v in PLOTLY_THEME.items() if k not in ("title")})
         st.plotly_chart(fig, use_container_width=True)
     with col2:
         cr = engine.revenue.revenue_by_category()
@@ -694,7 +694,7 @@ with tab_gelir:
         if not cr.empty:
             fig = px.pie(cr, values="Toplam Gelir", names="Kategori",
                          color_discrete_sequence=px.colors.sequential.Blues_r, hole=0.5)
-            fig.update_layout(title="Gelir Dağılımı", height=280, **PLOTLY_THEME)
+            fig.update_layout(title="Gelir Dağılımı", height=280, **{k:v for k,v in PLOTLY_THEME.items() if k not in ("title")})
             st.plotly_chart(fig, use_container_width=True)
     gr = engine.revenue.revenue_growth_rate().dropna()
     if not gr.empty:
@@ -735,7 +735,7 @@ with tab_gider:
             values=[fv["sabit_gider"], fv["degisken_gider"]],
             marker_colors=["#DC2626", "#f97316"], hole=0.5
         ))
-        fig.update_layout(title="Sabit / Değişken", height=280, **PLOTLY_THEME)
+        fig.update_layout(title="Sabit / Değişken", height=280, **{k:v for k,v in PLOTLY_THEME.items() if k not in ("title")})
         st.plotly_chart(fig, use_container_width=True)
 
 # ══ KARLILIK ══
@@ -837,7 +837,7 @@ with tab_senaryo:
         fig.add_bar(name=name, x=["Gelir", "Gider", "Net Kar"],
                     y=vals, marker_color=color, opacity=0.88)
     fig.update_layout(barmode="group", title="Mevcut vs Senaryo",
-                      height=300, **PLOTLY_THEME)
+                      height=300, **{k:v for k,v in PLOTLY_THEME.items() if k not in ("barmode", "title")})
     st.plotly_chart(fig, use_container_width=True)
     if st.session_state.ai_active and GEMINI_OK:
         if st.button("🤖 Senaryoyu AI ile Yorumla"):

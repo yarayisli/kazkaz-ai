@@ -413,7 +413,7 @@ def show_budget_tab(df: pd.DataFrame, fin_rapor: dict = None):
                 )
                 fig.update_layout(
                     title="Aylık Gelir + Yıl Sonu Tahmini",
-                    height=320, **PLOTLY_THEME,
+                    height=320, **{k:v for k,v in PLOTLY_THEME.items() if k not in ("title")},
                 )
                 st.plotly_chart(fig, use_container_width=True)
 

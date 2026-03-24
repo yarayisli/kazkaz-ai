@@ -453,7 +453,7 @@ def _monte_carlo_ui():
                       line_color=C_GREEN,
                       annotation_text="Ortalama", annotation_font_color=C_GREEN)
         fig.update_layout(title=f"{mc['n_sim']:,} Simülasyon",
-                          height=300, **PLOTLY_THEME)
+                          height=300, **{k:v for k,v in PLOTLY_THEME.items() if k not in ("title")})
         st.plotly_chart(fig, use_container_width=True)
 
     with col2:
@@ -471,7 +471,7 @@ def _monte_carlo_ui():
                       annotation_text=f'Ort: %{mc["roi_ortalama"]:.1f}',
                       annotation_font_color=C_GREEN)
         fig.update_layout(title="ROI Olasılık Dağılımı",
-                          height=300, **PLOTLY_THEME)
+                          height=300, **{k:v for k,v in PLOTLY_THEME.items() if k not in ("title")})
         st.plotly_chart(fig, use_container_width=True)
 
     # Güven aralığı tablosu

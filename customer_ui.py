@@ -206,7 +206,7 @@ def show_customer_tab(df: pd.DataFrame):
                         C_PURPLE, "#f97316", "#06b6d4", "#84cc16"],
                     hole=0.5,
                 )
-                fig2.update_layout(title="Gelir Dağılımı", height=280, **PLOTLY_THEME)
+                fig2.update_layout(title="Gelir Dağılımı", height=280, **{k:v for k,v in PLOTLY_THEME.items() if k not in ("title")})
                 st.plotly_chart(fig2, use_container_width=True)
 
             sec("📋 Ürün Detay Tablosu")
@@ -238,7 +238,7 @@ def show_customer_tab(df: pd.DataFrame):
                               line_color=C_RED, opacity=.5)
                 fig.update_layout(
                     title="Müşteri Bazında Net Kar",
-                    height=280, **PLOTLY_THEME)
+                    height=280, **{k:v for k,v in PLOTLY_THEME.items() if k not in ("title")})
                 st.plotly_chart(fig, use_container_width=True)
 
                 st.dataframe(
@@ -339,7 +339,7 @@ def show_customer_tab(df: pd.DataFrame):
                     ))
                     fig2.update_layout(
                         title="Segment Bazında Toplam Gelir",
-                        height=280, **PLOTLY_THEME)
+                        height=280, **{k:v for k,v in PLOTLY_THEME.items() if k not in ("title")})
                     st.plotly_chart(fig2, use_container_width=True)
 
             sec("📋 Segment Özet Tablosu")
