@@ -22,9 +22,9 @@ from sector_engine import SectorEngine, SECTOR_DB, GENEL_SEKTOR
 
 PT = dict(
     paper_bgcolor="rgba(0,0,0,0)", plot_bgcolor="rgba(0,0,0,0)",
-    font=dict(color="#8899bb", family="DM Sans"),
-    xaxis=dict(gridcolor="#1e2d4a", showgrid=True, zeroline=False),
-    yaxis=dict(gridcolor="#1e2d4a", showgrid=True, zeroline=False),
+    font=dict(color="#94A3B8", family="Inter"),
+    xaxis=dict(gridcolor="#E2E8F0", showgrid=True, zeroline=False),
+    yaxis=dict(gridcolor="#E2E8F0", showgrid=True, zeroline=False),
     margin=dict(l=10, r=10, t=30, b=10),
 )
 
@@ -33,50 +33,50 @@ def fmt(v):
     if abs(v) >= 1_000:     return f"{v/1_000:.0f}K ₺"
     return f"{v:,.0f} ₺"
 
-def kpi(label, value, delta="", color="#e8eaf0", positive=True):
-    dc = "#10d994" if positive else "#ff4757"
+def kpi(label, value, delta="", color="#0F172A", positive=True):
+    dc = "#059669" if positive else "#DC2626"
     di = "▲" if positive else "▼"
     dh = f'<div style="font-size:.75rem;color:{dc};margin-top:3px;">{di} {delta}</div>' if delta else ""
     st.markdown(
-        f'<div style="background:linear-gradient(135deg,#111827,#1a2540);'
-        f'border:1px solid #1e3a5f;border-radius:14px;padding:16px 18px;'
+        f'<div style="background:var(--bg-surface);'
+        f'border:1px solid #E2E8F0;border-radius:14px;padding:16px 18px;'
         f'position:relative;overflow:hidden;margin-bottom:8px;">'
-        f'<div style="position:absolute;top:0;left:0;right:0;height:3px;'
-        f'background:linear-gradient(90deg,#00d4ff,#0066ff);"></div>'
-        f'<div style="font-size:.7rem;color:#4a6fa5;letter-spacing:1.5px;'
+        f'<div style="position:absolute;left:0;top:0;bottom:0;width:3px;border-radius:4px 0 0 4px;'
+        f'background:linear-gradient(90deg,#0EA5E9,#1D4ED8);"></div>'
+        f'<div style="font-size:.7rem;color:#64748B;letter-spacing:1.5px;'
         f'text-transform:uppercase;margin-bottom:5px;">{label}</div>'
-        f'<div style="font-family:Syne,sans-serif;font-size:1.55rem;'
+        f'<div style="font-family:Inter,-apple-system,sans-serif;font-size:1.55rem;'
         f'font-weight:700;color:{color};">{value}</div>{dh}</div>',
         unsafe_allow_html=True)
 
 def sec(text):
     st.markdown(
-        f'<div style="font-family:Syne,sans-serif;font-size:1rem;font-weight:700;'
-        f'color:#e8eaf0;padding:6px 0 10px;border-bottom:1px solid #1e2d4a;'
+        f'<div style="font-family:Inter,-apple-system,sans-serif;font-size:1rem;font-weight:700;'
+        f'color:#0F172A;padding:6px 0 10px;border-bottom:1px solid #E2E8F0;'
         f'margin:16px 0 14px;">{text}</div>', unsafe_allow_html=True)
 
 def badge_color(durum: str) -> str:
-    return {"Mükemmel":"#10d994","İyi":"#60a5fa",
-            "Orta":"#fbbf24","Zayıf":"#ff4757"}.get(durum,"#8899bb")
+    return {"Mükemmel":"#059669","İyi":"#3B82F6",
+            "Orta":"#D97706","Zayıf":"#DC2626"}.get(durum,"#94A3B8")
 
 def score_color(k: str) -> str:
-    return {"Sektör Lideri":"#10d994","Ortalamanın Üstü":"#60a5fa",
-            "Sektör Ortalaması":"#fbbf24","Ortalamanın Altı":"#f97316",
-            "Sektörde Zayıf":"#ff4757"}.get(k,"#e8eaf0")
+    return {"Sektör Lideri":"#059669","Ortalamanın Üstü":"#3B82F6",
+            "Sektör Ortalaması":"#D97706","Ortalamanın Altı":"#f97316",
+            "Sektörde Zayıf":"#DC2626"}.get(k,"#0F172A")
 
 def pt_merge(**overrides):
     """PT temasını override parametrelerle birleştirir."""
     merged = dict(
         paper_bgcolor="rgba(0,0,0,0)", plot_bgcolor="rgba(0,0,0,0)",
-        font=dict(color="#8899bb", family="DM Sans"),
+        font=dict(color="#94A3B8", family="Inter"),
         margin=dict(l=10, r=10, t=30, b=10),
     )
     merged.update(overrides)
     return merged
 
-    return {"Sektör Lideri":"#10d994","Ortalamanın Üstü":"#60a5fa",
-            "Sektör Ortalaması":"#fbbf24","Ortalamanın Altı":"#f97316",
-            "Sektörde Zayıf":"#ff4757"}.get(k,"#e8eaf0")
+    return {"Sektör Lideri":"#059669","Ortalamanın Üstü":"#3B82F6",
+            "Sektör Ortalaması":"#D97706","Ortalamanın Altı":"#f97316",
+            "Sektörde Zayıf":"#DC2626"}.get(k,"#0F172A")
 
 
 # ─────────────────────────────────────────────
@@ -87,11 +87,11 @@ def show_sector_tab(df, rapor, sirket_adi="Şirketim", gemini=None):
     """app.py'deki sektör sekmesine mount edilir."""
 
     st.markdown(
-        '<div style="font-family:Syne,sans-serif;font-size:1.5rem;font-weight:800;'
-        'background:linear-gradient(135deg,#00d4ff,#0066ff);'
+        '<div style="font-family:Inter,-apple-system,sans-serif;font-size:1.5rem;font-weight:800;'
+        'background:linear-gradient(135deg,#0EA5E9,#1D4ED8);'
         '-webkit-background-clip:text;-webkit-text-fill-color:transparent;">'
         '🏭 Sektör Karşılaştırması</div>'
-        '<div style="color:#4a6fa5;font-size:.78rem;letter-spacing:2px;'
+        '<div style="color:#64748B;font-size:.78rem;letter-spacing:2px;'
         'text-transform:uppercase;margin-bottom:20px;">'
         'Benchmark · Rakip Analizi · Sektör Trendi</div>',
         unsafe_allow_html=True)
@@ -155,21 +155,21 @@ def show_sector_tab(df, rapor, sirket_adi="Şirketim", gemini=None):
     sbilgi = sr["sektor_bilgi"]
 
     # ── Sektör tespit kartı ──
-    guven_renk = "#10d994" if tespit["guven"]>=0.7 else "#fbbf24" if tespit["guven"]>=0.4 else "#f97316"
+    guven_renk = "#059669" if tespit["guven"]>=0.7 else "#D97706" if tespit["guven"]>=0.4 else "#f97316"
     st.markdown(
-        f'<div style="background:#0d1520;border:1px solid #1e3a5f;'
+        f'<div style="background:#F8FAFC;border:1px solid #E2E8F0;'
         f'border-radius:14px;padding:16px 20px;margin-bottom:20px;">'
         f'<div style="display:flex;align-items:center;gap:12px;">'
         f'<span style="font-size:2rem;">{tespit["emoji"]}</span>'
         f'<div>'
-        f'<div style="font-family:Syne,sans-serif;font-size:1.1rem;'
-        f'font-weight:700;color:#e8eaf0;">{tespit["sektor"]}</div>'
-        f'<div style="color:#4a6fa5;font-size:.8rem;">{tespit["aciklama"]}</div>'
+        f'<div style="font-family:Inter,-apple-system,sans-serif;font-size:1.1rem;'
+        f'font-weight:700;color:#0F172A;">{tespit["sektor"]}</div>'
+        f'<div style="color:#64748B;font-size:.8rem;">{tespit["aciklama"]}</div>'
         f'</div>'
         f'<div style="margin-left:auto;text-align:right;">'
         f'<div style="color:{guven_renk};font-size:.85rem;font-weight:600;">'
         f'Güven: %{int(tespit["guven"]*100)}</div>'
-        f'<div style="color:#4a6fa5;font-size:.75rem;">{tespit["metod"]}</div>'
+        f'<div style="color:#64748B;font-size:.75rem;">{tespit["metod"]}</div>'
         f'</div></div></div>',
         unsafe_allow_html=True)
 
@@ -194,14 +194,14 @@ def show_sector_tab(df, rapor, sirket_adi="Şirketim", gemini=None):
                 bm["kategori"], color=renk, positive=bool(bm["genel_skor"]>=50))
         with c2:
             kpi("Sektör", tespit["sektor"], tespit["emoji"],
-                color="#60a5fa", positive=True)
+                color="#3B82F6", positive=True)
         with c3:
             kpi("Güçlü Yönler", str(len(bm["guclu_yonler"])),
-                "Sektör ortalaması üstü", color="#10d994",
+                "Sektör ortalaması üstü", color="#059669",
                 positive=bool(len(bm["guclu_yonler"]))>0)
         with c4:
             kpi("Gelişim Alanı", str(len(bm["zayif_yonler"])),
-                "Sektör ortalaması altı", color="#fbbf24",
+                "Sektör ortalaması altı", color="#D97706",
                 positive=bool(len(bm["zayif_yonler"]))==0)
 
         st.markdown("---")
@@ -225,23 +225,23 @@ def show_sector_tab(df, rapor, sirket_adi="Şirketim", gemini=None):
                 r=values + [values[0]],
                 theta=display_labels + [display_labels[0]],
                 fill="toself", fillcolor="rgba(0,102,255,0.15)",
-                line=dict(color="#0066ff",width=2.5),
+                line=dict(color="#1D4ED8",width=2.5),
                 name="Şirketiniz",
             )
             fig.add_scatterpolar(
                 r=[50]*len(labels) + [50],
                 theta=display_labels + [display_labels[0]],
                 fill="toself", fillcolor="rgba(255,255,255,0.03)",
-                line=dict(color="#4a6fa5",width=1,dash="dot"),
+                line=dict(color="#64748B",width=1,dash="dot"),
                 name="Sektör Ortalaması",
             )
             fig.update_layout(
                 polar=dict(
                     bgcolor="rgba(0,0,0,0)",
-                    radialaxis=dict(range=[0,100],gridcolor="#1e2d4a",
-                                    tickfont=dict(color="#4a6fa5",size=8)),
-                    angularaxis=dict(gridcolor="#1e2d4a",
-                                     tickfont=dict(color="#8899bb",size=9)),
+                    radialaxis=dict(range=[0,100],gridcolor="#E2E8F0",
+                                    tickfont=dict(color="#64748B",size=8)),
+                    angularaxis=dict(gridcolor="#E2E8F0",
+                                     tickfont=dict(color="#94A3B8",size=9)),
                 ),
                 height=320, **PT,
                 legend=dict(orientation="h",y=-0.15,x=0.5,xanchor="center"),
@@ -271,8 +271,8 @@ def show_sector_tab(df, rapor, sirket_adi="Şirketim", gemini=None):
             df_bm = pd.DataFrame(metrik_rows)
 
             def color_durum(val):
-                c = {"Mükemmel":"#10d994","İyi":"#60a5fa",
-                     "Orta":"#fbbf24","Zayıf":"#ff4757"}.get(val,"")
+                c = {"Mükemmel":"#059669","İyi":"#3B82F6",
+                     "Orta":"#D97706","Zayıf":"#DC2626"}.get(val,"")
                 return f"color: {c}" if c else ""
 
             st.dataframe(
@@ -288,16 +288,16 @@ def show_sector_tab(df, rapor, sirket_adi="Şirketim", gemini=None):
                 sec("✅ Güçlü Yönler")
                 for g in bm["guclu_yonler"]:
                     st.markdown(
-                        f'<div style="background:#0a1a10;border-left:3px solid #10d994;'
+                        f'<div style="background:#F0FDF4;border-left:3px solid #059669;'
                         f'border-radius:0 8px 8px 0;padding:8px 12px;margin-bottom:6px;'
-                        f'color:#a0e8c0;font-size:.85rem;">✅ {g}</div>',
+                        f'color:#065F46;font-size:.85rem;">✅ {g}</div>',
                         unsafe_allow_html=True)
         with col2:
             if bm["zayif_yonler"]:
                 sec("⚠️ Gelişim Alanları")
                 for z in bm["zayif_yonler"]:
                     st.markdown(
-                        f'<div style="background:#1a1000;border-left:3px solid #fbbf24;'
+                        f'<div style="background:#1a1000;border-left:3px solid #D97706;'
                         f'border-radius:0 8px 8px 0;padding:8px 12px;margin-bottom:6px;'
                         f'color:#e8c860;font-size:.85rem;">⚠️ {z}</div>',
                         unsafe_allow_html=True)
@@ -307,10 +307,10 @@ def show_sector_tab(df, rapor, sirket_adi="Şirketim", gemini=None):
             sec("💡 Tavsiyeler")
             for i, t in enumerate(bm["tavsiyeler"], 1):
                 st.markdown(
-                    f'<div style="background:#0d1520;border:1px solid #1e3a5f;'
+                    f'<div style="background:#F8FAFC;border:1px solid #E2E8F0;'
                     f'border-radius:10px;padding:10px 14px;margin-bottom:6px;'
-                    f'color:#a0c0e8;font-size:.86rem;">'
-                    f'<b style="color:#60a5fa;">{i}.</b> {t}</div>',
+                    f'color:#475569;font-size:.86rem;">'
+                    f'<b style="color:#1D4ED8;">{i}.</b> {t}</div>',
                     unsafe_allow_html=True)
 
         # AI Benchmark Yorumu
@@ -338,12 +338,12 @@ def show_sector_tab(df, rapor, sirket_adi="Şirketim", gemini=None):
 
             if "sector_ai_yorum" in st.session_state:
                 st.markdown(
-                    f'<div style="background:#0d1520;border:1px solid #0066ff44;'
-                    f'border-radius:14px;padding:18px 22px;color:#a8c8e8;'
+                    f'<div style="background:#F8FAFC;border:1px solid #BFDBFE;'
+                    f'border-radius:14px;padding:18px 22px;color:#334155;'
                     f'font-size:.9rem;line-height:1.8;">'
-                    f'<span style="display:inline-block;background:#0066ff22;'
-                    f'border:1px solid #0066ff44;color:#60a5fa;font-size:.7rem;'
-                    f'letter-spacing:1.5px;text-transform:uppercase;padding:3px 10px;'
+                    f'<span style="display:inline-block;background:#1D4ED822;'
+                    f'border:1px solid #BFDBFE;color:#1D4ED8;font-size:.7rem;'
+                    f'letter-spacing:0.1em;text-transform:uppercase;padding:3px 10px;'
                     f'border-radius:20px;margin-bottom:10px;">Gemini AI</span><br>'
                     f'{st.session_state["sector_ai_yorum"].replace(chr(10),"<br>")}'
                     f'</div>',
@@ -360,12 +360,12 @@ def show_sector_tab(df, rapor, sirket_adi="Şirketim", gemini=None):
 
         # Sıralama özeti
         yuzdelik = rank["yuzdelik"]
-        y_renk   = "#10d994" if yuzdelik>=70 else "#fbbf24" if yuzdelik>=40 else "#ff4757"
+        y_renk   = "#059669" if yuzdelik>=70 else "#D97706" if yuzdelik>=40 else "#DC2626"
 
         c1, c2, c3 = st.columns(3)
         with c1:
             kpi("Sektör Rakip Sayısı", str(rank["toplam_rakip"]),
-                f'{tespit["sektor"]} sektörü', color="#60a5fa")
+                f'{tespit["sektor"]} sektörü', color="#3B82F6")
         with c2:
             kpi("Kar Marjı Sıralaması",
                 f'{rank["kar_marji_sira"]}. / {rank["toplam_rakip"]+1}',
@@ -401,7 +401,7 @@ def show_sector_tab(df, rapor, sirket_adi="Şirketim", gemini=None):
         sec("📊 Kar Marjı Karşılaştırması")
         df_sorted = df_r.sort_values("Kar Marjı (%)", ascending=True)
         bar_colors = [
-            "#0066ff" if "★" in str(s) else "#1e3a5f"
+            "#1D4ED8" if "★" in str(s) else "#E2E8F0"
             for s in df_sorted["Şirket"]
         ]
         fig = go.Figure(go.Bar(
@@ -414,7 +414,7 @@ def show_sector_tab(df, rapor, sirket_adi="Şirketim", gemini=None):
         ))
         fig.update_layout(
             title="Kar Marjı (%) — Sektör Karşılaştırması",
-            height=280, **pt_merge(xaxis=dict(ticksuffix="%", gridcolor="#1e2d4a", showgrid=True, zeroline=False)),
+            height=280, **pt_merge(xaxis=dict(ticksuffix="%", gridcolor="#E2E8F0", showgrid=True, zeroline=False)),
         )
         st.plotly_chart(fig, use_container_width=True)
 
@@ -424,7 +424,7 @@ def show_sector_tab(df, rapor, sirket_adi="Şirketim", gemini=None):
             sec("⚠️ Sektör Riskleri")
             for r in sbilgi["riskler"]:
                 st.markdown(
-                    f'<div style="background:#1a0a0a;border-left:3px solid #ff4757;'
+                    f'<div style="background:#FFF7F7;border-left:3px solid #DC2626;'
                     f'border-radius:0 8px 8px 0;padding:8px 12px;margin-bottom:6px;'
                     f'color:#e8a0a0;font-size:.85rem;">⚠️ {r}</div>',
                     unsafe_allow_html=True)
@@ -432,9 +432,9 @@ def show_sector_tab(df, rapor, sirket_adi="Şirketim", gemini=None):
             sec("🚀 Sektör Fırsatları")
             for f in sbilgi["firsatlar"]:
                 st.markdown(
-                    f'<div style="background:#0a1a10;border-left:3px solid #10d994;'
+                    f'<div style="background:#F0FDF4;border-left:3px solid #059669;'
                     f'border-radius:0 8px 8px 0;padding:8px 12px;margin-bottom:6px;'
-                    f'color:#a0e8c0;font-size:.85rem;">🚀 {f}</div>',
+                    f'color:#065F46;font-size:.85rem;">🚀 {f}</div>',
                     unsafe_allow_html=True)
 
     # ════════════════════════════════
@@ -451,8 +451,8 @@ def show_sector_tab(df, rapor, sirket_adi="Şirketim", gemini=None):
         fig.add_scatter(
             x=aylar, y=trend,
             mode="lines+markers",
-            line=dict(color="#0066ff", width=2.5),
-            marker=dict(size=7, color="#00d4ff"),
+            line=dict(color="#1D4ED8", width=2.5),
+            marker=dict(size=7, color="#0EA5E9"),
             fill="tozeroy", fillcolor="rgba(0,102,255,0.07)",
             name=f"{tespit['sektor']} Sektörü",
         )
@@ -460,19 +460,19 @@ def show_sector_tab(df, rapor, sirket_adi="Şirketim", gemini=None):
         sirket_buyume = rapor["gelir"]["ortalama_buyume_orani"]
         fig.add_hline(
             y=sirket_buyume, line_dash="dot",
-            line_color="#10d994", line_width=2,
+            line_color="#059669", line_width=2,
             annotation_text=f"Şirketiniz: %{sirket_buyume:.1f}",
-            annotation_font_color="#10d994",
+            annotation_font_color="#059669",
         )
         fig.add_hline(
             y=np.mean(trend), line_dash="dash",
-            line_color="#fbbf24", line_width=1.5,
+            line_color="#D97706", line_width=1.5,
             annotation_text=f"Sektör Ort: %{np.mean(trend):.1f}",
-            annotation_font_color="#fbbf24",
+            annotation_font_color="#D97706",
         )
         fig.update_layout(
             title=f"{tespit['sektor']} Sektörü Aylık Büyüme Trendi (%)",
-            height=320, **pt_merge(yaxis=dict(ticksuffix="%", gridcolor="#1e2d4a", showgrid=True, zeroline=False)),
+            height=320, **pt_merge(yaxis=dict(ticksuffix="%", gridcolor="#E2E8F0", showgrid=True, zeroline=False)),
         )
         st.plotly_chart(fig, use_container_width=True)
 
@@ -487,7 +487,7 @@ def show_sector_tab(df, rapor, sirket_adi="Şirketim", gemini=None):
         ).sort_values("Ort. Büyüme (%)", ascending=True)
 
         colors_all = [
-            "#0066ff" if s == tespit["sektor"] else "#1e3a5f"
+            "#1D4ED8" if s == tespit["sektor"] else "#E2E8F0"
             for s in df_all["Sektör"]
         ]
         fig2 = go.Figure(go.Bar(
@@ -500,7 +500,7 @@ def show_sector_tab(df, rapor, sirket_adi="Şirketim", gemini=None):
         ))
         fig2.update_layout(
             title="Sektörel Ortalama Büyüme Karşılaştırması",
-            height=380, **pt_merge(xaxis=dict(ticksuffix="%", gridcolor="#1e2d4a", showgrid=True, zeroline=False)),
+            height=380, **pt_merge(xaxis=dict(ticksuffix="%", gridcolor="#E2E8F0", showgrid=True, zeroline=False)),
         )
         st.plotly_chart(fig2, use_container_width=True)
 
@@ -512,10 +512,10 @@ def show_sector_tab(df, rapor, sirket_adi="Şirketim", gemini=None):
 
         # Benchmark tablosu - tam detay
         st.markdown(
-            f'<div style="background:#0d1520;border:1px solid #1e3a5f;'
+            f'<div style="background:#F8FAFC;border:1px solid #E2E8F0;'
             f'border-radius:12px;padding:16px 20px;margin-bottom:16px;">'
-            f'<div style="font-family:Syne,sans-serif;font-weight:700;'
-            f'font-size:1rem;color:#e8eaf0;margin-bottom:8px;">'
+            f'<div style="font-family:Inter,-apple-system,sans-serif;font-weight:700;'
+            f'font-size:1rem;color:#0F172A;margin-bottom:8px;">'
             f'{tespit["emoji"]} {tespit["sektor"]} Sektörü — Benchmark Eşikleri</div>',
             unsafe_allow_html=True)
 
@@ -542,8 +542,8 @@ def show_sector_tab(df, rapor, sirket_adi="Şirketim", gemini=None):
         df_det = pd.DataFrame(bm_detail)
 
         def color_durum(val):
-            c = {"Mükemmel":"#10d994","İyi":"#60a5fa",
-                 "Orta":"#fbbf24","Zayıf":"#ff4757"}.get(val,"")
+            c = {"Mükemmel":"#059669","İyi":"#3B82F6",
+                 "Orta":"#D97706","Zayıf":"#DC2626"}.get(val,"")
             return f"color:{c};font-weight:600" if c else ""
 
         st.dataframe(
@@ -556,7 +556,7 @@ def show_sector_tab(df, rapor, sirket_adi="Şirketim", gemini=None):
         alt = bm["alt_skorlar"]
         labels_tr = [tr_names.get(k,k) for k in alt]
         values    = list(alt.values())
-        bar_c     = ["#10d994" if v>=70 else "#fbbf24" if v>=40 else "#ff4757"
+        bar_c     = ["#059669" if v>=70 else "#D97706" if v>=40 else "#DC2626"
                      for v in values]
 
         fig = go.Figure(go.Bar(
@@ -565,11 +565,11 @@ def show_sector_tab(df, rapor, sirket_adi="Şirketim", gemini=None):
             text=[f'{v:.0f}' for v in values],
             textposition="outside",
         ))
-        fig.add_hline(y=50, line_dash="dot", line_color="#4a6fa5",
+        fig.add_hline(y=50, line_dash="dot", line_color="#64748B",
                       annotation_text="Sektör Ortalaması")
         fig.update_layout(
             title="Sektör Benchmark Alt Skorları (0-100)",
             height=290,
-            **pt_merge(yaxis=dict(range=[0,115], gridcolor="#1e2d4a", showgrid=True, zeroline=False)),
+            **pt_merge(yaxis=dict(range=[0,115], gridcolor="#E2E8F0", showgrid=True, zeroline=False)),
         )
         st.plotly_chart(fig, use_container_width=True)
