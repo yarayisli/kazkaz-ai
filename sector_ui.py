@@ -191,18 +191,18 @@ def show_sector_tab(df, rapor, sirket_adi="Şirketim", gemini=None):
         c1,c2,c3,c4 = st.columns(4)
         with c1:
             kpi("Benchmark Skoru", f'{bm["genel_skor"]}/100',
-                bm["kategori"], color=renk, positive=bm["genel_skor"]>=50)
+                bm["kategori"], color=renk, positive=bool(bm["genel_skor"]>=50))
         with c2:
             kpi("Sektör", tespit["sektor"], tespit["emoji"],
                 color="#60a5fa", positive=True)
         with c3:
             kpi("Güçlü Yönler", str(len(bm["guclu_yonler"])),
                 "Sektör ortalaması üstü", color="#10d994",
-                positive=len(bm["guclu_yonler"])>0)
+                positive=bool(len(bm["guclu_yonler"]))>0)
         with c4:
             kpi("Gelişim Alanı", str(len(bm["zayif_yonler"])),
                 "Sektör ortalaması altı", color="#fbbf24",
-                positive=len(bm["zayif_yonler"])==0)
+                positive=bool(len(bm["zayif_yonler"]))==0)
 
         st.markdown("---")
 
@@ -370,11 +370,11 @@ def show_sector_tab(df, rapor, sirket_adi="Şirketim", gemini=None):
             kpi("Kar Marjı Sıralaması",
                 f'{rank["kar_marji_sira"]}. / {rank["toplam_rakip"]+1}',
                 "Rakipler arasında", color=y_renk,
-                positive=rank["kar_marji_sira"] <= rank["toplam_rakip"]//2 + 1)
+                positive=bool(rank["kar_marji_sira"] <= rank["toplam_rakip"]//2 + 1))
         with c3:
             kpi("Yüzdelik Dilim", f'%{int(yuzdelik)}',
                 "Üst %: daha iyi", color=y_renk,
-                positive=yuzdelik>=50)
+                positive=bool(yuzdelik>=50))
 
         st.markdown("---")
 
