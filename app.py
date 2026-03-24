@@ -506,7 +506,7 @@ if st.session_state.rapor is None:
     ]):
         with col:
             st.markdown(f"""
-            <div class="kpi-card" style="text-align:center;padding:24px 12px;">
+            <div style="background:#0D1424;border:1px solid #1A2E4A;border-radius:14px;padding:18px 20px 16px 22px;position:relative;overflow:hidden;margin-bottom:8px;" style="text-align:center;padding:24px 12px;">
                 <div style="font-size:2rem;margin-bottom:8px;">{ico}</div>
                 <div style="font-family:'Syne',sans-serif;font-weight:700;
                             font-size:0.88rem;color:#0F172A;margin-bottom:5px;">{title}</div>
@@ -543,101 +543,140 @@ df     = st.session_state.df
 with tab_genel:
     g, e, k, s = rapor["gelir"], rapor["gider"], rapor["karlilik"], rapor["saglik_skoru"]
 
-    # ── PAGE HEADER ──
-    buyume_val  = g.get("ortalama_buyume_orani", 0)
-    kar_val     = k.get("toplam_net_kar", 0)
-    skor_val    = s.get("skor", 0)
-    skor_kat    = s.get("kategori", "")
-    skor_renk   = score_color(skor_kat)
+    buyume_val = float(g.get("ortalama_buyume_orani", 0) or 0)
+    kar_val    = float(k.get("toplam_net_kar", 0) or 0)
+    skor_val   = int(s.get("skor", 0) or 0)
+    skor_kat   = s.get("kategori", "")
+    skor_renk  = score_color(skor_kat)
+    sirket     = st.session_state.get("sirket_adi", "Şirket")
+    gider_oran = round(e["toplam_gider"]/g["toplam_gelir"]*100,1) if g.get("toplam_gelir") else 0
 
-    st.markdown(f'''
-    <div class="page-header">
-        <div class="page-title">{st.session_state.get("sirket_adi","Şirket")} — Finansal Genel Bakış</div>
-        <div class="page-subtitle">
-            {g.get("ay_sayisi", 0)} aylık veri &nbsp;·&nbsp;
-            Son güncelleme: {rapor.get("son_donem", "—")} &nbsp;·&nbsp;
-            <span class="badge badge-{"green" if skor_val >= 65 else "amber" if skor_val >= 40 else "red"}">{skor_kat}</span>
-        </div>
-    </div>
-    ''', unsafe_allow_html=True)
+    # ── Page header (İlke 5) ──
+    bdg_lvl = "success" if skor_val >= 65 else "warning" if skor_val >= 40 else "critical"
+    bdg_clr = DS.GREEN if skor_val >= 65 else DS.AMBER if skor_val >= 40 else DS.RED
+    bdg_bg  = DS.GREEN_BG if skor_val >= 65 else DS.AMBER_BG if skor_val >= 40 else DS.RED_BG
+    bdg_bdr = DS.GREEN_BDR if skor_val >= 65 else DS.AMBER_BDR if skor_val >= 40 else DS.RED_BDR
 
-    # ── EXECUTIVE SUMMARY — 4 KPI ──
+    st.markdown(
+        f'<div style="padding:4px 0 20px;border-bottom:1px solid {DS.BORDER};margin-bottom:20px;">'
+        f'<div style="font-size:18px;font-weight:600;letter-spacing:-0.01em;'
+        f'color:{DS.TEXT_PRI};">{sirket} — Finansal Genel Bakış</div>'
+        f'<div style="font-size:12px;color:{DS.TEXT_TER};margin-top:5px;display:flex;'
+        f'align-items:center;gap:10px;">'
+        f'<span>{g.get("ay_sayisi",0)} aylık veri</span>'
+        f'<span style="opacity:.4">·</span>'
+        f'<span>{g.get("donem_baslangic","—")} – {g.get("donem_bitis","—")}</span>'
+        f'<span style="opacity:.4">·</span>'
+        f'<span style="background:{bdg_bg};color:{bdg_clr};border:1px solid {bdg_bdr};'
+        f'padding:2px 8px;border-radius:4px;font-size:10px;font-weight:600;'
+        f'letter-spacing:.05em;text-transform:uppercase;">{skor_kat}</span>'
+        f'</div></div>',
+        unsafe_allow_html=True
+    )
+
+    # ── İlke 5: Yönetici Özeti ──
+    marj = k.get("kar_marji", 0)
+    buyume_yorum = "güçlü büyüme sürdürüyor" if buyume_val >= 10 else "ılımlı büyüme kaydediyor" if buyume_val >= 0 else "gelir gerileme yaşıyor"
+    marj_yorum = "sağlıklı" if marj >= 20 else "baskı altında" if marj >= 10 else "kritik seviyede"
+    exec_summary(
+        f"{sirket} {g.get('ay_sayisi',0)} aylık dönemde {buyume_yorum}. "
+        f"Toplam gelir <strong>{fmt(g['toplam_gelir'])}</strong> ile gerçekleşti; "
+        f"net kar marjı <strong>%{marj}</strong> — {marj_yorum}. "
+        f"Gider/gelir oranı %{gider_oran}. "
+        f"Finansal sağlık skoru: <strong>{skor_val}/100 ({skor_kat})</strong>."
+    )
+
+    # ── KPI Satırı 1: Ana metrikler (İlke 4) ──
     c1, c2, c3, c4 = st.columns(4)
     with c1:
         kpi("Toplam Gelir", fmt(g["toplam_gelir"]),
-            f'Aylık ort. {fmt(g["ortalama_aylik_gelir"])}',
-            True)
+            f'Ort. {fmt(g["ortalama_aylik_gelir"])}/ay', True)
     with c2:
         kpi("Net Kar", fmt(kar_val),
-            f'Marj %{k["kar_marji"]}',
-            kar_val >= 0)
+            f'Marj %{marj}', bool(kar_val >= 0))
     with c3:
         kpi("Büyüme Oranı", f'%{buyume_val}',
-            f'Aylık ortalama',
-            buyume_val >= 0)
+            "Aylık ortalama", bool(buyume_val >= 0))
     with c4:
         st.markdown(
-            f'<div class="kpi-card">'
-            f'<div class="kpi-card-accent" style="background:{skor_renk}"></div>'
-            f'<div class="kpi-label">Finansal Sağlık</div>'
-            f'<div class="kpi-value" style="color:{skor_renk};">{skor_val}'
-            f'<span style="font-size:1rem;color:#94A3B8;font-weight:400;"> /100</span></div>'
-            f'<div style="color:{skor_renk};font-size:0.72rem;font-weight:500;'
-            f'letter-spacing:0.04em;margin-top:6px;">{skor_kat.upper()}</div>'
-            f'</div>',
+            f'<div style="background:{DS.BG_SURFACE};border:1px solid {DS.BORDER};'
+            f'border-radius:{DS.R_LG};padding:18px 20px 16px 22px;'
+            f'position:relative;overflow:hidden;margin-bottom:8px;'
+            f'box-shadow:{DS.SHADOW};">'
+            f'<div style="position:absolute;left:0;top:0;bottom:0;width:3px;'
+            f'border-radius:4px 0 0 4px;background:{skor_renk};"></div>'
+            f'<div style="font-size:10px;font-weight:600;letter-spacing:.1em;'
+            f'text-transform:uppercase;color:{DS.TEXT_TER};margin-bottom:8px;">'
+            f'Finansal Sağlık</div>'
+            f'<div style="font-size:26px;font-weight:600;letter-spacing:-.025em;'
+            f'line-height:1.1;color:{skor_renk};">{skor_val}'
+            f'<span style="font-size:14px;color:{DS.TEXT_TER};font-weight:400;"> /100</span></div>'
+            f'<div style="display:inline-flex;align-items:center;padding:2px 7px;'
+            f'border-radius:4px;font-size:10px;font-weight:600;letter-spacing:.05em;'
+            f'text-transform:uppercase;margin-top:7px;'
+            f'background:{bdg_bg};color:{bdg_clr};border:1px solid {bdg_bdr};">'
+            f'{skor_kat}</div></div>',
             unsafe_allow_html=True
         )
 
-    # ── İKİNCİL KPI SATIRI ──
-    st.markdown('<div style="height:8px;"></div>', unsafe_allow_html=True)
+    # ── KPI Satırı 2: İkincil metrikler ──
     c1, c2, c3, c4 = st.columns(4)
-    with c1: kpi("Toplam Gider",    fmt(e["toplam_gider"]),
-                 f'Sabit %{e["sabit_gider_orani"]}',
-                 e["sabit_gider_orani"] < 60)
-    with c2: kpi("Kar Marjı",       f'%{k["kar_marji"]}',
-                 positive=k["kar_marji"] >= 10)
-    with c3: kpi("Gider / Gelir",
-                 f'%{round(e["toplam_gider"]/g["toplam_gelir"]*100,1) if g["toplam_gelir"] else 0}',
-                 "Hedef < %80",
-                 (e["toplam_gider"]/g["toplam_gelir"] < 0.80) if g["toplam_gelir"] else False)
-    with c4: kpi("Analiz Dönemi",
-                 f'{g.get("ay_sayisi",0)} Ay',
-                 f'{g.get("donem_baslangic","—")} – {g.get("donem_bitis","—")}',
-                 True)
+    with c1:
+        kpi("Toplam Gider", fmt(e["toplam_gider"]),
+            f'Sabit %{e["sabit_gider_orani"]}',
+            bool(e["sabit_gider_orani"] < 60))
+    with c2:
+        kpi("Kar Marjı", f'%{marj}',
+            "Hedef > %15", bool(marj >= 15))
+    with c3:
+        kpi("Gider / Gelir", f'%{gider_oran}',
+            "Hedef < %80", bool(gider_oran < 80))
+    with c4:
+        kpi("Analiz Dönemi", f'{g.get("ay_sayisi",0)} Ay',
+            f'{g.get("donem_baslangic","—")} – {g.get("donem_bitis","—")}', True)
 
-    st.markdown("<hr>", unsafe_allow_html=True)
+    # ── Ayırıcı ──
+    st.markdown(f'<hr style="border:none;border-top:1px solid {DS.BORDER};margin:20px 0;">',
+                unsafe_allow_html=True)
 
-    # ── ANA GRAFİK — GELİR / GİDER / NET KAR ──
+    # ── Ana Grafik + Sağlık Paneli ──
     col_main, col_side = st.columns([2, 1])
 
     with col_main:
-        st.markdown('<div class="section-title">Aylık Finansal Performans</div>',
-                    unsafe_allow_html=True)
+        sec("Aylık Finansal Performans")
         mp = engine.profit.monthly_profit()
         if not mp.empty:
             fig = go.Figure()
-            fig.add_bar(x=mp["Dönem"], y=mp["Gelir"],
-                        name="Gelir", marker_color=C_BLUE, opacity=0.85)
-            fig.add_bar(x=mp["Dönem"], y=mp["Gider"],
-                        name="Gider", marker_color=C_SLATE, opacity=0.75)
-            fig.add_scatter(x=mp["Dönem"], y=mp["NetKar"],
-                            name="Net Kar",
-                            mode="lines+markers",
-                            line=dict(color=C_GREEN, width=2),
-                            marker=dict(size=5, color=C_GREEN))
+            fig.add_bar(
+                x=mp["Dönem"], y=mp["Gelir"], name="Gelir",
+                marker_color=DS.C1, opacity=0.85,
+            )
+            fig.add_bar(
+                x=mp["Dönem"], y=mp["Gider"], name="Gider",
+                marker_color=DS.C3, opacity=0.7,
+            )
+            fig.add_scatter(
+                x=mp["Dönem"], y=mp["NetKar"], name="Net Kar",
+                mode="lines+markers",
+                line=dict(color=DS.GREEN, width=2.5),
+                marker=dict(size=6, color=DS.GREEN,
+                            line=dict(color=DS.BG_BASE, width=1.5)),
+            )
             fig.update_layout(
-                barmode="group", height=310,
-                paper_bgcolor="rgba(0,0,0,0)", plot_bgcolor="rgba(0,0,0,0)",
-                font=dict(color="#7a90b5", family="Inter, sans-serif", size=11),
-                xaxis=dict(gridcolor="#1a2640", showgrid=True, zeroline=False),
-                yaxis=dict(gridcolor="#1a2640", showgrid=True, zeroline=False),
-                margin=dict(l=8, r=8, t=36, b=8),
-                legend=dict(orientation="h", y=1.06, x=0, font=dict(size=10)))
+                barmode="group", height=300,
+                **PLOTLY_THEME,
+                xaxis=dict(gridcolor=DS.BORDER, showgrid=True, zeroline=False,
+                           tickfont=dict(size=10, color=DS.TEXT_TER)),
+                yaxis=dict(gridcolor=DS.BORDER, showgrid=True, zeroline=False,
+                           tickfont=dict(size=10, color=DS.TEXT_TER)),
+                legend=dict(orientation="h", y=1.06, x=0,
+                            font=dict(size=11, color=DS.TEXT_SEC),
+                            bgcolor="rgba(0,0,0,0)"),
+            )
             st.plotly_chart(fig, use_container_width=True)
 
     with col_side:
-        st.markdown('<div class="section-title">Finansal Sağlık Alt Skorları</div>',
-                    unsafe_allow_html=True)
+        sec("Finansal Sağlık Skoru")
         alt = s["alt_skorlar"]
         for key, lbl in [
             ("karlilik","Karlılık"),
@@ -645,65 +684,98 @@ with tab_genel:
             ("gider_kontrolu","Gider Kontrolü"),
             ("nakit","Nakit"),
         ]:
-            val    = alt.get(key, 0)
-            renk   = C_GREEN if val >= 70 else C_AMBER if val >= 40 else C_RED
-            pct    = min(val, 100)
-            st.markdown(f'''
-            <div style="margin-bottom:14px;">
-                <div style="display:flex;justify-content:space-between;
-                            margin-bottom:5px;">
-                    <span style="font-size:0.72rem;font-weight:500;
-                                 color:#475569;
-                                 letter-spacing:0.04em;">{lbl.upper()}</span>
-                    <span style="font-size:0.78rem;font-weight:600;
-                                 color:{renk};">{val}</span>
-                </div>
-                <div style="background:#E2E8F0;border-radius:3px;
-                            height:5px;overflow:hidden;">
-                    <div style="background:{renk};width:{pct}%;height:100%;
-                                border-radius:3px;transition:width 0.4s;"></div>
-                </div>
-            </div>
-            ''', unsafe_allow_html=True)
+            val  = int(alt.get(key, 0) or 0)
+            renk = DS.GREEN if val >= 70 else DS.AMBER if val >= 40 else DS.RED
+            pct  = min(val, 100)
+            st.markdown(
+                f'<div style="margin-bottom:16px;">'
+                f'<div style="display:flex;justify-content:space-between;margin-bottom:6px;">'
+                f'<span style="font-size:11px;font-weight:500;color:{DS.TEXT_SEC};'
+                f'letter-spacing:.04em;">{lbl}</span>'
+                f'<span style="font-size:12px;font-weight:600;color:{renk};">{val}</span>'
+                f'</div>'
+                f'<div style="background:{DS.BG_ELEVATED};border-radius:3px;'
+                f'height:6px;overflow:hidden;">'
+                f'<div style="background:{renk};width:{pct}%;height:100%;'
+                f'border-radius:3px;"></div>'
+                f'</div></div>',
+                unsafe_allow_html=True
+            )
 
-        st.markdown(
-            f'<div class="alert-row alert-info" style="margin-top:8px;">'
-            f'<div><div class="alert-title" style="font-size:0.72rem;">Sistem Değerlendirmesi</div>'
-            f'<div class="alert-body">{s.get("aciklama","")}</div></div></div>',
-            unsafe_allow_html=True
-        )
+        # İlke 8: Alert
+        alert("Sistem Değerlendirmesi", s.get("aciklama",""), "info")
 
 # ══ GELİR ══
 with tab_gelir:
     g = rapor["gelir"]
-    sec("💰 Gelir Analizi")
+    _bv = float(g.get("ortalama_buyume_orani", 0) or 0)
+
+    # Page header
+    page_header("Gelir Analizi", f'{g.get("ay_sayisi",0)} aylık dönem')
+
+    # KPI
     c1, c2, c3 = st.columns(3)
     with c1: kpi("Toplam Gelir",   fmt(g["toplam_gelir"]))
     with c2: kpi("Aylık Ortalama", fmt(g["ortalama_aylik_gelir"]))
-    with c3: kpi("Ort. Büyüme", f'%{g["ortalama_buyume_orani"]}', positive=bool(g["ortalama_buyume_orani"] >= 0))
+    with c3: kpi("Ort. Büyüme",    f'%{_bv}', positive=bool(_bv >= 0))
+
+    # Grafikler
     col1, col2 = st.columns(2)
     with col1:
-        mr  = engine.revenue.monthly_revenue()
-        fig = px.bar(mr, x="Dönem", y="Toplam Gelir",
-                     color_discrete_sequence=["#1D4ED8"])
-        fig.update_layout(title="Aylık Gelir Trendi", height=280, **{k:v for k,v in PLOTLY_THEME.items() if k not in ("title")})
+        sec("Aylık Gelir Trendi")
+        mr = engine.revenue.monthly_revenue()
+        fig = go.Figure(go.Bar(
+            x=mr["Dönem"], y=mr["Toplam Gelir"],
+            marker_color=DS.C1, opacity=0.9,
+            hovertemplate="%{x}<br>%{y:,.0f} ₺<extra></extra>",
+        ))
+        fig.update_layout(
+            height=260, **PLOTLY_THEME,
+            xaxis=dict(gridcolor=DS.BORDER, showgrid=False, zeroline=False,
+                       tickfont=dict(size=10, color=DS.TEXT_TER)),
+            yaxis=dict(gridcolor=DS.BORDER, showgrid=True, zeroline=False,
+                       tickfont=dict(size=10, color=DS.TEXT_TER)),
+        )
         st.plotly_chart(fig, use_container_width=True)
     with col2:
+        sec("Kategori Dağılımı")
         cr = engine.revenue.revenue_by_category()
         cr = cr[cr["Toplam Gelir"] > 0]
         if not cr.empty:
-            fig = px.pie(cr, values="Toplam Gelir", names="Kategori",
-                         color_discrete_sequence=px.colors.sequential.Blues_r, hole=0.5)
-            fig.update_layout(title="Gelir Dağılımı", height=280, **{k:v for k,v in PLOTLY_THEME.items() if k not in ("title")})
+            fig = go.Figure(go.Pie(
+                values=cr["Toplam Gelir"], labels=cr["Kategori"],
+                hole=0.55,
+                marker=dict(colors=[DS.C1, DS.C2, DS.C3, DS.C4,
+                                    "#6366F1","#0891B2","#059669"]),
+                textfont=dict(size=11),
+            ))
+            fig.update_layout(height=260, **PLOTLY_THEME,
+                               legend=dict(font=dict(size=11, color=DS.TEXT_SEC),
+                                           bgcolor="rgba(0,0,0,0)"))
             st.plotly_chart(fig, use_container_width=True)
+
+    sec("Büyüme Oranı Trendi")
     gr = engine.revenue.revenue_growth_rate().dropna()
     if not gr.empty:
-        fig = go.Figure(go.Scatter(x=gr["Dönem"], y=gr["Büyüme Oranı (%)"],
-                        fill="tozeroy", mode="lines+markers",
-                        line=dict(color="#0EA5E9", width=2),
-                        fillcolor="rgba(0,212,255,0.07)"))
-        fig.add_hline(y=0, line_dash="dash", line_color="#DC2626", opacity=0.5)
-        fig.update_layout(title="Büyüme Oranı (%)", height=230, **PLOTLY_THEME)
+        renkler = [DS.GREEN if v >= 0 else DS.RED for v in gr["Büyüme Oranı (%)"]]
+        fig = go.Figure()
+        fig.add_scatter(
+            x=gr["Dönem"], y=gr["Büyüme Oranı (%)"],
+            fill="tozeroy", mode="lines+markers",
+            line=dict(color=DS.C1, width=2.5),
+            fillcolor=f"rgba(37,99,235,0.08)",
+            marker=dict(size=6, color=renkler,
+                        line=dict(color=DS.BG_BASE, width=1.5)),
+        )
+        fig.add_hline(y=0, line_dash="dash", line_color=DS.RED, opacity=0.4)
+        fig.update_layout(
+            height=220, **PLOTLY_THEME,
+            xaxis=dict(gridcolor=DS.BORDER, showgrid=True, zeroline=False,
+                       tickfont=dict(size=10, color=DS.TEXT_TER)),
+            yaxis=dict(gridcolor=DS.BORDER, showgrid=True, zeroline=False,
+                       tickfont=dict(size=10, color=DS.TEXT_TER),
+                       ticksuffix="%"),
+        )
         st.plotly_chart(fig, use_container_width=True)
 
 # ══ GİDER ══
