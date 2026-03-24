@@ -14,13 +14,13 @@ import pandas as pd
 import numpy as np
 import plotly.graph_objects as go
 import plotly.express as px
-from design_system import (
-    DS, fmt, kpi, sec, exec_summary, alert, page_header,
-    badge, PLOTLY_THEME,
-    C_BLUE, C_GREEN, C_RED, C_AMBER, C_SLATE, C_CYAN,
-    C_YELLOW, C_PURPLE, CHART_COLORS, score_color
-)
 
+from design_system import (
+    DS, fmt, kpi, sec, exec_summary, alert, page_header, badge,
+    inject_css, PLOTLY_THEME, score_color,
+    C_BLUE, C_GREEN, C_RED, C_AMBER, C_SLATE, C_CYAN,
+    C_YELLOW, C_PURPLE, CHART_COLORS,
+)
 
 from cashflow_engine import (
     CashFlowInput, CashFlowEngine, CashFlowForecast
@@ -33,12 +33,10 @@ from debt_engine import (
 # TEMA
 # ─────────────────────────────────────────────
 
-
 def durum_renk(d):
     return {"İyi":C_GREEN,"Orta":C_YELLOW,"Zayıf":C_RED,
             "Veri Yok":"#64748B","Sağlıklı":C_GREEN,
             "Dikkat":C_YELLOW,"Kritik":C_RED}.get(d, "#94A3B8")
-
 
 # ══════════════════════════════════════
 # NAKİT AKIŞI SEKMESİ
@@ -337,7 +335,6 @@ def show_cashflow_tab(fin_engine=None, fin_rapor=None):
                 subset=["Net","Kümülatif"]
             ),
             use_container_width=True, hide_index=True)
-
 
 # ══════════════════════════════════════
 # BORÇ ANALİZİ SEKMESİ

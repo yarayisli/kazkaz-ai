@@ -13,11 +13,12 @@ import pandas as pd
 import numpy as np
 import plotly.graph_objects as go
 import plotly.express as px
+
 from design_system import (
-    DS, fmt, kpi, sec, exec_summary, alert, page_header,
-    badge, PLOTLY_THEME,
+    DS, fmt, kpi, sec, exec_summary, alert, page_header, badge,
+    inject_css, PLOTLY_THEME, score_color,
     C_BLUE, C_GREEN, C_RED, C_AMBER, C_SLATE, C_CYAN,
-    C_YELLOW, C_PURPLE, CHART_COLORS, score_color
+    C_YELLOW, C_PURPLE, CHART_COLORS,
 )
 
 from typing import List
@@ -27,16 +28,6 @@ from investment_engine import Investment, InvestmentEngine, InvestmentComparator
 # ─────────────────────────────────────────────
 # TEMA SABİTLERİ
 # ─────────────────────────────────────────────
-
-PLOTLY_THEME = dict(
-    paper_bgcolor="rgba(0,0,0,0)", plot_bgcolor="rgba(0,0,0,0)",
-    font=dict(color="#94A3B8", family="Inter"),
-    xaxis=dict(gridcolor="#E2E8F0", showgrid=True, zeroline=False),
-    yaxis=dict(gridcolor="#E2E8F0", showgrid=True, zeroline=False),
-    margin=dict(l=10, r=10, t=36, b=10),
-)
-
-
 
 def kpi_card(label, value, delta="", color="#0F172A", positive=True):
     dc = "#059669" if positive else "#DC2626"
@@ -55,13 +46,11 @@ def kpi_card(label, value, delta="", color="#0F172A", positive=True):
         {dh}
     </div>""", unsafe_allow_html=True)
 
-
 def section_title(text: str):
     st.markdown(f"""
     <div style="font-family:'Syne',sans-serif;font-size:1rem;font-weight:700;
                 color:#0F172A;padding:6px 0 10px;border-bottom:1px solid #E2E8F0;
                 margin:16px 0 14px;">{text}</div>""", unsafe_allow_html=True)
-
 
 def show_investment_tab():
     """Ana yatırım analizi sekmesi — app.py'e entegre edilir."""
@@ -90,7 +79,6 @@ def show_investment_tab():
 
     with sub_tab3:
         _monte_carlo_ui()
-
 
 # ─────────────────────────────────────────────
 # TEK YATIRIM ANALİZİ
@@ -269,7 +257,6 @@ def _single_investment_ui():
         use_container_width=True, hide_index=True
     )
 
-
 # ─────────────────────────────────────────────
 # KARŞILAŞTIRMA MODÜLü
 # ─────────────────────────────────────────────
@@ -366,7 +353,6 @@ def _comparison_ui():
         legend=dict(orientation="h", y=-0.1, x=0.5, xanchor="center"),
     )
     st.plotly_chart(fig, use_container_width=True)
-
 
 # ─────────────────────────────────────────────
 # MONTE CARLO

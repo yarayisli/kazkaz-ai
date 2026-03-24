@@ -12,21 +12,19 @@ import pandas as pd
 import numpy as np
 import plotly.graph_objects as go
 import plotly.express as px
+
 from design_system import (
-    DS, fmt, kpi, sec, exec_summary, alert, page_header,
-    badge, PLOTLY_THEME,
+    DS, fmt, kpi, sec, exec_summary, alert, page_header, badge,
+    inject_css, PLOTLY_THEME, score_color,
     C_BLUE, C_GREEN, C_RED, C_AMBER, C_SLATE, C_CYAN,
-    C_YELLOW, C_PURPLE, CHART_COLORS, score_color
+    C_YELLOW, C_PURPLE, CHART_COLORS,
 )
 
-
 from sector_engine import SectorEngine, SECTOR_DB, GENEL_SEKTOR
-
 
 # ─────────────────────────────────────────────
 # TEMA
 # ─────────────────────────────────────────────
-
 
 def badge_color(durum: str) -> str:
     return {"Mükemmel":"#059669","İyi":"#3B82F6",
@@ -45,7 +43,6 @@ def pt_merge(**overrides):
     return {"Sektör Lideri":"#059669","Ortalamanın Üstü":"#3B82F6",
             "Sektör Ortalaması":"#D97706","Ortalamanın Altı":"#f97316",
             "Sektörde Zayıf":"#DC2626"}.get(k,"#0F172A")
-
 
 # ─────────────────────────────────────────────
 # ANA FONKSİYON

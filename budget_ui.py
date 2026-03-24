@@ -12,20 +12,19 @@ import pandas as pd
 import numpy as np
 import plotly.graph_objects as go
 import plotly.express as px
-from design_system import (
-    DS, fmt, kpi, sec, exec_summary, alert, page_header,
-    badge, PLOTLY_THEME,
-    C_BLUE, C_GREEN, C_RED, C_AMBER, C_SLATE, C_CYAN,
-    C_YELLOW, C_PURPLE, CHART_COLORS, score_color
-)
 
+from design_system import (
+    DS, fmt, kpi, sec, exec_summary, alert, page_header, badge,
+    inject_css, PLOTLY_THEME, score_color,
+    C_BLUE, C_GREEN, C_RED, C_AMBER, C_SLATE, C_CYAN,
+    C_YELLOW, C_PURPLE, CHART_COLORS,
+)
 
 from budget_engine import BudgetEngine, BudgetPlan, BudgetPeriod
 
 # ─────────────────────────────────────────────
 # TEMA
 # ─────────────────────────────────────────────
-
 
 def show_budget_form(gercek_df: pd.DataFrame) -> BudgetPlan:
     """Aylık bütçe giriş formu."""
@@ -137,7 +136,6 @@ def show_budget_form(gercek_df: pd.DataFrame) -> BudgetPlan:
             )
 
         return otomatik  # CSV yüklenemezse otomatik kullan
-
 
 # ─────────────────────────────────────────────
 # ANA SEKME

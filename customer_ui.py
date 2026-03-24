@@ -12,20 +12,19 @@ import pandas as pd
 import numpy as np
 import plotly.graph_objects as go
 import plotly.express as px
-from design_system import (
-    DS, fmt, kpi, sec, exec_summary, alert, page_header,
-    badge, PLOTLY_THEME,
-    C_BLUE, C_GREEN, C_RED, C_AMBER, C_SLATE, C_CYAN,
-    C_YELLOW, C_PURPLE, CHART_COLORS, score_color
-)
 
+from design_system import (
+    DS, fmt, kpi, sec, exec_summary, alert, page_header, badge,
+    inject_css, PLOTLY_THEME, score_color,
+    C_BLUE, C_GREEN, C_RED, C_AMBER, C_SLATE, C_CYAN,
+    C_YELLOW, C_PURPLE, CHART_COLORS,
+)
 
 from customer_engine import CustomerEngine
 
 # ─────────────────────────────────────────────
 # TEMA
 # ─────────────────────────────────────────────
-
 
 def show_customer_tab(df: pd.DataFrame):
     """Müşteri & ürün analizi ana sekmesi."""
@@ -431,7 +430,6 @@ def show_customer_tab(df: pd.DataFrame):
                     subset=["Risk Seviyesi"]
                 ),
                 use_container_width=True, hide_index=True)
-
 
 def _show_no_data_guide():
     """Müşteri verisi yoksa nasıl ekleneceğini göster."""

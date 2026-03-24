@@ -12,11 +12,12 @@ import pandas as pd
 import numpy as np
 import plotly.graph_objects as go
 import plotly.express as px
+
 from design_system import (
-    DS, fmt, kpi, sec, exec_summary, alert, page_header,
-    badge, PLOTLY_THEME,
+    DS, fmt, kpi, sec, exec_summary, alert, page_header, badge,
+    inject_css, PLOTLY_THEME, score_color,
     C_BLUE, C_GREEN, C_RED, C_AMBER, C_SLATE, C_CYAN,
-    C_YELLOW, C_PURPLE, CHART_COLORS, score_color
+    C_YELLOW, C_PURPLE, CHART_COLORS,
 )
 
 from datetime import datetime
@@ -30,10 +31,8 @@ from company_profile import (
 # TEMA
 # ─────────────────────────────────────────────
 
-
 def durum_renk(d):
     return {"Mükemmel":C_GREEN,"İyi":C_BLUE,"Orta":C_YELLOW,"Zayıf":C_RED}.get(d,"#94A3B8")
-
 
 # ─────────────────────────────────────────────
 # PROFİL FORM
@@ -239,7 +238,6 @@ def show_profile_form() -> CompanyProfile:
         borsada_mi           = borsada,
         aciklama             = aciklama,
     )
-
 
 # ─────────────────────────────────────────────
 # ANA SEKME
@@ -651,7 +649,6 @@ def show_company_tab(fin_rapor: dict):
                 f'<span style="color:{renk};font-weight:700;font-size:.88rem;">'
                 f'{deger}</span></div>',
                 unsafe_allow_html=True)
-
 
 def get_profile_from_session() -> dict:
     """Session state'ten mevcut profili döndürür."""

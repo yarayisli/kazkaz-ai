@@ -18,7 +18,12 @@ import numpy as np
 from datetime import datetime, date
 from io import BytesIO
 
-from design_system import DS, sec, kpi, alert, fmt
+from design_system import (
+    DS, fmt, kpi, sec, exec_summary, alert, page_header, badge,
+    inject_css, PLOTLY_THEME, score_color,
+    C_BLUE, C_GREEN, C_RED, C_AMBER, C_SLATE, C_CYAN,
+    C_YELLOW, C_PURPLE, CHART_COLORS,
+)
 
 try:
     from data_importer import DataImporter
