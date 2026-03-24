@@ -1030,7 +1030,7 @@ with tab_gelir:
     c1, c2, c3 = st.columns(3)
     with c1: kpi("Toplam Gelir",   fmt(g["toplam_gelir"]))
     with c2: kpi("Aylık Ortalama", fmt(g["ortalama_aylik_gelir"]))
-    with c3: kpi("Ort. Büyüme", delta=f'%{g["ortalama_buyume_orani"]}', positive=g["ortalama_buyume_orani"] >= 0)
+    with c3: kpi("Ort. Büyüme", f'%{g["ortalama_buyume_orani"]}', positive=bool(g["ortalama_buyume_orani"] >= 0))
     col1, col2 = st.columns(2)
     with col1:
         mr  = engine.revenue.monthly_revenue()
@@ -1135,7 +1135,7 @@ with tab_tahmin:
                 c1, c2, c3 = st.columns(3)
                 with c1: kpi("Toplam Tahmin", fmt(sonuc["toplam_tahmin"]))
                 with c2: kpi("Aylık Ort.", fmt(sonuc["ortalama_tahmin"]))
-                with c3: kpi("Büyüme Bkl.", delta=f'%{sonuc["buyume_beklentisi"]}', positive=sonuc["buyume_beklentisi"] >= 0)
+                with c3: kpi("Büyüme Bkl.", f'%{sonuc["buyume_beklentisi"]}', positive=bool(sonuc["buyume_beklentisi"] >= 0))
             t_df = sonuc["tahmin_tablosu"]
             mr   = engine.revenue.monthly_revenue()
             fig  = go.Figure()
