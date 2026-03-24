@@ -1072,9 +1072,13 @@ with tab_genel:
                             line=dict(color=C_GREEN, width=2),
                             marker=dict(size=5, color=C_GREEN))
             fig.update_layout(
-                barmode="group", height=310, **PLOTLY_THEME,
-                legend=dict(orientation="h", y=1.06, x=0,
-                            font=dict(size=10)))
+                barmode="group", height=310,
+                paper_bgcolor="rgba(0,0,0,0)", plot_bgcolor="rgba(0,0,0,0)",
+                font=dict(color="#7a90b5", family="Inter, sans-serif", size=11),
+                xaxis=dict(gridcolor="#1a2640", showgrid=True, zeroline=False),
+                yaxis=dict(gridcolor="#1a2640", showgrid=True, zeroline=False),
+                margin=dict(l=8, r=8, t=36, b=8),
+                legend=dict(orientation="h", y=1.06, x=0, font=dict(size=10)))
             st.plotly_chart(fig, use_container_width=True)
 
     with col_side:
