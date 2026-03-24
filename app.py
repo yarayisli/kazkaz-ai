@@ -131,60 +131,497 @@ GROQ_API_KEY_ENV     = get_secret("GROQ_API_KEY")
 # CSS
 # ─────────────────────────────────────────────
 
-st.markdown("""
+# ─────────────────────────────────────────────────────────────────
+# PREMIUM DESIGN SYSTEM — KazKaz AI
+# Tasarım dili: Bloomberg ciddiyeti + Modern premium SaaS sadeliği
+# Palet: Koyu lacivert (#080d1a) / Grafit / Kırık beyaz / Kontrollü vurgu
+# ─────────────────────────────────────────────────────────────────
+
+PREMIUM_CSS = """
 <style>
-@import url('https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Sans:wght@300;400;500&display=swap');
-html, body, [class*="css"] { font-family: 'DM Sans', sans-serif; }
-.stApp { background: #0a0e1a; color: #e8eaf0; }
-[data-testid="stSidebar"] { background: #0f1629 !important; border-right: 1px solid #1e2d4a; }
+/* ── FONTS ── */
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap');
+
+/* ── DESIGN TOKENS ──────────────────────────────────── */
+:root {
+  /* Backgrounds */
+  --bg-base:       #080d1a;   /* Ana zemin — derin lacivert */
+  --bg-surface:    #0d1424;   /* Kart zemin */
+  --bg-elevated:   #111d30;   /* Hover / seçili kart */
+  --bg-sidebar:    #090e1c;   /* Sol panel */
+  --bg-input:      #0f1829;   /* Input alanları */
+
+  /* Borders */
+  --border-subtle: #1a2640;   /* Hafif ayraçlar */
+  --border-base:   #1e3050;   /* Standart kenarlık */
+  --border-strong: #2a4070;   /* Vurgulu kenarlık */
+
+  /* Typography */
+  --text-primary:  #dde4f0;   /* Ana metin — kırık beyaz */
+  --text-secondary:#7a90b5;   /* İkincil metin */
+  --text-tertiary: #4a6080;   /* Üçüncül / label */
+  --text-disabled: #2e4060;   /* Pasif */
+
+  /* Accent — Kontrollü mavi, tek vurgu */
+  --accent:        #2563eb;   /* Primary action */
+  --accent-light:  #3b82f6;   /* Hover */
+  --accent-muted:  #1e3a6e;   /* Arka plan vurgu */
+  --accent-glow:   rgba(37,99,235,0.15);
+
+  /* Semantic Colors */
+  --green:         #22c55e;   /* Pozitif / büyüme */
+  --green-muted:   #14532d;
+  --red:           #ef4444;   /* Negatif / risk */
+  --red-muted:     #4c0519;
+  --amber:         #f59e0b;   /* Uyarı / dikkat */
+  --amber-muted:   #451a03;
+  --blue-info:     #3b82f6;   /* Bilgi */
+
+  /* Radius */
+  --radius-sm:  6px;
+  --radius-md:  10px;
+  --radius-lg:  14px;
+  --radius-xl:  18px;
+
+  /* Shadows */
+  --shadow-card: 0 1px 3px rgba(0,0,0,0.4), 0 4px 16px rgba(0,0,0,0.25);
+  --shadow-elevated: 0 4px 24px rgba(0,0,0,0.5);
+}
+
+/* ── BASE ── */
+html, body, [class*="css"] {
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+  font-size: 14px;
+  -webkit-font-smoothing: antialiased;
+}
+.stApp {
+  background-color: var(--bg-base);
+  color: var(--text-primary);
+}
+
+/* ── SIDEBAR ── */
+[data-testid="stSidebar"] {
+  background: var(--bg-sidebar) !important;
+  border-right: 1px solid var(--border-subtle) !important;
+}
+[data-testid="stSidebar"] * { color: var(--text-secondary) !important; }
+[data-testid="stSidebar"] h1,
+[data-testid="stSidebar"] h2,
+[data-testid="stSidebar"] h3 { color: var(--text-primary) !important; }
+
+/* ── LOGO ── */
 .kazkaz-logo {
-    font-family: 'Syne', sans-serif; font-size: 1.9rem; font-weight: 800;
-    background: linear-gradient(135deg, #00d4ff, #0066ff, #7c3aed);
-    -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+  font-family: 'Inter', sans-serif;
+  font-size: 1.25rem;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  color: var(--text-primary);
 }
+.kazkaz-logo span {
+  color: var(--accent-light);
+}
+.kazkaz-tagline {
+  font-size: 0.65rem;
+  letter-spacing: 0.15em;
+  text-transform: uppercase;
+  color: var(--text-tertiary);
+  margin-top: 2px;
+}
+
+/* ── KPI CARDS ── */
 .kpi-card {
-    background: linear-gradient(135deg, #111827, #1a2540);
-    border: 1px solid #1e3a5f; border-radius: 14px;
-    padding: 18px 20px; position: relative; overflow: hidden; margin-bottom: 10px;
+  background: var(--bg-surface);
+  border: 1px solid var(--border-base);
+  border-radius: var(--radius-lg);
+  padding: 20px 22px;
+  position: relative;
+  overflow: hidden;
+  margin-bottom: 8px;
+  box-shadow: var(--shadow-card);
+  transition: border-color 0.2s, box-shadow 0.2s;
 }
-.kpi-card::before {
-    content: ''; position: absolute; top: 0; left: 0; right: 0; height: 3px;
-    background: linear-gradient(90deg, #00d4ff, #0066ff);
+.kpi-card:hover {
+  border-color: var(--border-strong);
+  box-shadow: var(--shadow-elevated);
 }
-.kpi-label { font-size: 0.68rem; color: #4a6fa5; letter-spacing: 1.5px; text-transform: uppercase; margin-bottom: 5px; }
-.kpi-value { font-family: 'Syne', sans-serif; font-size: 1.6rem; font-weight: 700; color: #e8eaf0; }
-.kpi-delta { font-size: 0.76rem; margin-top: 3px; }
-.kpi-delta.pos { color: #10d994; } .kpi-delta.neg { color: #ff4757; }
+.kpi-card-accent {
+  position: absolute; top: 0; left: 0; width: 3px;
+  height: 100%; background: var(--accent);
+  border-radius: 0 0 0 var(--radius-lg);
+}
+.kpi-card-accent.green  { background: var(--green); }
+.kpi-card-accent.red    { background: var(--red); }
+.kpi-card-accent.amber  { background: var(--amber); }
+
+.kpi-label {
+  font-size: 0.65rem;
+  font-weight: 600;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--text-tertiary);
+  margin-bottom: 8px;
+}
+.kpi-value {
+  font-family: 'Inter', sans-serif;
+  font-size: 1.75rem;
+  font-weight: 600;
+  letter-spacing: -0.02em;
+  color: var(--text-primary);
+  line-height: 1;
+}
+.kpi-secondary {
+  font-size: 0.75rem;
+  color: var(--text-secondary);
+  margin-top: 6px;
+}
+.kpi-delta {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  font-size: 0.72rem;
+  font-weight: 500;
+  margin-top: 4px;
+  padding: 2px 6px;
+  border-radius: 4px;
+}
+.kpi-delta.pos { color: var(--green); background: rgba(34,197,94,0.1); }
+.kpi-delta.neg { color: var(--red);   background: rgba(239,68,68,0.1); }
+.kpi-delta.neu { color: var(--amber); background: rgba(245,158,11,0.1); }
+
+/* ── SECTION HEADERS ── */
+.section-header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 0 0 12px;
+  margin: 20px 0 16px;
+  border-bottom: 1px solid var(--border-subtle);
+}
+.section-header-title {
+  font-size: 0.8rem;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--text-secondary);
+}
 .section-title {
-    font-family: 'Syne', sans-serif; font-size: 1rem; font-weight: 700;
-    color: #e8eaf0; padding: 5px 0 10px; border-bottom: 1px solid #1e2d4a; margin: 14px 0 12px;
+  font-size: 0.95rem;
+  font-weight: 600;
+  color: var(--text-primary);
+  padding: 4px 0 10px;
+  border-bottom: 1px solid var(--border-subtle);
+  margin: 16px 0 14px;
 }
-.ai-badge {
-    display: inline-block; background: linear-gradient(135deg, #0066ff22, #7c3aed22);
-    border: 1px solid #0066ff44; color: #60a5fa; font-size: 0.68rem;
-    letter-spacing: 1.5px; text-transform: uppercase; padding: 2px 8px; border-radius: 20px;
+
+/* ── PAGE HEADER ── */
+.page-header {
+  padding: 8px 0 24px;
+  border-bottom: 1px solid var(--border-subtle);
+  margin-bottom: 24px;
 }
+.page-title {
+  font-size: 1.35rem;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+  color: var(--text-primary);
+  margin: 0;
+}
+.page-subtitle {
+  font-size: 0.8rem;
+  color: var(--text-tertiary);
+  margin-top: 4px;
+  letter-spacing: 0.05em;
+}
+
+/* ── EXECUTIVE SUMMARY CARD ── */
+.exec-card {
+  background: var(--bg-surface);
+  border: 1px solid var(--border-base);
+  border-radius: var(--radius-xl);
+  padding: 24px 28px;
+  margin-bottom: 16px;
+  box-shadow: var(--shadow-card);
+}
+.exec-card-label {
+  font-size: 0.62rem;
+  font-weight: 600;
+  letter-spacing: 0.15em;
+  text-transform: uppercase;
+  color: var(--text-tertiary);
+  margin-bottom: 12px;
+}
+.exec-card-value {
+  font-size: 2.25rem;
+  font-weight: 600;
+  letter-spacing: -0.03em;
+  color: var(--text-primary);
+}
+
+/* ── CHART CONTAINERS ── */
+.chart-card {
+  background: var(--bg-surface);
+  border: 1px solid var(--border-base);
+  border-radius: var(--radius-lg);
+  padding: 20px;
+  margin-bottom: 12px;
+  box-shadow: var(--shadow-card);
+}
+.chart-title {
+  font-size: 0.75rem;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--text-secondary);
+  margin-bottom: 16px;
+}
+
+/* ── BADGES ── */
+.badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 3px 8px;
+  border-radius: 4px;
+  font-size: 0.65rem;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+.badge-blue   { background: rgba(37,99,235,0.15); color: #60a5fa; border: 1px solid rgba(37,99,235,0.3); }
+.badge-green  { background: rgba(34,197,94,0.12);  color: #4ade80; border: 1px solid rgba(34,197,94,0.25); }
+.badge-red    { background: rgba(239,68,68,0.12);  color: #f87171; border: 1px solid rgba(239,68,68,0.25); }
+.badge-amber  { background: rgba(245,158,11,0.12); color: #fbbf24; border: 1px solid rgba(245,158,11,0.25); }
+.badge-gray   { background: rgba(100,116,139,0.15);color: #94a3b8; border: 1px solid rgba(100,116,139,0.25); }
+.ai-badge     { background: rgba(37,99,235,0.12);  color: #93c5fd; border: 1px solid rgba(37,99,235,0.25); }
+ai-badge, .badge { letter-spacing: 0.08em; }
+
+/* ── ALERTS & INSIGHTS ── */
+.alert-row {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 12px 16px;
+  border-radius: var(--radius-md);
+  margin-bottom: 8px;
+  border-left: 3px solid transparent;
+}
+.alert-critical { background: rgba(239,68,68,0.07);  border-color: var(--red); }
+.alert-warning  { background: rgba(245,158,11,0.07); border-color: var(--amber); }
+.alert-info     { background: rgba(37,99,235,0.07);  border-color: var(--accent-light); }
+.alert-success  { background: rgba(34,197,94,0.07);  border-color: var(--green); }
+
+.alert-title {
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: var(--text-primary);
+  margin-bottom: 2px;
+}
+.alert-body {
+  font-size: 0.75rem;
+  color: var(--text-secondary);
+  line-height: 1.5;
+}
+
+/* ── DATA TABLE ── */
+.dataframe {
+  background: var(--bg-surface) !important;
+  color: var(--text-primary) !important;
+  border: 1px solid var(--border-base) !important;
+  border-radius: var(--radius-md) !important;
+  font-size: 0.8rem !important;
+}
+.dataframe th {
+  background: var(--bg-elevated) !important;
+  color: var(--text-tertiary) !important;
+  font-size: 0.65rem !important;
+  font-weight: 600 !important;
+  letter-spacing: 0.08em !important;
+  text-transform: uppercase !important;
+  border-bottom: 1px solid var(--border-base) !important;
+  padding: 10px 14px !important;
+}
+.dataframe td {
+  border-bottom: 1px solid var(--border-subtle) !important;
+  padding: 9px 14px !important;
+  color: var(--text-secondary) !important;
+}
+.dataframe tr:hover td {
+  background: var(--bg-elevated) !important;
+  color: var(--text-primary) !important;
+}
+
+/* ── BUTTONS ── */
+.stButton > button {
+  background: var(--accent) !important;
+  color: #fff !important;
+  border: none !important;
+  border-radius: var(--radius-md) !important;
+  font-family: 'Inter', sans-serif !important;
+  font-size: 0.8rem !important;
+  font-weight: 500 !important;
+  letter-spacing: 0.02em !important;
+  padding: 8px 18px !important;
+  transition: background 0.15s, box-shadow 0.15s !important;
+  box-shadow: 0 1px 4px rgba(37,99,235,0.3) !important;
+}
+.stButton > button:hover {
+  background: var(--accent-light) !important;
+  box-shadow: 0 2px 8px rgba(37,99,235,0.4) !important;
+}
+
+/* ── INPUTS ── */
+.stTextInput > div > div > input,
+.stNumberInput > div > div > input,
+.stTextArea textarea,
+.stSelectbox > div > div {
+  background: var(--bg-input) !important;
+  border: 1px solid var(--border-base) !important;
+  border-radius: var(--radius-md) !important;
+  color: var(--text-primary) !important;
+  font-family: 'Inter', sans-serif !important;
+  font-size: 0.82rem !important;
+  transition: border-color 0.15s !important;
+}
+.stTextInput > div > div > input:focus,
+.stNumberInput > div > div > input:focus {
+  border-color: var(--accent) !important;
+  box-shadow: 0 0 0 2px var(--accent-glow) !important;
+}
+
+/* ── TABS ── */
+.stTabs [data-baseweb="tab-list"] {
+  background: var(--bg-surface);
+  border-radius: var(--radius-md);
+  border: 1px solid var(--border-subtle);
+  padding: 3px;
+  gap: 2px;
+}
+.stTabs [data-baseweb="tab"] {
+  color: var(--text-tertiary) !important;
+  font-size: 0.78rem !important;
+  font-weight: 500 !important;
+  border-radius: 7px !important;
+  padding: 6px 14px !important;
+  transition: all 0.15s !important;
+}
+.stTabs [data-baseweb="tab"]:hover {
+  color: var(--text-secondary) !important;
+  background: var(--bg-elevated) !important;
+}
+.stTabs [aria-selected="true"] {
+  color: var(--text-primary) !important;
+  background: var(--bg-elevated) !important;
+  border: 1px solid var(--border-base) !important;
+}
+
+/* ── FILE UPLOADER ── */
+[data-testid="stFileUploader"] {
+  background: var(--bg-input) !important;
+  border: 1.5px dashed var(--border-base) !important;
+  border-radius: var(--radius-lg) !important;
+}
+
+/* ── METRICS ── */
+[data-testid="stMetric"] {
+  background: var(--bg-surface);
+  border: 1px solid var(--border-base);
+  border-radius: var(--radius-lg);
+  padding: 16px 18px;
+}
+[data-testid="stMetricLabel"] {
+  font-size: 0.65rem !important;
+  font-weight: 600 !important;
+  letter-spacing: 0.1em !important;
+  text-transform: uppercase !important;
+  color: var(--text-tertiary) !important;
+}
+[data-testid="stMetricValue"] {
+  font-size: 1.6rem !important;
+  font-weight: 600 !important;
+  letter-spacing: -0.02em !important;
+  color: var(--text-primary) !important;
+}
+
+/* ── SLIDERS ── */
+.stSlider [data-baseweb="slider"] div[role="slider"] {
+  background: var(--accent) !important;
+  border-color: var(--accent) !important;
+}
+
+/* ── SCROLLBAR ── */
+::-webkit-scrollbar { width: 6px; height: 6px; }
+::-webkit-scrollbar-track { background: var(--bg-base); }
+::-webkit-scrollbar-thumb { background: var(--border-base); border-radius: 3px; }
+::-webkit-scrollbar-thumb:hover { background: var(--border-strong); }
+
+/* ── DIVIDERS ── */
+hr { border-color: var(--border-subtle) !important; margin: 20px 0 !important; }
+
+/* ── CHAT ── */
 .chat-user {
-    background: #1a2d50; border-radius: 12px 12px 4px 12px;
-    padding: 10px 14px; margin: 8px 0 8px 40px; font-size: 0.88rem; color: #c8d8f0;
+  background: var(--accent-muted);
+  border: 1px solid rgba(37,99,235,0.2);
+  border-radius: var(--radius-lg) var(--radius-lg) 4px var(--radius-lg);
+  padding: 10px 14px;
+  margin: 6px 0 6px 40px;
+  font-size: 0.84rem;
+  color: var(--text-primary);
 }
 .chat-ai {
-    background: #111827; border: 1px solid #1e3a5f; border-radius: 12px 12px 12px 4px;
-    padding: 10px 14px; margin: 8px 40px 8px 0; font-size: 0.88rem; color: #a8c0e0;
+  background: var(--bg-surface);
+  border: 1px solid var(--border-base);
+  border-radius: var(--radius-lg) var(--radius-lg) var(--radius-lg) 4px;
+  padding: 10px 14px;
+  margin: 6px 40px 6px 0;
+  font-size: 0.84rem;
+  color: var(--text-secondary);
 }
-.stButton > button {
-    background: linear-gradient(135deg, #0066ff, #7c3aed) !important;
-    color: white !important; border: none !important;
-    border-radius: 10px !important; font-weight: 500 !important; transition: opacity 0.2s;
+
+/* ── PROGRESS BARS ── */
+.stProgress > div > div > div > div {
+  background: var(--accent) !important;
 }
-.stButton > button:hover { opacity: 0.85 !important; }
-[data-testid="stFileUploader"] { background: #111827; border: 2px dashed #1e3a5f; border-radius: 12px; }
-.stTabs [data-baseweb="tab-list"] { background: #0f1629; border-radius: 10px; }
-.stTabs [data-baseweb="tab"] { color: #4a6fa5 !important; }
-.stTabs [aria-selected="true"] { color: #60a5fa !important; }
-hr { border-color: #1e2d4a; }
+
+/* ── EXPANDER ── */
+.streamlit-expanderHeader {
+  background: var(--bg-surface) !important;
+  border: 1px solid var(--border-base) !important;
+  border-radius: var(--radius-md) !important;
+  color: var(--text-secondary) !important;
+  font-size: 0.82rem !important;
+  font-weight: 500 !important;
+}
+
+/* ── TOOLTIPS / HELP TEXT ── */
+.stTooltipIcon { color: var(--text-tertiary) !important; }
+small, .stCaption { color: var(--text-tertiary) !important; font-size: 0.72rem !important; }
+
+/* ── RADIO & CHECKBOX ── */
+.stRadio label, .stCheckbox label {
+  color: var(--text-secondary) !important;
+  font-size: 0.82rem !important;
+}
+
+/* ── LOADING SKELETON ── */
+.stSpinner > div { border-top-color: var(--accent) !important; }
+
+/* ── DOWNLOAD BUTTON ── */
+.stDownloadButton > button {
+  background: var(--bg-elevated) !important;
+  color: var(--text-secondary) !important;
+  border: 1px solid var(--border-base) !important;
+  border-radius: var(--radius-md) !important;
+  font-size: 0.78rem !important;
+  font-weight: 500 !important;
+}
+.stDownloadButton > button:hover {
+  border-color: var(--accent) !important;
+  color: var(--text-primary) !important;
+}
 </style>
-""", unsafe_allow_html=True)
+"""
+
+st.markdown(PREMIUM_CSS, unsafe_allow_html=True)
 
 # ─────────────────────────────────────────────
 # SESSION STATE
@@ -254,29 +691,74 @@ def gate(feature, label=""):
 # YARDIMCI FONKSİYONLAR
 # ─────────────────────────────────────────────
 
+# ── PREMIUM PLOTLY THEME ──────────────────────────────────────
+# Design system ile uyumlu: lacivert zemin, düşük kontrastlı grid
 PLOTLY_THEME = dict(
-    paper_bgcolor="rgba(0,0,0,0)", plot_bgcolor="rgba(0,0,0,0)",
-    font=dict(color="#8899bb", family="DM Sans"),
-    xaxis=dict(gridcolor="#1e2d4a", showgrid=True, zeroline=False),
-    yaxis=dict(gridcolor="#1e2d4a", showgrid=True, zeroline=False),
-    margin=dict(l=10, r=10, t=32, b=10),
+    paper_bgcolor="rgba(0,0,0,0)",
+    plot_bgcolor="rgba(0,0,0,0)",
+    font=dict(color="#7a90b5", family="Inter, -apple-system, sans-serif", size=11),
+    xaxis=dict(gridcolor="#1a2640", showgrid=True, zeroline=False,
+               tickfont=dict(size=10, color="#4a6080"),
+               linecolor="#1a2640"),
+    yaxis=dict(gridcolor="#1a2640", showgrid=True, zeroline=False,
+               tickfont=dict(size=10, color="#4a6080"),
+               linecolor="#1a2640"),
+    margin=dict(l=8, r=8, t=36, b=8),
+    legend=dict(
+        bgcolor="rgba(13,20,36,0.8)",
+        bordercolor="#1e3050",
+        borderwidth=1,
+        font=dict(size=11, color="#7a90b5"),
+    ),
+    hoverlabel=dict(
+        bgcolor="#0d1424",
+        bordercolor="#1e3050",
+        font=dict(size=11, color="#dde4f0"),
+    ),
 )
 
+# ── DESIGN SYSTEM RENK PALETİ ──────────────────────────────────
+# Grafik renkleri — kontrollü, premium, kurumsal
+C_BLUE   = "#2563eb"   # Primary accent
+C_BLUE2  = "#3b82f6"   # Secondary blue
+C_GREEN  = "#22c55e"   # Pozitif
+C_RED    = "#ef4444"   # Negatif / Risk
+C_AMBER  = "#f59e0b"   # Uyarı
+C_SLATE  = "#475569"   # Nötr / Pasif
+C_CYAN   = "#0ea5e9"   # Info / Vurgu
+C_PURPLE = "#8b5cf6"   # Kategori 4
+C_YELLOW = "#eab308"   # Uyarı 2
+
+# Grafik renk sıralaması (kategorik)
+CHART_COLORS = [C_BLUE, C_CYAN, C_GREEN, C_AMBER, C_PURPLE, C_SLATE, "#ec4899", "#14b8a6"]
+
 def fmt(v):
-    if abs(v) >= 1_000_000: return f"{v/1_000_000:.1f}M ₺"
-    if abs(v) >= 1_000:     return f"{v/1_000:.0f}K ₺"
+    if abs(v) >= 1_000_000_000: return f"{v/1_000_000_000:.1f}Mn ₺"
+    if abs(v) >= 1_000_000:     return f"{v/1_000_000:.1f}M ₺"
+    if abs(v) >= 1_000:         return f"{v/1_000:.0f}K ₺"
     return f"{v:,.0f} ₺"
 
 def score_color(k):
-    return {"Mükemmel":"#10d994","İyi":"#60a5fa","Orta":"#fbbf24",
-            "Zayıf":"#f97316","Kritik":"#ff4757"}.get(k, "#e8eaf0")
+    return {
+        "Mükemmel":  C_GREEN,
+        "İyi":       C_BLUE2,
+        "Orta":      C_AMBER,
+        "Zayıf":     "#f97316",
+        "Kritik":    C_RED,
+    }.get(k, "#7a90b5")
 
 def kpi(label, value, delta="", positive=True):
-    dc = "pos" if positive else "neg"
-    di = "▲" if positive else "▼"
+    try:
+        _pos = bool(positive)
+    except Exception:
+        _pos = True
+    dc = "pos" if _pos else "neg"
+    di = "▲" if _pos else "▼"
     dh = f'<div class="kpi-delta {dc}">{di} {delta}</div>' if delta else ""
     st.markdown(
-        f'<div class="kpi-card"><div class="kpi-label">{label}</div>'
+        f'<div class="kpi-card">'
+        f'<div class="kpi-card-accent {"green" if _pos else "red"}"></div>'
+        f'<div class="kpi-label">{label}</div>'
         f'<div class="kpi-value">{value}</div>{dh}</div>',
         unsafe_allow_html=True
     )
@@ -289,12 +771,24 @@ def sec(text):
 # ─────────────────────────────────────────────
 
 with st.sidebar:
-    st.markdown('<div class="kazkaz-logo">KazKaz AI</div>', unsafe_allow_html=True)
-    st.markdown(
-        '<div style="color:#4a6fa5;font-size:0.68rem;letter-spacing:2px;'
-        'text-transform:uppercase;margin-bottom:10px;">Finansal Analiz Platformu</div>',
-        unsafe_allow_html=True
-    )
+    # ── LOGO ──
+    st.markdown('''
+    <div style="padding: 20px 4px 16px; border-bottom: 1px solid var(--border-subtle); margin-bottom: 16px;">
+        <div style="display:flex; align-items:center; gap:10px;">
+            <div style="width:32px;height:32px;background:var(--accent);
+                        border-radius:8px;display:flex;align-items:center;
+                        justify-content:center;font-size:16px;flex-shrink:0;">K</div>
+            <div>
+                <div style="font-family:Inter,sans-serif;font-size:1rem;
+                            font-weight:600;letter-spacing:-0.01em;
+                            color:var(--text-primary);">KazKaz <span style="color:var(--accent-light);">AI</span></div>
+                <div style="font-size:0.58rem;letter-spacing:0.12em;
+                            text-transform:uppercase;color:var(--text-tertiary);
+                            margin-top:1px;">Finansal Karar Platformu</div>
+            </div>
+        </div>
+    </div>
+    ''', unsafe_allow_html=True)
 
     if FIREBASE_OK:
         show_user_badge()
@@ -491,66 +985,135 @@ df     = st.session_state.df
     "📥 Veri Girişi", "🧠 CFO Agent", "🤖 AI Analiz", "💬 AI Sohbet",
 ])
 
-# ══ GENEL ══
+# ══ GENEL DASHBOARD ══
 with tab_genel:
     g, e, k, s = rapor["gelir"], rapor["gider"], rapor["karlilik"], rapor["saglik_skoru"]
+
+    # ── PAGE HEADER ──
+    buyume_val  = g.get("ortalama_buyume_orani", 0)
+    kar_val     = k.get("toplam_net_kar", 0)
+    skor_val    = s.get("skor", 0)
+    skor_kat    = s.get("kategori", "")
+    skor_renk   = score_color(skor_kat)
+
+    st.markdown(f'''
+    <div class="page-header">
+        <div class="page-title">{st.session_state.get("sirket_adi","Şirket")} — Finansal Genel Bakış</div>
+        <div class="page-subtitle">
+            {g.get("ay_sayisi", 0)} aylık veri &nbsp;·&nbsp;
+            Son güncelleme: {rapor.get("son_donem", "—")} &nbsp;·&nbsp;
+            <span class="badge badge-{"green" if skor_val >= 65 else "amber" if skor_val >= 40 else "red"}">{skor_kat}</span>
+        </div>
+    </div>
+    ''', unsafe_allow_html=True)
+
+    # ── EXECUTIVE SUMMARY — 4 KPI ──
     c1, c2, c3, c4 = st.columns(4)
-    with c1: kpi("Toplam Gelir", fmt(g["toplam_gelir"]),
-                 f'%{g["ortalama_buyume_orani"]} büyüme', g["ortalama_buyume_orani"] >= 0)
-    with c2: kpi("Toplam Gider", fmt(e["toplam_gider"]),
-                 f'Sabit: %{e["sabit_gider_orani"]}', e["sabit_gider_orani"] < 50)
-    with c3: kpi("Net Kar",      fmt(k["toplam_net_kar"]),
-                 f'Marj: %{k["kar_marji"]}', k["toplam_net_kar"] >= 0)
+    with c1:
+        kpi("Toplam Gelir", fmt(g["toplam_gelir"]),
+            f'Aylık ort. {fmt(g["ortalama_aylik_gelir"])}',
+            True)
+    with c2:
+        kpi("Net Kar", fmt(kar_val),
+            f'Marj %{k["kar_marji"]}',
+            kar_val >= 0)
+    with c3:
+        kpi("Büyüme Oranı", f'%{buyume_val}',
+            f'Aylık ortalama',
+            buyume_val >= 0)
     with c4:
-        renk = score_color(s["kategori"])
         st.markdown(
-            f'<div class="kpi-card"><div class="kpi-label">Sağlık Skoru</div>'
-            f'<div class="kpi-value" style="color:{renk};">{s["skor"]}'
-            f'<span style="font-size:0.95rem;color:#4a6fa5;"> /100</span></div>'
-            f'<div style="color:{renk};font-size:0.8rem;margin-top:3px;">● {s["kategori"]}</div>'
-            f'</div>', unsafe_allow_html=True
+            f'<div class="kpi-card">'
+            f'<div class="kpi-card-accent" style="background:{skor_renk}"></div>'
+            f'<div class="kpi-label">Finansal Sağlık</div>'
+            f'<div class="kpi-value" style="color:{skor_renk};">{skor_val}'
+            f'<span style="font-size:1rem;color:var(--text-tertiary);font-weight:400;"> /100</span></div>'
+            f'<div style="color:{skor_renk};font-size:0.72rem;font-weight:500;'
+            f'letter-spacing:0.04em;margin-top:6px;">{skor_kat.upper()}</div>'
+            f'</div>',
+            unsafe_allow_html=True
         )
-    st.markdown("---")
-    sec("🏥 Finansal Sağlık Detayı")
-    alt = s["alt_skorlar"]
-    for col, (key, lbl) in zip(st.columns(4), [
-        ("karlilik","Karlılık"),("buyume","Büyüme"),
-        ("gider_kontrolu","Gider Kontrolü"),("nakit","Nakit")
-    ]):
-        val  = alt[key]
-        renk = "#10d994" if val >= 70 else "#fbbf24" if val >= 40 else "#ff4757"
-        with col:
-            fig = go.Figure(go.Indicator(
-                mode="gauge+number", value=val,
-                title={"text": lbl, "font": {"size": 12, "color": "#8899bb"}},
-                number={"font": {"size": 20, "color": renk}},
-                gauge={"axis": {"range": [0, 100]}, "bar": {"color": renk, "thickness": 0.25},
-                       "bgcolor": "#111827", "bordercolor": "#1e2d4a",
-                       "steps": [{"range": [0,40],"color":"#1a0a0a"},
-                                 {"range": [40,70],"color":"#1a1500"},
-                                 {"range": [70,100],"color":"#0a1a10"}]},
-            ))
-            fig.update_layout(height=170, **PLOTLY_THEME)
+
+    # ── İKİNCİL KPI SATIRI ──
+    st.markdown('<div style="height:8px;"></div>', unsafe_allow_html=True)
+    c1, c2, c3, c4 = st.columns(4)
+    with c1: kpi("Toplam Gider",    fmt(e["toplam_gider"]),
+                 f'Sabit %{e["sabit_gider_orani"]}',
+                 e["sabit_gider_orani"] < 60)
+    with c2: kpi("Kar Marjı",       f'%{k["kar_marji"]}',
+                 positive=k["kar_marji"] >= 10)
+    with c3: kpi("Gider / Gelir",
+                 f'%{round(e["toplam_gider"]/g["toplam_gelir"]*100,1) if g["toplam_gelir"] else 0}',
+                 "Hedef < %80",
+                 (e["toplam_gider"]/g["toplam_gelir"] < 0.80) if g["toplam_gelir"] else False)
+    with c4: kpi("Analiz Dönemi",
+                 f'{g.get("ay_sayisi",0)} Ay',
+                 f'{g.get("donem_baslangic","—")} – {g.get("donem_bitis","—")}',
+                 True)
+
+    st.markdown("<hr>", unsafe_allow_html=True)
+
+    # ── ANA GRAFİK — GELİR / GİDER / NET KAR ──
+    col_main, col_side = st.columns([2, 1])
+
+    with col_main:
+        st.markdown('<div class="section-title">Aylık Finansal Performans</div>',
+                    unsafe_allow_html=True)
+        mp = engine.profit.monthly_profit()
+        if not mp.empty:
+            fig = go.Figure()
+            fig.add_bar(x=mp["Dönem"], y=mp["Gelir"],
+                        name="Gelir", marker_color=C_BLUE, opacity=0.85)
+            fig.add_bar(x=mp["Dönem"], y=mp["Gider"],
+                        name="Gider", marker_color=C_SLATE, opacity=0.75)
+            fig.add_scatter(x=mp["Dönem"], y=mp["NetKar"],
+                            name="Net Kar",
+                            mode="lines+markers",
+                            line=dict(color=C_GREEN, width=2),
+                            marker=dict(size=5, color=C_GREEN))
+            fig.update_layout(
+                barmode="group", height=310, **PLOTLY_THEME,
+                legend=dict(orientation="h", y=1.06, x=0,
+                            font=dict(size=10)))
             st.plotly_chart(fig, use_container_width=True)
-    st.markdown(
-        f'<div style="background:#111827;border:1px solid #1e3a5f;border-radius:10px;'
-        f'padding:10px 14px;color:#8aabcc;font-size:0.84rem;">💡 {s["aciklama"]}</div>',
-        unsafe_allow_html=True
-    )
-    sec("📅 Aylık Özet")
-    mp = engine.profit.monthly_profit()
-    if not mp.empty:
-        fig = go.Figure()
-        fig.add_bar(x=mp["Dönem"], y=mp["Gelir"], name="Gelir",
-                    marker_color="#0066ff", opacity=0.85)
-        fig.add_bar(x=mp["Dönem"], y=mp["Gider"], name="Gider",
-                    marker_color="#ff4757", opacity=0.85)
-        fig.add_scatter(x=mp["Dönem"], y=mp["NetKar"], name="Net Kar",
-                        mode="lines+markers", line=dict(color="#10d994", width=2.5),
-                        marker=dict(size=6))
-        fig.update_layout(barmode="group", height=300, **PLOTLY_THEME,
-                          legend=dict(orientation="h", y=1.08, x=0))
-        st.plotly_chart(fig, use_container_width=True)
+
+    with col_side:
+        st.markdown('<div class="section-title">Finansal Sağlık Alt Skorları</div>',
+                    unsafe_allow_html=True)
+        alt = s["alt_skorlar"]
+        for key, lbl in [
+            ("karlilik","Karlılık"),
+            ("buyume","Büyüme"),
+            ("gider_kontrolu","Gider Kontrolü"),
+            ("nakit","Nakit"),
+        ]:
+            val    = alt.get(key, 0)
+            renk   = C_GREEN if val >= 70 else C_AMBER if val >= 40 else C_RED
+            pct    = min(val, 100)
+            st.markdown(f'''
+            <div style="margin-bottom:14px;">
+                <div style="display:flex;justify-content:space-between;
+                            margin-bottom:5px;">
+                    <span style="font-size:0.72rem;font-weight:500;
+                                 color:var(--text-secondary);
+                                 letter-spacing:0.04em;">{lbl.upper()}</span>
+                    <span style="font-size:0.78rem;font-weight:600;
+                                 color:{renk};">{val}</span>
+                </div>
+                <div style="background:var(--border-subtle);border-radius:3px;
+                            height:5px;overflow:hidden;">
+                    <div style="background:{renk};width:{pct}%;height:100%;
+                                border-radius:3px;transition:width 0.4s;"></div>
+                </div>
+            </div>
+            ''', unsafe_allow_html=True)
+
+        st.markdown(
+            f'<div class="alert-row alert-info" style="margin-top:8px;">'
+            f'<div><div class="alert-title" style="font-size:0.72rem;">Sistem Değerlendirmesi</div>'
+            f'<div class="alert-body">{s.get("aciklama","")}</div></div></div>',
+            unsafe_allow_html=True
+        )
 
 # ══ GELİR ══
 with tab_gelir:
