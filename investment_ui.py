@@ -223,7 +223,7 @@ def _single_investment_ui():
                         marker=dict(size=7))
         fig.add_hline(y=0, line_dash="dash", line_color=C_RED, opacity=0.6)
         fig.update_layout(title="Nakit Akışı & Kümülatif",
-                          height=300, **PLOTLY_THEME,
+                          height=300, **{k:v for k,v in PLOTLY_THEME.items() if k not in ("legend","xaxis","yaxis")},
                           legend=dict(orientation="h", y=1.1, x=0))
         st.plotly_chart(fig, use_container_width=True)
 
@@ -362,7 +362,7 @@ def _comparison_ui():
             angularaxis=dict(gridcolor="#E2E8F0",
                              tickfont=dict(color="#94A3B8")),
         ),
-        height=380, **PLOTLY_THEME,
+        height=380, **{k:v for k,v in PLOTLY_THEME.items() if k not in ("legend","xaxis","yaxis")},
         legend=dict(orientation="h", y=-0.1, x=0.5, xanchor="center"),
     )
     st.plotly_chart(fig, use_container_width=True)

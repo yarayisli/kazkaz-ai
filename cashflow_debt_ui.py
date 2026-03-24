@@ -147,7 +147,7 @@ def show_cashflow_tab(fin_engine=None, fin_rapor=None):
                         line=dict(color=C_CYAN, width=2.5),
                         marker=dict(size=7))
         fig.add_hline(y=0, line_dash="dash", line_color="#64748B", opacity=.5)
-        fig.update_layout(barmode="relative", height=290, **PLOTLY_THEME,
+        fig.update_layout(barmode="relative", height=290, **{k:v for k,v in PLOTLY_THEME.items() if k not in ("legend","xaxis","yaxis")},
                           legend=dict(orientation="h",y=1.1,x=0))
         st.plotly_chart(fig, use_container_width=True)
 
@@ -318,7 +318,7 @@ def show_cashflow_tab(fin_engine=None, fin_rapor=None):
                             marker=dict(size=6))
         fig.add_hline(y=0, line_dash="dash", line_color="#64748B", opacity=.5)
         fig.update_layout(title="Kümülatif Nakit Projeksiyon Senaryoları",
-                          height=300, **PLOTLY_THEME,
+                          height=300, **{k:v for k,v in PLOTLY_THEME.items() if k not in ("legend","xaxis","yaxis")},
                           legend=dict(orientation="h",y=1.12,x=0))
         st.plotly_chart(fig, use_container_width=True)
 

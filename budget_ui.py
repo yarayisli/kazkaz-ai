@@ -274,7 +274,7 @@ def show_budget_tab(df: pd.DataFrame, fin_rapor: dict = None):
                 fillcolor="rgba(16,217,148,0.07)",
             )
             fig2.update_layout(
-                height=250, **PLOTLY_THEME,
+                height=250, **{k:v for k,v in PLOTLY_THEME.items() if k not in ("legend","xaxis","yaxis")},
                 legend=dict(orientation="h", y=1.1, x=0),
             )
             st.plotly_chart(fig2, use_container_width=True)
