@@ -131,317 +131,215 @@ GROQ_API_KEY_ENV     = get_secret("GROQ_API_KEY")
 # CSS
 # ─────────────────────────────────────────────
 
-# ─────────────────────────────────────────────────────────────────
-# PREMIUM DESIGN SYSTEM — KazKaz AI
-# Tasarım dili: Bloomberg ciddiyeti + Modern premium SaaS sadeliği
-# Palet: Koyu lacivert (#080d1a) / Grafit / Kırık beyaz / Kontrollü vurgu
-# ─────────────────────────────────────────────────────────────────
+# ═══════════════════════════════════════════════════════════════
+# KazKaz AI — 10 Temel Tasarım İlkesi Design System
+# 1. Tek vurgu rengi (#1D4ED8)
+# 2. Açık tema varsayılan
+# 3. Sol dikey aksan çizgisi (Bloomberg stili)
+# 4. KPI sayıları baskın (22-26px, 600 weight)
+# 5. Yönetici özeti bloku her ekranın tepesinde
+# 6. Grafiklerde max 4 renk
+# 7. Section arası 32px+ boşluk
+# 8. Alert: açık zemin + ince sol çizgi
+# 9. Menü 3 gruba bölünmüş
+# 10. Hover: border-color değişimi, animasyon yok
+# ═══════════════════════════════════════════════════════════════
 
-PREMIUM_CSS = """
+DESIGN_CSS = """
 <style>
-/* ── FONTS ── */
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Inter:ital,opsz,wght@0,14..32,300..700;1,14..32,300..700&display=swap');
 
-/* ── DESIGN TOKENS ──────────────────────────────────── */
+/* ── DESIGN TOKENS ── */
 :root {
-  /* Backgrounds */
-  --bg-base:       #080d1a;   /* Ana zemin — derin lacivert */
-  --bg-surface:    #0d1424;   /* Kart zemin */
-  --bg-elevated:   #111d30;   /* Hover / seçili kart */
-  --bg-sidebar:    #090e1c;   /* Sol panel */
-  --bg-input:      #0f1829;   /* Input alanları */
+  --bg-page:       #F1F5F9;
+  --bg-surface:    #FFFFFF;
+  --bg-elevated:   #F8FAFC;
+  --bg-input:      #F8FAFC;
+  --bg-sidebar:    #0F172A;
 
-  /* Borders */
-  --border-subtle: #1a2640;   /* Hafif ayraçlar */
-  --border-base:   #1e3050;   /* Standart kenarlık */
-  --border-strong: #2a4070;   /* Vurgulu kenarlık */
+  --border:        #E2E8F0;
+  --border-strong: #CBD5E1;
+  --border-focus:  #BFDBFE;
 
-  /* Typography */
-  --text-primary:  #dde4f0;   /* Ana metin — kırık beyaz */
-  --text-secondary:#7a90b5;   /* İkincil metin */
-  --text-tertiary: #4a6080;   /* Üçüncül / label */
-  --text-disabled: #2e4060;   /* Pasif */
+  --text-primary:  #0F172A;
+  --text-secondary:#475569;
+  --text-tertiary: #94A3B8;
+  --text-disabled: #CBD5E1;
 
-  /* Accent — Kontrollü mavi, tek vurgu */
-  --accent:        #2563eb;   /* Primary action */
-  --accent-light:  #3b82f6;   /* Hover */
-  --accent-muted:  #1e3a6e;   /* Arka plan vurgu */
-  --accent-glow:   rgba(37,99,235,0.15);
+  /* İlke 1 — Tek vurgu */
+  --accent:        #1D4ED8;
+  --accent-hover:  #1E40AF;
+  --accent-muted:  #EFF6FF;
+  --accent-border: #BFDBFE;
 
-  /* Semantic Colors */
-  --green:         #22c55e;   /* Pozitif / büyüme */
-  --green-muted:   #14532d;
-  --red:           #ef4444;   /* Negatif / risk */
-  --red-muted:     #4c0519;
-  --amber:         #f59e0b;   /* Uyarı / dikkat */
-  --amber-muted:   #451a03;
-  --blue-info:     #3b82f6;   /* Bilgi */
+  /* İlke 6 — 4 renk paleti */
+  --chart-1: #1D4ED8;
+  --chart-2: #0F766E;
+  --chart-3: #374151;
+  --chart-4: #6B7280;
 
-  /* Radius */
-  --radius-sm:  6px;
-  --radius-md:  10px;
-  --radius-lg:  14px;
-  --radius-xl:  18px;
+  /* Durum renkleri — kurumsal */
+  --green:      #059669;
+  --green-bg:   #F0FDF4;
+  --green-bdr:  #A7F3D0;
+  --amber:      #D97706;
+  --amber-bg:   #FFFBEB;
+  --amber-bdr:  #FDE68A;
+  --red:        #DC2626;
+  --red-bg:     #FFF7F7;
+  --red-bdr:    #FECACA;
+  --blue:       #1D4ED8;
+  --blue-bg:    #EFF6FF;
+  --blue-bdr:   #BFDBFE;
 
-  /* Shadows */
-  --shadow-card: 0 1px 3px rgba(0,0,0,0.4), 0 4px 16px rgba(0,0,0,0.25);
-  --shadow-elevated: 0 4px 24px rgba(0,0,0,0.5);
+  --radius-sm:  4px;
+  --radius-md:  8px;
+  --radius-lg:  10px;
+  --shadow:     0 1px 3px rgba(15,23,42,.06), 0 2px 8px rgba(15,23,42,.04);
 }
 
 /* ── BASE ── */
 html, body, [class*="css"] {
   font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
-  font-size: 14px;
   -webkit-font-smoothing: antialiased;
 }
-.stApp {
-  background-color: var(--bg-base);
-  color: var(--text-primary);
-}
+.stApp { background: var(--bg-page); color: var(--text-primary); }
 
-/* ── SIDEBAR ── */
+/* ── SIDEBAR (İlke 9: 3 grup) ── */
 [data-testid="stSidebar"] {
   background: var(--bg-sidebar) !important;
-  border-right: 1px solid var(--border-subtle) !important;
+  border-right: 1px solid #1E293B !important;
 }
-[data-testid="stSidebar"] * { color: var(--text-secondary) !important; }
-[data-testid="stSidebar"] h1,
-[data-testid="stSidebar"] h2,
-[data-testid="stSidebar"] h3 { color: var(--text-primary) !important; }
+[data-testid="stSidebar"] * { color: #64748B !important; font-family: 'Inter', sans-serif !important; }
+[data-testid="stSidebar"] h1, [data-testid="stSidebar"] h2, [data-testid="stSidebar"] h3 {
+  color: #F1F5F9 !important;
+}
 
 /* ── LOGO ── */
 .kazkaz-logo {
   font-family: 'Inter', sans-serif;
-  font-size: 1.25rem;
-  font-weight: 700;
-  letter-spacing: -0.02em;
-  color: var(--text-primary);
-}
-.kazkaz-logo span {
-  color: var(--accent-light);
-}
-.kazkaz-tagline {
-  font-size: 0.65rem;
-  letter-spacing: 0.15em;
-  text-transform: uppercase;
-  color: var(--text-tertiary);
-  margin-top: 2px;
+  font-size: 14px; font-weight: 600;
+  letter-spacing: -0.01em; color: #F1F5F9;
 }
 
-/* ── KPI CARDS ── */
+/* ── KPI CARDS (İlke 3: sol çizgi, İlke 4: büyük sayı) ── */
 .kpi-card {
   background: var(--bg-surface);
-  border: 1px solid var(--border-base);
+  border: 1px solid var(--border);
   border-radius: var(--radius-lg);
-  padding: 20px 22px;
-  position: relative;
-  overflow: hidden;
+  padding: 18px 20px 16px 22px;
+  position: relative; overflow: hidden;
   margin-bottom: 8px;
-  box-shadow: var(--shadow-card);
-  transition: border-color 0.2s, box-shadow 0.2s;
+  box-shadow: var(--shadow);
+  transition: border-color 0.15s;  /* İlke 10 */
 }
-.kpi-card:hover {
-  border-color: var(--border-strong);
-  box-shadow: var(--shadow-elevated);
-}
-.kpi-card-accent {
-  position: absolute; top: 0; left: 0; width: 3px;
-  height: 100%; background: var(--accent);
-  border-radius: 0 0 0 var(--radius-lg);
-}
-.kpi-card-accent.green  { background: var(--green); }
-.kpi-card-accent.red    { background: var(--red); }
-.kpi-card-accent.amber  { background: var(--amber); }
+.kpi-card:hover { border-color: var(--border-strong); }  /* İlke 10 */
 
+/* İlke 3: Sol dikey aksan çizgisi */
+.kpi-card-accent {
+  position: absolute; left: 0; top: 0; bottom: 0;
+  width: 3px; border-radius: 4px 0 0 4px;
+  background: var(--accent);
+}
+.kpi-card-accent.green { background: var(--green); }
+.kpi-card-accent.red   { background: var(--red); }
+.kpi-card-accent.amber { background: var(--amber); }
+
+/* İlke 4: Sayılar baskın */
 .kpi-label {
-  font-size: 0.65rem;
-  font-weight: 600;
-  letter-spacing: 0.12em;
-  text-transform: uppercase;
-  color: var(--text-tertiary);
-  margin-bottom: 8px;
+  font-size: 10px; font-weight: 600;
+  letter-spacing: 0.1em; text-transform: uppercase;
+  color: var(--text-tertiary); margin-bottom: 8px;
 }
 .kpi-value {
-  font-family: 'Inter', sans-serif;
-  font-size: 1.75rem;
-  font-weight: 600;
-  letter-spacing: -0.02em;
-  color: var(--text-primary);
-  line-height: 1;
-}
-.kpi-secondary {
-  font-size: 0.75rem;
-  color: var(--text-secondary);
-  margin-top: 6px;
+  font-size: 24px; font-weight: 600;
+  letter-spacing: -0.025em; color: var(--text-primary);
+  line-height: 1.1;
 }
 .kpi-delta {
-  display: inline-flex;
-  align-items: center;
-  gap: 3px;
-  font-size: 0.72rem;
-  font-weight: 500;
-  margin-top: 4px;
-  padding: 2px 6px;
-  border-radius: 4px;
+  display: inline-flex; align-items: center;
+  font-size: 11px; font-weight: 500;
+  padding: 2px 6px; border-radius: 3px;
+  margin-top: 6px;
 }
-.kpi-delta.pos { color: var(--green); background: rgba(34,197,94,0.1); }
-.kpi-delta.neg { color: var(--red);   background: rgba(239,68,68,0.1); }
-.kpi-delta.neu { color: var(--amber); background: rgba(245,158,11,0.1); }
+.kpi-delta.pos { background: var(--green-bg); color: var(--green); }
+.kpi-delta.neg { background: var(--red-bg);   color: var(--red); }
 
-/* ── SECTION HEADERS ── */
-.section-header {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  padding: 0 0 12px;
-  margin: 20px 0 16px;
-  border-bottom: 1px solid var(--border-subtle);
+/* İlke 5: Yönetici özeti bloku */
+.exec-summary {
+  background: var(--bg-surface);
+  border: 1px solid var(--border);
+  border-left: 3px solid var(--accent);
+  border-radius: 0 var(--radius-lg) var(--radius-lg) 0;
+  padding: 14px 18px; margin-bottom: 24px;
+  box-shadow: var(--shadow);
 }
-.section-header-title {
-  font-size: 0.8rem;
-  font-weight: 600;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-  color: var(--text-secondary);
+.exec-summary-label {
+  font-size: 9px; font-weight: 700;
+  letter-spacing: 0.12em; text-transform: uppercase;
+  color: var(--accent); margin-bottom: 6px;
 }
+.exec-summary-text {
+  font-size: 13px; color: var(--text-secondary);
+  line-height: 1.6;
+}
+
+/* İlke 7: Section arası 32px+ */
 .section-title {
-  font-size: 0.95rem;
-  font-weight: 600;
-  color: var(--text-primary);
-  padding: 4px 0 10px;
-  border-bottom: 1px solid var(--border-subtle);
-  margin: 16px 0 14px;
-}
-
-/* ── PAGE HEADER ── */
-.page-header {
-  padding: 8px 0 24px;
-  border-bottom: 1px solid var(--border-subtle);
-  margin-bottom: 24px;
-}
-.page-title {
-  font-size: 1.35rem;
-  font-weight: 600;
-  letter-spacing: -0.01em;
-  color: var(--text-primary);
-  margin: 0;
-}
-.page-subtitle {
-  font-size: 0.8rem;
+  font-size: 11px; font-weight: 600;
+  letter-spacing: 0.08em; text-transform: uppercase;
   color: var(--text-tertiary);
-  margin-top: 4px;
-  letter-spacing: 0.05em;
+  padding: 0 0 10px; margin: 28px 0 16px;
+  border-bottom: 1px solid var(--border);
 }
 
-/* ── EXECUTIVE SUMMARY CARD ── */
-.exec-card {
-  background: var(--bg-surface);
-  border: 1px solid var(--border-base);
-  border-radius: var(--radius-xl);
-  padding: 24px 28px;
-  margin-bottom: 16px;
-  box-shadow: var(--shadow-card);
+/* İlke 8: Alert blokları — açık zemin + sol çizgi */
+.alert-row {
+  display: flex; align-items: flex-start; gap: 12px;
+  padding: 12px 14px; border-radius: var(--radius-md);
+  border-left: 3px solid; margin-bottom: 8px;
+  transition: border-color 0.15s;
 }
-.exec-card-label {
-  font-size: 0.62rem;
-  font-weight: 600;
-  letter-spacing: 0.15em;
-  text-transform: uppercase;
-  color: var(--text-tertiary);
-  margin-bottom: 12px;
-}
-.exec-card-value {
-  font-size: 2.25rem;
-  font-weight: 600;
-  letter-spacing: -0.03em;
-  color: var(--text-primary);
-}
+.alert-critical { background: var(--red-bg);   border-color: var(--red); }
+.alert-warning  { background: var(--amber-bg); border-color: var(--amber); }
+.alert-info     { background: var(--blue-bg);  border-color: var(--accent); }
+.alert-success  { background: var(--green-bg); border-color: var(--green); }
 
-/* ── CHART CONTAINERS ── */
-.chart-card {
-  background: var(--bg-surface);
-  border: 1px solid var(--border-base);
-  border-radius: var(--radius-lg);
-  padding: 20px;
-  margin-bottom: 12px;
-  box-shadow: var(--shadow-card);
-}
-.chart-title {
-  font-size: 0.75rem;
-  font-weight: 600;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-  color: var(--text-secondary);
-  margin-bottom: 16px;
-}
+.alert-title { font-size: 12px; font-weight: 600; color: var(--text-primary); }
+.alert-body  { font-size: 11px; color: var(--text-secondary); line-height: 1.5; margin-top: 2px; }
 
 /* ── BADGES ── */
 .badge {
-  display: inline-flex;
-  align-items: center;
-  gap: 4px;
-  padding: 3px 8px;
-  border-radius: 4px;
-  font-size: 0.65rem;
-  font-weight: 600;
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
+  display: inline-flex; align-items: center;
+  padding: 2px 7px; border-radius: 3px;
+  font-size: 10px; font-weight: 600;
+  letter-spacing: 0.05em; text-transform: uppercase;
 }
-.badge-blue   { background: rgba(37,99,235,0.15); color: #60a5fa; border: 1px solid rgba(37,99,235,0.3); }
-.badge-green  { background: rgba(34,197,94,0.12);  color: #4ade80; border: 1px solid rgba(34,197,94,0.25); }
-.badge-red    { background: rgba(239,68,68,0.12);  color: #f87171; border: 1px solid rgba(239,68,68,0.25); }
-.badge-amber  { background: rgba(245,158,11,0.12); color: #fbbf24; border: 1px solid rgba(245,158,11,0.25); }
-.badge-gray   { background: rgba(100,116,139,0.15);color: #94a3b8; border: 1px solid rgba(100,116,139,0.25); }
-.ai-badge     { background: rgba(37,99,235,0.12);  color: #93c5fd; border: 1px solid rgba(37,99,235,0.25); }
-ai-badge, .badge { letter-spacing: 0.08em; }
+.badge-green  { background: var(--green-bg); color: var(--green); border: 1px solid var(--green-bdr); }
+.badge-red    { background: var(--red-bg);   color: var(--red);   border: 1px solid var(--red-bdr); }
+.badge-amber  { background: var(--amber-bg); color: var(--amber); border: 1px solid var(--amber-bdr); }
+.badge-blue   { background: var(--blue-bg);  color: var(--blue);  border: 1px solid var(--blue-bdr); }
+.badge-gray   { background: #F1F5F9; color: #475569; border: 1px solid #CBD5E1; }
+.ai-badge     { background: var(--blue-bg);  color: #1E40AF; border: 1px solid var(--blue-bdr); font-size: 9px; }
 
-/* ── ALERTS & INSIGHTS ── */
-.alert-row {
-  display: flex;
-  align-items: flex-start;
-  gap: 12px;
-  padding: 12px 16px;
-  border-radius: var(--radius-md);
-  margin-bottom: 8px;
-  border-left: 3px solid transparent;
-}
-.alert-critical { background: rgba(239,68,68,0.07);  border-color: var(--red); }
-.alert-warning  { background: rgba(245,158,11,0.07); border-color: var(--amber); }
-.alert-info     { background: rgba(37,99,235,0.07);  border-color: var(--accent-light); }
-.alert-success  { background: rgba(34,197,94,0.07);  border-color: var(--green); }
-
-.alert-title {
-  font-size: 0.8rem;
-  font-weight: 600;
-  color: var(--text-primary);
-  margin-bottom: 2px;
-}
-.alert-body {
-  font-size: 0.75rem;
-  color: var(--text-secondary);
-  line-height: 1.5;
-}
-
-/* ── DATA TABLE ── */
+/* ── TABLO (İlke 6 uyumlu) ── */
 .dataframe {
   background: var(--bg-surface) !important;
   color: var(--text-primary) !important;
-  border: 1px solid var(--border-base) !important;
+  border: 1px solid var(--border) !important;
   border-radius: var(--radius-md) !important;
-  font-size: 0.8rem !important;
+  font-size: 12px !important; font-family: 'Inter', sans-serif !important;
 }
 .dataframe th {
   background: var(--bg-elevated) !important;
   color: var(--text-tertiary) !important;
-  font-size: 0.65rem !important;
-  font-weight: 600 !important;
-  letter-spacing: 0.08em !important;
-  text-transform: uppercase !important;
-  border-bottom: 1px solid var(--border-base) !important;
+  font-size: 10px !important; font-weight: 600 !important;
+  letter-spacing: 0.08em !important; text-transform: uppercase !important;
+  border-bottom: 1px solid var(--border) !important;
   padding: 10px 14px !important;
 }
 .dataframe td {
-  border-bottom: 1px solid var(--border-subtle) !important;
+  border-bottom: 1px solid var(--bg-elevated) !important;
   padding: 9px 14px !important;
   color: var(--text-secondary) !important;
 }
@@ -450,178 +348,146 @@ ai-badge, .badge { letter-spacing: 0.08em; }
   color: var(--text-primary) !important;
 }
 
-/* ── BUTTONS ── */
+/* ── BUTTONS (İlke 1: tek vurgu) ── */
 .stButton > button {
   background: var(--accent) !important;
-  color: #fff !important;
-  border: none !important;
+  color: #fff !important; border: none !important;
   border-radius: var(--radius-md) !important;
   font-family: 'Inter', sans-serif !important;
-  font-size: 0.8rem !important;
-  font-weight: 500 !important;
-  letter-spacing: 0.02em !important;
+  font-size: 13px !important; font-weight: 500 !important;
+  letter-spacing: -0.01em !important;
   padding: 8px 18px !important;
-  transition: background 0.15s, box-shadow 0.15s !important;
-  box-shadow: 0 1px 4px rgba(37,99,235,0.3) !important;
+  transition: background 0.15s !important;
+  box-shadow: 0 1px 3px rgba(29,78,216,.25) !important;
 }
 .stButton > button:hover {
-  background: var(--accent-light) !important;
-  box-shadow: 0 2px 8px rgba(37,99,235,0.4) !important;
+  background: var(--accent-hover) !important;
+}
+.stDownloadButton > button {
+  background: var(--bg-elevated) !important;
+  color: var(--text-secondary) !important;
+  border: 1px solid var(--border) !important;
+  border-radius: var(--radius-md) !important;
+  font-size: 12px !important; font-weight: 500 !important;
+  transition: border-color 0.15s !important;
+}
+.stDownloadButton > button:hover {
+  border-color: var(--accent-border) !important;
+  color: var(--accent) !important;
 }
 
 /* ── INPUTS ── */
 .stTextInput > div > div > input,
 .stNumberInput > div > div > input,
-.stTextArea textarea,
-.stSelectbox > div > div {
+.stTextArea textarea {
   background: var(--bg-input) !important;
-  border: 1px solid var(--border-base) !important;
+  border: 1px solid var(--border) !important;
   border-radius: var(--radius-md) !important;
   color: var(--text-primary) !important;
   font-family: 'Inter', sans-serif !important;
-  font-size: 0.82rem !important;
+  font-size: 13px !important;
   transition: border-color 0.15s !important;
 }
 .stTextInput > div > div > input:focus,
 .stNumberInput > div > div > input:focus {
   border-color: var(--accent) !important;
-  box-shadow: 0 0 0 2px var(--accent-glow) !important;
+  box-shadow: 0 0 0 3px rgba(29,78,216,.1) !important;
 }
 
 /* ── TABS ── */
 .stTabs [data-baseweb="tab-list"] {
-  background: var(--bg-surface);
-  border-radius: var(--radius-md);
-  border: 1px solid var(--border-subtle);
-  padding: 3px;
-  gap: 2px;
+  background: var(--bg-elevated);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md); padding: 3px; gap: 2px;
 }
 .stTabs [data-baseweb="tab"] {
   color: var(--text-tertiary) !important;
-  font-size: 0.78rem !important;
-  font-weight: 500 !important;
-  border-radius: 7px !important;
-  padding: 6px 14px !important;
-  transition: all 0.15s !important;
+  font-size: 12px !important; font-weight: 500 !important;
+  border-radius: 6px !important; padding: 6px 14px !important;
+  transition: all 0.15s !important; font-family: 'Inter', sans-serif !important;
 }
 .stTabs [data-baseweb="tab"]:hover {
   color: var(--text-secondary) !important;
-  background: var(--bg-elevated) !important;
+  background: var(--bg-surface) !important;
 }
 .stTabs [aria-selected="true"] {
-  color: var(--text-primary) !important;
-  background: var(--bg-elevated) !important;
-  border: 1px solid var(--border-base) !important;
-}
-
-/* ── FILE UPLOADER ── */
-[data-testid="stFileUploader"] {
-  background: var(--bg-input) !important;
-  border: 1.5px dashed var(--border-base) !important;
-  border-radius: var(--radius-lg) !important;
+  color: var(--accent) !important;
+  background: var(--bg-surface) !important;
+  border: 1px solid var(--border) !important;
+  font-weight: 600 !important;
 }
 
 /* ── METRICS ── */
 [data-testid="stMetric"] {
   background: var(--bg-surface);
-  border: 1px solid var(--border-base);
-  border-radius: var(--radius-lg);
-  padding: 16px 18px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg); padding: 16px 18px;
+  transition: border-color 0.15s;
 }
+[data-testid="stMetric"]:hover { border-color: var(--border-strong); }
 [data-testid="stMetricLabel"] {
-  font-size: 0.65rem !important;
-  font-weight: 600 !important;
-  letter-spacing: 0.1em !important;
-  text-transform: uppercase !important;
+  font-size: 10px !important; font-weight: 600 !important;
+  letter-spacing: 0.1em !important; text-transform: uppercase !important;
   color: var(--text-tertiary) !important;
 }
 [data-testid="stMetricValue"] {
-  font-size: 1.6rem !important;
-  font-weight: 600 !important;
-  letter-spacing: -0.02em !important;
-  color: var(--text-primary) !important;
+  font-size: 22px !important; font-weight: 600 !important;
+  letter-spacing: -0.025em !important; color: var(--text-primary) !important;
 }
 
-/* ── SLIDERS ── */
-.stSlider [data-baseweb="slider"] div[role="slider"] {
-  background: var(--accent) !important;
-  border-color: var(--accent) !important;
+/* ── FILE UPLOADER ── */
+[data-testid="stFileUploader"] {
+  background: var(--bg-elevated) !important;
+  border: 1.5px dashed var(--border-strong) !important;
+  border-radius: var(--radius-lg) !important;
+  transition: border-color 0.15s !important;
 }
-
-/* ── SCROLLBAR ── */
-::-webkit-scrollbar { width: 6px; height: 6px; }
-::-webkit-scrollbar-track { background: var(--bg-base); }
-::-webkit-scrollbar-thumb { background: var(--border-base); border-radius: 3px; }
-::-webkit-scrollbar-thumb:hover { background: var(--border-strong); }
-
-/* ── DIVIDERS ── */
-hr { border-color: var(--border-subtle) !important; margin: 20px 0 !important; }
-
-/* ── CHAT ── */
-.chat-user {
-  background: var(--accent-muted);
-  border: 1px solid rgba(37,99,235,0.2);
-  border-radius: var(--radius-lg) var(--radius-lg) 4px var(--radius-lg);
-  padding: 10px 14px;
-  margin: 6px 0 6px 40px;
-  font-size: 0.84rem;
-  color: var(--text-primary);
-}
-.chat-ai {
-  background: var(--bg-surface);
-  border: 1px solid var(--border-base);
-  border-radius: var(--radius-lg) var(--radius-lg) var(--radius-lg) 4px;
-  padding: 10px 14px;
-  margin: 6px 40px 6px 0;
-  font-size: 0.84rem;
-  color: var(--text-secondary);
-}
-
-/* ── PROGRESS BARS ── */
-.stProgress > div > div > div > div {
-  background: var(--accent) !important;
+[data-testid="stFileUploader"]:hover {
+  border-color: var(--accent-border) !important;
 }
 
 /* ── EXPANDER ── */
 .streamlit-expanderHeader {
-  background: var(--bg-surface) !important;
-  border: 1px solid var(--border-base) !important;
-  border-radius: var(--radius-md) !important;
-  color: var(--text-secondary) !important;
-  font-size: 0.82rem !important;
-  font-weight: 500 !important;
-}
-
-/* ── TOOLTIPS / HELP TEXT ── */
-.stTooltipIcon { color: var(--text-tertiary) !important; }
-small, .stCaption { color: var(--text-tertiary) !important; font-size: 0.72rem !important; }
-
-/* ── RADIO & CHECKBOX ── */
-.stRadio label, .stCheckbox label {
-  color: var(--text-secondary) !important;
-  font-size: 0.82rem !important;
-}
-
-/* ── LOADING SKELETON ── */
-.stSpinner > div { border-top-color: var(--accent) !important; }
-
-/* ── DOWNLOAD BUTTON ── */
-.stDownloadButton > button {
   background: var(--bg-elevated) !important;
-  color: var(--text-secondary) !important;
-  border: 1px solid var(--border-base) !important;
+  border: 1px solid var(--border) !important;
   border-radius: var(--radius-md) !important;
-  font-size: 0.78rem !important;
-  font-weight: 500 !important;
+  color: var(--text-secondary) !important;
+  font-size: 13px !important; font-weight: 500 !important;
+  transition: border-color 0.15s !important;
 }
-.stDownloadButton > button:hover {
-  border-color: var(--accent) !important;
-  color: var(--text-primary) !important;
+.streamlit-expanderHeader:hover {
+  border-color: var(--border-strong) !important;
 }
+
+/* ── CHAT ── */
+.chat-user {
+  background: var(--accent-muted);
+  border: 1px solid var(--accent-border);
+  border-radius: var(--radius-lg) var(--radius-lg) 4px var(--radius-lg);
+  padding: 10px 14px; margin: 6px 0 6px 40px;
+  font-size: 13px; color: var(--text-primary);
+}
+.chat-ai {
+  background: var(--bg-surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg) var(--radius-lg) var(--radius-lg) 4px;
+  padding: 10px 14px; margin: 6px 40px 6px 0;
+  font-size: 13px; color: var(--text-secondary);
+}
+
+/* ── MISC ── */
+hr { border-color: var(--border) !important; margin: 24px 0 !important; }
+::-webkit-scrollbar { width: 5px; height: 5px; }
+::-webkit-scrollbar-track { background: var(--bg-page); }
+::-webkit-scrollbar-thumb { background: var(--border-strong); border-radius: 3px; }
+small, .stCaption { color: var(--text-tertiary) !important; font-size: 11px !important; }
+.stRadio label, .stCheckbox label { color: var(--text-secondary) !important; font-size: 13px !important; }
+.stSpinner > div { border-top-color: var(--accent) !important; }
+.stProgress > div > div > div > div { background: var(--accent) !important; }
 </style>
 """
 
-st.markdown(PREMIUM_CSS, unsafe_allow_html=True)
+st.markdown(DESIGN_CSS, unsafe_allow_html=True)
 
 # ─────────────────────────────────────────────
 # SESSION STATE
@@ -653,7 +519,7 @@ if FIREBASE_OK:
                 st.markdown("""
                 <div style="text-align:center;padding:50px 0 20px;">
                     <div class="kazkaz-logo" style="font-size:3rem;">KazKaz AI</div>
-                    <div style="color:#4a6fa5;font-size:0.75rem;letter-spacing:2px;
+                    <div style="color:#64748B;font-size:0.75rem;letter-spacing:2px;
                                 text-transform:uppercase;margin:8px 0 28px;">Demo Modu</div>
                 </div>""", unsafe_allow_html=True)
                 if st.button("🚀 Demo Olarak Başla", use_container_width=True):
@@ -939,7 +805,7 @@ if st.session_state.rapor is None:
     st.markdown("""
     <div style="text-align:center;padding:60px 20px 30px;">
         <div class="kazkaz-logo" style="font-size:3.4rem;">KazKaz AI</div>
-        <div style="color:#4a6fa5;font-size:0.82rem;letter-spacing:3px;
+        <div style="color:#64748B;font-size:0.82rem;letter-spacing:3px;
                     text-transform:uppercase;margin:10px 0 40px;">
             Yapay Zeka Destekli Finansal Analiz Platformu
         </div>
@@ -955,8 +821,8 @@ if st.session_state.rapor is None:
             <div class="kpi-card" style="text-align:center;padding:24px 12px;">
                 <div style="font-size:2rem;margin-bottom:8px;">{ico}</div>
                 <div style="font-family:'Syne',sans-serif;font-weight:700;
-                            font-size:0.88rem;color:#e8eaf0;margin-bottom:5px;">{title}</div>
-                <div style="color:#4a6fa5;font-size:0.74rem;line-height:1.5;">{desc}</div>
+                            font-size:0.88rem;color:#0F172A;margin-bottom:5px;">{title}</div>
+                <div style="color:#64748B;font-size:0.74rem;line-height:1.5;">{desc}</div>
             </div>""", unsafe_allow_html=True)
     st.markdown(
         "<div style='text-align:center;color:#2a3f6a;font-size:0.8rem;margin-top:20px;'>"
@@ -1132,7 +998,7 @@ with tab_gelir:
     with col1:
         mr  = engine.revenue.monthly_revenue()
         fig = px.bar(mr, x="Dönem", y="Toplam Gelir",
-                     color_discrete_sequence=["#0066ff"])
+                     color_discrete_sequence=["#1D4ED8"])
         fig.update_layout(title="Aylık Gelir Trendi", height=280, **PLOTLY_THEME)
         st.plotly_chart(fig, use_container_width=True)
     with col2:
@@ -1147,9 +1013,9 @@ with tab_gelir:
     if not gr.empty:
         fig = go.Figure(go.Scatter(x=gr["Dönem"], y=gr["Büyüme Oranı (%)"],
                         fill="tozeroy", mode="lines+markers",
-                        line=dict(color="#00d4ff", width=2),
+                        line=dict(color="#0EA5E9", width=2),
                         fillcolor="rgba(0,212,255,0.07)"))
-        fig.add_hline(y=0, line_dash="dash", line_color="#ff4757", opacity=0.5)
+        fig.add_hline(y=0, line_dash="dash", line_color="#DC2626", opacity=0.5)
         fig.update_layout(title="Büyüme Oranı (%)", height=230, **PLOTLY_THEME)
         st.plotly_chart(fig, use_container_width=True)
 
@@ -1167,7 +1033,7 @@ with tab_gider:
         ce = ce[ce["Toplam Gider"] > 0]
         if not ce.empty:
             fig = px.bar(ce, x="Toplam Gider", y="Kategori", orientation="h",
-                         color_discrete_sequence=["#ff4757"])
+                         color_discrete_sequence=["#DC2626"])
             fig.update_layout(title="Kategoriye Göre Gider", height=280,
                               yaxis=dict(autorange="reversed", gridcolor="#1e2d4a", showgrid=True, zeroline=False),
                               paper_bgcolor="rgba(0,0,0,0)", plot_bgcolor="rgba(0,0,0,0)",
@@ -1180,7 +1046,7 @@ with tab_gider:
         fig = go.Figure(go.Pie(
             labels=["Sabit", "Değişken"],
             values=[fv["sabit_gider"], fv["degisken_gider"]],
-            marker_colors=["#ff4757", "#f97316"], hole=0.5
+            marker_colors=["#DC2626", "#f97316"], hole=0.5
         ))
         fig.update_layout(title="Sabit / Değişken", height=280, **PLOTLY_THEME)
         st.plotly_chart(fig, use_container_width=True)
@@ -1195,12 +1061,12 @@ with tab_kar:
     with c3: kpi("Trend",     k["kar_trendi"])
     mp = engine.profit.monthly_profit()
     if not mp.empty:
-        renkler = ["#10d994" if v >= 0 else "#ff4757" for v in mp["NetKar"]]
+        renkler = ["#059669" if v >= 0 else "#DC2626" for v in mp["NetKar"]]
         fig = go.Figure()
         fig.add_bar(x=mp["Dönem"], y=mp["NetKar"], marker_color=renkler, name="Net Kar")
         fig.add_scatter(x=mp["Dönem"], y=mp["KarMarji"], name="Kar Marjı (%)",
                         yaxis="y2", mode="lines+markers",
-                        line=dict(color="#fbbf24", width=2, dash="dot"),
+                        line=dict(color="#D97706", width=2, dash="dot"),
                         marker=dict(size=5))
         fig.update_layout(title="Aylık Net Kar & Kar Marjı", height=300,
                           yaxis2=dict(overlaying="y", side="right", gridcolor="#1e2d4a",
@@ -1238,10 +1104,10 @@ with tab_tahmin:
             mr   = engine.revenue.monthly_revenue()
             fig  = go.Figure()
             fig.add_scatter(x=mr["Dönem"], y=mr["Toplam Gelir"], name="Gerçek",
-                            mode="lines+markers", line=dict(color="#60a5fa", width=2))
+                            mode="lines+markers", line=dict(color="#3B82F6", width=2))
             fig.add_scatter(x=t_df["Dönem"], y=t_df["Tahmin"], name="Tahmin",
                             mode="lines+markers",
-                            line=dict(color="#10d994", width=2.5, dash="dot"),
+                            line=dict(color="#059669", width=2.5, dash="dot"),
                             marker=dict(size=7, symbol="diamond"))
             fig.add_scatter(
                 x=list(t_df["Dönem"]) + list(reversed(t_df["Dönem"])),
@@ -1280,7 +1146,7 @@ with tab_senaryo:
     fig = go.Figure()
     for name, vals, color in [
         ("Mevcut",  [mevcut["gelir"], mevcut["gider"], mevcut["net_kar"]], "#4a6fa5"),
-        ("Senaryo", [yeni["gelir"],   yeni["gider"],   yeni["net_kar"]],   "#00d4ff"),
+        ("Senaryo", [yeni["gelir"],   yeni["gider"],   yeni["net_kar"]],   "#0EA5E9"),
     ]:
         fig.add_bar(name=name, x=["Gelir", "Gider", "Net Kar"],
                     y=vals, marker_color=color, opacity=0.88)
@@ -1292,8 +1158,8 @@ with tab_senaryo:
             with st.spinner("Yorumlanıyor..."):
                 yorum = st.session_state.gemini.scenario_comment(mevcut, yeni)
             st.markdown(
-                f'<div style="background:#0d1520;border:1px solid #0066ff44;'
-                f'border-radius:12px;padding:14px 18px;color:#a0c0e8;'
+                f'<div style="background:#F8FAFC;border:1px solid #BFDBFE;'
+                f'border-radius:12px;padding:14px 18px;color:#475569;'
                 f'font-size:0.88rem;line-height:1.7;">'
                 f'<div class="ai-badge">AI Yorumu</div><br>'
                 f'{yorum.replace(chr(10), "<br>")}</div>',
@@ -1412,8 +1278,8 @@ with tab_ai:
             if st.session_state.get(key):
                 sec(title)
                 st.markdown(
-                    f'<div style="background:#0d1520;border:1px solid #1e3a5f;'
-                    f'border-radius:14px;padding:18px 22px;color:#a8c8e8;'
+                    f'<div style="background:#F8FAFC;border:1px solid #E2E8F0;'
+                    f'border-radius:14px;padding:18px 22px;color:#334155;'
                     f'font-size:0.88rem;line-height:1.8;">'
                     f'<div class="ai-badge">Gemini AI</div><br>'
                     f'{st.session_state[key].replace(chr(10), "<br>")}</div>',
