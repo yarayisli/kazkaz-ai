@@ -326,7 +326,7 @@ def show_budget_tab(df: pd.DataFrame, fin_rapor: dict = None):
                 height=230,
                 yaxis=dict(ticksuffix="%",
                            gridcolor="#E2E8F0", showgrid=True, zeroline=False),
-                **{k:v for k,v in PT.items() if k!="yaxis"},
+                **{k:v for k,v in PLOTLY_THEME.items() if k!="yaxis"},
             )
             st.plotly_chart(fig2, use_container_width=True)
 

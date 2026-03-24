@@ -33,7 +33,7 @@ def badge_color(durum: str) -> str:
             "Orta":"#D97706","Zayıf":"#DC2626"}.get(durum,"#94A3B8")
 
 def pt_merge(**overrides):
-    """PT temasını override parametrelerle birleştirir."""
+    """PLOTLY_THEME temasını override parametrelerle birleştirir."""
     merged = dict(
         paper_bgcolor="rgba(0,0,0,0)", plot_bgcolor="rgba(0,0,0,0)",
         font=dict(color="#94A3B8", family="Inter"),

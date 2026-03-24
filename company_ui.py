@@ -550,7 +550,7 @@ def show_company_tab(fin_rapor: dict):
         fig.update_layout(
             title=f"Kar Marjı — {profil['sektor']} {profil['buyukluk'].split('(')[0].strip()} Segment",
             height=max(280, len(sorted_df) * 45),
-            **{k:v for k,v in PT.items() if k != 'xaxis'},
+            **{k:v for k,v in PLOTLY_THEME.items() if k not in ('xaxis','yaxis','legend')},
             xaxis=dict(ticksuffix="%", gridcolor="#E2E8F0",
                        showgrid=True, zeroline=False),
         )

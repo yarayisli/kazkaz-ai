@@ -117,7 +117,7 @@ def show_customer_tab(df: pd.DataFrame):
                 height=max(300, len(top15)*40),
                 yaxis=dict(autorange="reversed",
                            gridcolor="#E2E8F0", showgrid=True, zeroline=False),
-                **{k:v for k,v in PT.items() if k!="yaxis"},
+                **{k:v for k,v in PLOTLY_THEME.items() if k!="yaxis"},
             )
             st.plotly_chart(fig, use_container_width=True)
 
@@ -193,7 +193,7 @@ def show_customer_tab(df: pd.DataFrame):
                     height=max(280, len(urun_df)*45),
                     yaxis=dict(autorange="reversed",
                                gridcolor="#E2E8F0", showgrid=True, zeroline=False),
-                    **{k:v for k,v in PT.items() if k!="yaxis"},
+                    **{k:v for k,v in PLOTLY_THEME.items() if k!="yaxis"},
                 )
                 st.plotly_chart(fig, use_container_width=True)
 
@@ -273,7 +273,7 @@ def show_customer_tab(df: pd.DataFrame):
                     height=280,
                     yaxis=dict(ticksuffix="%",
                                gridcolor="#E2E8F0", showgrid=True, zeroline=False),
-                    **{k:v for k,v in PT.items() if k!="yaxis"},
+                    **{k:v for k,v in PLOTLY_THEME.items() if k!="yaxis"},
                 )
                 st.plotly_chart(fig2, use_container_width=True)
 
