@@ -28,57 +28,57 @@ from debt_engine import (
 
 PT = dict(
     paper_bgcolor="rgba(0,0,0,0)", plot_bgcolor="rgba(0,0,0,0)",
-    font=dict(color="#8899bb", family="DM Sans"),
-    xaxis=dict(gridcolor="#1e2d4a", showgrid=True, zeroline=False),
-    yaxis=dict(gridcolor="#1e2d4a", showgrid=True, zeroline=False),
+    font=dict(color="#94A3B8", family="Inter"),
+    xaxis=dict(gridcolor="#E2E8F0", showgrid=True, zeroline=False),
+    yaxis=dict(gridcolor="#E2E8F0", showgrid=True, zeroline=False),
     margin=dict(l=10, r=10, t=30, b=10),
 )
-C_GREEN  = "#10d994"
-C_RED    = "#ff4757"
-C_BLUE   = "#0066ff"
-C_YELLOW = "#fbbf24"
-C_CYAN   = "#00d4ff"
-C_PURPLE = "#7c3aed"
+C_GREEN  = "#059669"
+C_RED    = "#DC2626"
+C_BLUE   = "#1D4ED8"
+C_YELLOW = "#D97706"
+C_CYAN   = "#0EA5E9"
+C_PURPLE = "#4F46E5"
 
 def fmt(v):
     if abs(v) >= 1_000_000: return f"{v/1_000_000:.1f}M ₺"
     if abs(v) >= 1_000:     return f"{v/1_000:.0f}K ₺"
     return f"{v:,.0f} ₺"
 
-def kpi(label, value, delta="", color="#e8eaf0", positive=True):
+def kpi(label, value, delta="", color="#0F172A", positive=True):
     dc = C_GREEN if positive else C_RED
     di = "▲" if positive else "▼"
     dh = f'<div style="font-size:.75rem;color:{dc};margin-top:3px;">{di} {delta}</div>' if delta else ""
     st.markdown(
-        f'<div style="background:linear-gradient(135deg,#111827,#1a2540);'
-        f'border:1px solid #1e3a5f;border-radius:14px;padding:16px 18px;'
+        f'<div style="background:var(--bg-surface);'
+        f'border:1px solid #E2E8F0;border-radius:14px;padding:16px 18px;'
         f'position:relative;overflow:hidden;margin-bottom:8px;">'
-        f'<div style="position:absolute;top:0;left:0;right:0;height:3px;'
-        f'background:linear-gradient(90deg,#00d4ff,#0066ff);"></div>'
-        f'<div style="font-size:.7rem;color:#4a6fa5;letter-spacing:1.5px;'
+        f'<div style="position:absolute;left:0;top:0;bottom:0;width:3px;border-radius:4px 0 0 4px;'
+        f'background:linear-gradient(90deg,#0EA5E9,#1D4ED8);"></div>'
+        f'<div style="font-size:.7rem;color:#64748B;letter-spacing:1.5px;'
         f'text-transform:uppercase;margin-bottom:5px;">{label}</div>'
-        f'<div style="font-family:Syne,sans-serif;font-size:1.5rem;'
+        f'<div style="font-family:Inter,-apple-system,sans-serif;font-size:1.5rem;'
         f'font-weight:700;color:{color};">{value}</div>{dh}</div>',
         unsafe_allow_html=True)
 
 def sec(text):
     st.markdown(
-        f'<div style="font-family:Syne,sans-serif;font-size:1rem;font-weight:700;'
-        f'color:#e8eaf0;padding:6px 0 10px;border-bottom:1px solid #1e2d4a;'
+        f'<div style="font-family:Inter,-apple-system,sans-serif;font-size:1rem;font-weight:700;'
+        f'color:#0F172A;padding:6px 0 10px;border-bottom:1px solid #E2E8F0;'
         f'margin:16px 0 14px;">{text}</div>', unsafe_allow_html=True)
 
 def score_color(k):
     return {
-        "Mükemmel":"#10d994","İyi":"#60a5fa","Orta":"#fbbf24",
-        "Zayıf":"#f97316","Kritik":"#ff4757",
-        "Borç Sağlıklı":"#10d994","Yönetilebilir":"#60a5fa",
-        "Dikkat Gerektiriyor":"#fbbf24","Riskli":"#f97316",
-    }.get(k, "#e8eaf0")
+        "Mükemmel":"#059669","İyi":"#3B82F6","Orta":"#D97706",
+        "Zayıf":"#f97316","Kritik":"#DC2626",
+        "Borç Sağlıklı":"#059669","Yönetilebilir":"#3B82F6",
+        "Dikkat Gerektiriyor":"#D97706","Riskli":"#f97316",
+    }.get(k, "#0F172A")
 
 def durum_renk(d):
     return {"İyi":C_GREEN,"Orta":C_YELLOW,"Zayıf":C_RED,
-            "Veri Yok":"#4a6fa5","Sağlıklı":C_GREEN,
-            "Dikkat":C_YELLOW,"Kritik":C_RED}.get(d, "#8899bb")
+            "Veri Yok":"#64748B","Sağlıklı":C_GREEN,
+            "Dikkat":C_YELLOW,"Kritik":C_RED}.get(d, "#94A3B8")
 
 
 # ══════════════════════════════════════
@@ -89,11 +89,11 @@ def show_cashflow_tab(fin_engine=None, fin_rapor=None):
     """Nakit akışı sekmesi."""
 
     st.markdown(
-        '<div style="font-family:Syne,sans-serif;font-size:1.5rem;font-weight:800;'
-        'background:linear-gradient(135deg,#00d4ff,#0066ff);'
+        '<div style="font-family:Inter,-apple-system,sans-serif;font-size:1.5rem;font-weight:800;'
+        'background:linear-gradient(135deg,#0EA5E9,#1D4ED8);'
         '-webkit-background-clip:text;-webkit-text-fill-color:transparent;">'
         '💧 Nakit Akışı Analizi</div>'
-        '<div style="color:#4a6fa5;font-size:.78rem;letter-spacing:2px;'
+        '<div style="color:#64748B;font-size:.78rem;letter-spacing:2px;'
         'text-transform:uppercase;margin-bottom:18px;">'
         'Likidite · Burn Rate · Projeksiyon · Nakit Sağlık Skoru</div>',
         unsafe_allow_html=True)
@@ -188,7 +188,7 @@ def show_cashflow_tab(fin_engine=None, fin_rapor=None):
                         name="Net", mode="lines+markers",
                         line=dict(color=C_CYAN, width=2.5),
                         marker=dict(size=7))
-        fig.add_hline(y=0, line_dash="dash", line_color="#4a6fa5", opacity=.5)
+        fig.add_hline(y=0, line_dash="dash", line_color="#64748B", opacity=.5)
         fig.update_layout(barmode="relative", height=290, **PT,
                           legend=dict(orientation="h",y=1.1,x=0))
         st.plotly_chart(fig, use_container_width=True)
@@ -216,8 +216,8 @@ def show_cashflow_tab(fin_engine=None, fin_rapor=None):
                 "Net Nakit":    "{:,.0f} ₺",
                 "Kümülatif":    "{:,.0f} ₺",
             }).map(
-                lambda v: "color:#10d994" if isinstance(v,(int,float)) and v>=0
-                          else "color:#ff4757" if isinstance(v,(int,float)) and v<0
+                lambda v: "color:#059669" if isinstance(v,(int,float)) and v>=0
+                          else "color:#DC2626" if isinstance(v,(int,float)) and v<0
                           else "",
                 subset=["Net Nakit","Kümülatif"]
             ),
@@ -231,7 +231,7 @@ def show_cashflow_tab(fin_engine=None, fin_rapor=None):
         # Burn rate
         sec("🔥 Burn Rate Analizi")
         burn_renk = {"Güvenli":C_GREEN,"Dikkat":C_YELLOW,
-                     "Kritik":C_RED,"Nakit Yok":"#4a6fa5"}.get(
+                     "Kritik":C_RED,"Nakit Yok":"#64748B"}.get(
                      burn["durum"], C_YELLOW)
 
         c1,c2,c3,c4 = st.columns(4)
@@ -300,10 +300,10 @@ def show_cashflow_tab(fin_engine=None, fin_rapor=None):
                 fig.update_layout(
                     polar=dict(
                         bgcolor="rgba(0,0,0,0)",
-                        radialaxis=dict(range=[0,100], gridcolor="#1e2d4a",
-                                        tickfont=dict(color="#4a6fa5",size=8)),
-                        angularaxis=dict(gridcolor="#1e2d4a",
-                                         tickfont=dict(color="#8899bb",size=9)),
+                        radialaxis=dict(range=[0,100], gridcolor="#E2E8F0",
+                                        tickfont=dict(color="#64748B",size=8)),
+                        angularaxis=dict(gridcolor="#E2E8F0",
+                                         tickfont=dict(color="#94A3B8",size=9)),
                     ),
                     height=280, **PT)
                 st.plotly_chart(fig, use_container_width=True)
@@ -369,7 +369,7 @@ def show_cashflow_tab(fin_engine=None, fin_rapor=None):
                             name=f"Özel (%{buyume*100:.0f})", mode="lines+markers",
                             line=dict(color=C_YELLOW, width=2, dash="dash"),
                             marker=dict(size=6))
-        fig.add_hline(y=0, line_dash="dash", line_color="#4a6fa5", opacity=.5)
+        fig.add_hline(y=0, line_dash="dash", line_color="#64748B", opacity=.5)
         fig.update_layout(title="Kümülatif Nakit Projeksiyon Senaryoları",
                           height=300, **PT,
                           legend=dict(orientation="h",y=1.12,x=0))
@@ -384,8 +384,8 @@ def show_cashflow_tab(fin_engine=None, fin_rapor=None):
                 "Net":         "{:,.0f} ₺",
                 "Kümülatif":   "{:,.0f} ₺",
             }).map(
-                lambda v: "color:#10d994" if isinstance(v,(int,float)) and v>=0
-                          else "color:#ff4757" if isinstance(v,(int,float)) and v<0
+                lambda v: "color:#059669" if isinstance(v,(int,float)) and v>=0
+                          else "color:#DC2626" if isinstance(v,(int,float)) and v<0
                           else "",
                 subset=["Net","Kümülatif"]
             ),
@@ -400,11 +400,11 @@ def show_debt_tab(fin_rapor=None):
     """Borç analizi sekmesi."""
 
     st.markdown(
-        '<div style="font-family:Syne,sans-serif;font-size:1.5rem;font-weight:800;'
-        'background:linear-gradient(135deg,#00d4ff,#0066ff);'
+        '<div style="font-family:Inter,-apple-system,sans-serif;font-size:1.5rem;font-weight:800;'
+        'background:linear-gradient(135deg,#0EA5E9,#1D4ED8);'
         '-webkit-background-clip:text;-webkit-text-fill-color:transparent;">'
         '🏦 Borç Analizi</div>'
-        '<div style="color:#4a6fa5;font-size:.78rem;letter-spacing:2px;'
+        '<div style="color:#64748B;font-size:.78rem;letter-spacing:2px;'
         'text-transform:uppercase;margin-bottom:18px;">'
         'DSCR · Faiz Karşılama · İtfa Tablosu · Borç Kapasitesi</div>',
         unsafe_allow_html=True)
@@ -508,8 +508,8 @@ def show_debt_tab(fin_rapor=None):
                  positive=bool(skor["skor"]>=50))
 
     st.markdown(
-        f'<div style="background:#0d1520;border:1px solid #0066ff44;'
-        f'border-radius:12px;padding:12px 18px;color:#a0c0e8;'
+        f'<div style="background:#F8FAFC;border:1px solid #BFDBFE;'
+        f'border-radius:12px;padding:12px 18px;color:#475569;'
         f'font-size:.87rem;margin:10px 0;">'
         f'💡 {skor["tavsiye"]}</div>', unsafe_allow_html=True)
 
@@ -548,7 +548,7 @@ def show_debt_tab(fin_rapor=None):
             ])
             def color_d(v):
                 c = {"İyi":C_GREEN,"Orta":C_YELLOW,"Zayıf":C_RED,
-                     "Veri Yok":"#4a6fa5"}.get(v,"")
+                     "Veri Yok":"#64748B"}.get(v,"")
                 return f"color:{c};font-weight:600" if c else ""
             st.dataframe(
                 metrik_df.style.map(color_d, subset=["Durum"]),
@@ -560,8 +560,8 @@ def show_debt_tab(fin_rapor=None):
             if not tur_df.empty:
                 fig = px.pie(tur_df, values="Tutar", names="Tür",
                              color_discrete_sequence=[
-                                 C_RED,"#ff6b81","#ff9f43","#feca57",
-                                 "#48dbfb","#ff9ff3"],
+                                 C_RED,"#1D4ED8","#374151","#0F766E",
+                                 "#6B7280","#1D4ED8"],
                              hole=0.5)
                 fig.update_layout(height=280, **PT)
                 st.plotly_chart(fig, use_container_width=True)
@@ -613,7 +613,7 @@ def show_debt_tab(fin_rapor=None):
         fig.update_layout(
             barmode="stack", height=290,
             yaxis2=dict(overlaying="y", side="right",
-                        gridcolor="#1e2d4a"),
+                        gridcolor="#E2E8F0"),
             legend=dict(orientation="h",y=1.1,x=0), **PT)
         st.plotly_chart(fig, use_container_width=True)
 
@@ -635,15 +635,15 @@ def show_debt_tab(fin_rapor=None):
             sec("💡 Borç Kapasitesi")
             kap = kapasite
             st.markdown(
-                f'<div style="background:#0d1520;border:1px solid #1e3a5f;'
+                f'<div style="background:#F8FAFC;border:1px solid #E2E8F0;'
                 f'border-radius:12px;padding:16px 20px;margin-bottom:12px;">'
-                f'<div style="color:#4a6fa5;font-size:.75rem;letter-spacing:1.5px;'
+                f'<div style="color:#64748B;font-size:.75rem;letter-spacing:1.5px;'
                 f'text-transform:uppercase;margin-bottom:10px;">Kullanım Oranı</div>'
-                f'<div style="background:#1e3a5f;border-radius:8px;height:12px;overflow:hidden;">'
+                f'<div style="background:#E2E8F0;border-radius:8px;height:12px;overflow:hidden;">'
                 f'<div style="background:linear-gradient(90deg,{C_BLUE},{C_CYAN});'
                 f'width:{min(kap["kullanim_orani"],100)}%;height:100%;'
                 f'border-radius:8px;"></div></div>'
-                f'<div style="color:#e8eaf0;font-size:1.1rem;font-weight:700;'
+                f'<div style="color:#0F172A;font-size:1.1rem;font-weight:700;'
                 f'margin-top:8px;">%{kap["kullanim_orani"]}</div>'
                 f'</div>', unsafe_allow_html=True)
             kpi("Mevcut Borç",    fmt(kap["mevcut_borc"]), positive=False)
@@ -652,15 +652,15 @@ def show_debt_tab(fin_rapor=None):
                 color=C_GREEN if kap["maks_ek_borc"]>0 else C_RED,
                 positive=bool(kap["maks_ek_borc"]>0))
             st.markdown(
-                f'<div style="background:#0a1a10;border-left:3px solid #10d994;'
+                f'<div style="background:#F0FDF4;border-left:3px solid #059669;'
                 f'border-radius:0 8px 8px 0;padding:10px 14px;'
-                f'color:#a0e8c0;font-size:.86rem;margin-top:8px;">'
+                f'color:#065F46;font-size:.86rem;margin-top:8px;">'
                 f'💡 {kap["tavsiye"]}</div>', unsafe_allow_html=True)
 
         with col2:
             sec("🏅 Ödeme Önceliği (Avalanche)")
             st.markdown(
-                '<div style="color:#4a6fa5;font-size:.8rem;margin-bottom:10px;">'
+                '<div style="color:#64748B;font-size:.8rem;margin-bottom:10px;">'
                 'Yüksek faizli borcu önce ödemek toplam maliyeti düşürür.</div>',
                 unsafe_allow_html=True)
             onc_df = rapor["odeme_onceligi"]
@@ -670,7 +670,7 @@ def show_debt_tab(fin_rapor=None):
                     "Toplam Faiz":   "{:,.0f} ₺",
                     "Faiz (%)":      "{:.1f}%",
                 }).map(
-                    lambda v: "color:#ff4757;font-weight:700"
+                    lambda v: "color:#DC2626;font-weight:700"
                     if v == 1 else "",
                     subset=["Öncelik"]
                 ),
