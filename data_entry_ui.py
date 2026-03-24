@@ -24,18 +24,18 @@ try:
 except ImportError:
     IMPORTER_OK = False
 
-C_GREEN  = "#10d994"
-C_RED    = "#ff4757"
-C_BLUE   = "#0066ff"
-C_YELLOW = "#fbbf24"
-C_CYAN   = "#00d4ff"
+C_GREEN  = "#059669"
+C_RED    = "#DC2626"
+C_BLUE   = "#1D4ED8"
+C_YELLOW = "#D97706"
+C_CYAN   = "#0EA5E9"
 
 
 def sec(text, small=False):
     fs = ".88rem" if small else "1rem"
     st.markdown(
-        f'<div style="font-family:Syne,sans-serif;font-size:{fs};font-weight:700;'
-        f'color:#e8eaf0;padding:5px 0 8px;border-bottom:1px solid #1e2d4a;'
+        f'<div style="font-family:Inter,-apple-system,sans-serif;font-size:{fs};font-weight:700;'
+        f'color:#0F172A;padding:5px 0 8px;border-bottom:1px solid #E2E8F0;'
         f'margin:12px 0 10px;">{text}</div>',
         unsafe_allow_html=True)
 
@@ -48,11 +48,11 @@ def show_data_entry_tab():
     """Tam sayfa veri giriş merkezi."""
 
     st.markdown(
-        '<div style="font-family:Syne,sans-serif;font-size:1.5rem;font-weight:800;'
-        'background:linear-gradient(135deg,#00d4ff,#0066ff);'
+        '<div style="font-family:Inter,-apple-system,sans-serif;font-size:1.5rem;font-weight:800;'
+        'background:linear-gradient(135deg,#0EA5E9,#1D4ED8);'
         '-webkit-background-clip:text;-webkit-text-fill-color:transparent;">'
         '📥 Veri Giriş Merkezi</div>'
-        '<div style="color:#4a6fa5;font-size:.78rem;letter-spacing:2px;'
+        '<div style="color:#64748B;font-size:.78rem;letter-spacing:2px;'
         'text-transform:uppercase;margin-bottom:18px;">'
         'Excel Upload · Logo/Mikro/Zirve · Manuel Giriş</div>',
         unsafe_allow_html=True)
@@ -68,12 +68,12 @@ def show_data_entry_tab():
     with s1:
         sec("📁 Akıllı Dosya Yükleme")
         st.markdown(
-            '<div style="background:#0d1520;border:1px solid #1e3a5f;'
+            '<div style="background:#F8FAFC;border:1px solid #E2E8F0;'
             'border-radius:12px;padding:14px 18px;margin-bottom:16px;">'
-            '<div style="color:#60a5fa;font-weight:700;font-size:.88rem;'
+            '<div style="color:#1D4ED8;font-weight:700;font-size:.88rem;'
             'margin-bottom:8px;">✅ Desteklenen Formatlar</div>'
             '<div style="display:grid;grid-template-columns:1fr 1fr;'
-            'gap:6px;font-size:.82rem;color:#8aabcc;">'
+            'gap:6px;font-size:.82rem;color:#4B5563;">'
             '<div>📊 KazKaz Standart (CSV/Excel)</div>'
             '<div>🔷 Logo Yazılım Export</div>'
             '<div>🔶 Mikro Muhasebe Export</div>'
@@ -141,7 +141,7 @@ def show_data_entry_tab():
     with s2:
         sec("✏️ Aylık Manuel Veri Girişi")
         st.markdown(
-            '<div style="color:#4a6fa5;font-size:.82rem;margin-bottom:12px;">'
+            '<div style="color:#64748B;font-size:.82rem;margin-bottom:12px;">'
             'Muhasebe programınız yoksa veya hızlıca veri girmek istiyorsanız '
             'kullanın. Her satır bir dönem/kategori kombinasyonu.</div>',
             unsafe_allow_html=True)
@@ -159,7 +159,7 @@ def show_data_entry_tab():
         basliklar = ["Dönem (YYYY-MM)","Kategori","Gelir (₺)","Gider (₺)",""]
         for col, b in zip(ch, basliklar):
             col.markdown(
-                f'<div style="color:#4a6fa5;font-size:.75rem;'
+                f'<div style="color:#64748B;font-size:.75rem;'
                 f'text-transform:uppercase;letter-spacing:1px;'
                 f'padding-bottom:4px;">{b}</div>',
                 unsafe_allow_html=True)
@@ -267,7 +267,7 @@ def show_data_entry_tab():
         sec("📋 Excel Şablonları")
 
         st.markdown(
-            '<div style="color:#4a6fa5;font-size:.83rem;margin-bottom:16px;">'
+            '<div style="color:#64748B;font-size:.83rem;margin-bottom:16px;">'
             'Muhasebecilere gönderebileceğiniz veya kendiniz doldurabileceğiniz '
             'hazır şablonlar.</div>',
             unsafe_allow_html=True)
@@ -276,11 +276,11 @@ def show_data_entry_tab():
 
         with col1:
             st.markdown(
-                '<div style="background:#111827;border:1px solid #1e3a5f;'
+                '<div style="background:#FFFFFF;border:1px solid #E2E8F0;'
                 'border-radius:12px;padding:16px;margin-bottom:12px;">'
-                '<div style="color:#60a5fa;font-weight:700;margin-bottom:8px;">'
+                '<div style="color:#1D4ED8;font-weight:700;margin-bottom:8px;">'
                 '📊 Temel Şablon</div>'
-                '<div style="color:#4a6fa5;font-size:.82rem;">'
+                '<div style="color:#64748B;font-size:.82rem;">'
                 'Tarih, Kategori, Gelir, Gider sütunları.<br>'
                 'En basit format — herkese uyar.</div></div>',
                 unsafe_allow_html=True)
@@ -307,11 +307,11 @@ def show_data_entry_tab():
 
         with col2:
             st.markdown(
-                '<div style="background:#111827;border:1px solid #1e3a5f;'
+                '<div style="background:#FFFFFF;border:1px solid #E2E8F0;'
                 'border-radius:12px;padding:16px;margin-bottom:12px;">'
-                '<div style="color:#10d994;font-weight:700;margin-bottom:8px;">'
+                '<div style="color:#059669;font-weight:700;margin-bottom:8px;">'
                 '🎯 Gelişmiş Şablon</div>'
-                '<div style="color:#4a6fa5;font-size:.82rem;">'
+                '<div style="color:#64748B;font-size:.82rem;">'
                 'Müşteri, Ürün sütunları dahil.<br>'
                 'Müşteri & ürün analizi için gerekli.</div></div>',
                 unsafe_allow_html=True)
@@ -339,13 +339,13 @@ def show_data_entry_tab():
         st.markdown("---")
         sec("📧 Muhasebecinize Gönderebileceğiniz Açıklama")
         st.markdown(
-            '<div style="background:#0d1520;border:1px solid #1e3a5f;'
+            '<div style="background:#F8FAFC;border:1px solid #E2E8F0;'
             'border-radius:12px;padding:16px 20px;font-size:.85rem;'
             'color:#a0b8d0;line-height:1.8;">'
             'Merhaba,<br><br>'
             'Aylık finansal verilerimi KazKaz AI platformuna yükleyebilmem için '
             'aşağıdaki Excel formatında gönderebilir misiniz?<br><br>'
-            '<b style="color:#60a5fa;">Gerekli sütunlar:</b><br>'
+            '<b style="color:#1D4ED8;">Gerekli sütunlar:</b><br>'
             '• <b>Tarih</b>: YYYY-MM formatında (örn: 2024-01)<br>'
             '• <b>Kategori</b>: Hesap adı veya işlem türü<br>'
             '• <b>Gelir</b>: Gelir tutarı (₺ cinsinden, gider satırlarında 0)<br>'
