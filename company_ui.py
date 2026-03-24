@@ -25,46 +25,46 @@ from company_profile import (
 
 PT = dict(
     paper_bgcolor="rgba(0,0,0,0)", plot_bgcolor="rgba(0,0,0,0)",
-    font=dict(color="#8899bb", family="DM Sans"),
-    xaxis=dict(gridcolor="#1e2d4a", showgrid=True, zeroline=False),
-    yaxis=dict(gridcolor="#1e2d4a", showgrid=True, zeroline=False),
+    font=dict(color="#94A3B8", family="Inter"),
+    xaxis=dict(gridcolor="#E2E8F0", showgrid=True, zeroline=False),
+    yaxis=dict(gridcolor="#E2E8F0", showgrid=True, zeroline=False),
     margin=dict(l=10, r=10, t=30, b=10),
 )
-C_GREEN  = "#10d994"
-C_RED    = "#ff4757"
-C_BLUE   = "#0066ff"
-C_YELLOW = "#fbbf24"
-C_CYAN   = "#00d4ff"
+C_GREEN  = "#059669"
+C_RED    = "#DC2626"
+C_BLUE   = "#1D4ED8"
+C_YELLOW = "#D97706"
+C_CYAN   = "#0EA5E9"
 
 def fmt(v):
     if abs(v) >= 1_000_000: return f"{v/1_000_000:.1f}M ₺"
     if abs(v) >= 1_000:     return f"{v/1_000:.0f}K ₺"
     return f"{v:,.0f} ₺"
 
-def kpi(label, value, color="#e8eaf0", delta="", positive=True):
+def kpi(label, value, color="#0F172A", delta="", positive=True):
     dc = C_GREEN if positive else C_RED
     di = "▲" if positive else "▼"
     dh = f'<div style="font-size:.75rem;color:{dc};margin-top:3px;">{di} {delta}</div>' if delta else ""
     st.markdown(
-        f'<div style="background:linear-gradient(135deg,#111827,#1a2540);'
-        f'border:1px solid #1e3a5f;border-radius:14px;padding:16px 18px;'
+        f'<div style="background:var(--bg-surface);'
+        f'border:1px solid #E2E8F0;border-radius:14px;padding:16px 18px;'
         f'position:relative;overflow:hidden;margin-bottom:8px;">'
-        f'<div style="position:absolute;top:0;left:0;right:0;height:3px;'
-        f'background:linear-gradient(90deg,#00d4ff,#0066ff);"></div>'
-        f'<div style="font-size:.7rem;color:#4a6fa5;letter-spacing:1.5px;'
+        f'<div style="position:absolute;left:0;top:0;bottom:0;width:3px;border-radius:4px 0 0 4px;'
+        f'background:linear-gradient(90deg,#0EA5E9,#1D4ED8);"></div>'
+        f'<div style="font-size:.7rem;color:#64748B;letter-spacing:1.5px;'
         f'text-transform:uppercase;margin-bottom:5px;">{label}</div>'
-        f'<div style="font-family:Syne,sans-serif;font-size:1.5rem;'
+        f'<div style="font-family:Inter,-apple-system,sans-serif;font-size:1.5rem;'
         f'font-weight:700;color:{color};">{value}</div>{dh}</div>',
         unsafe_allow_html=True)
 
 def sec(text):
     st.markdown(
-        f'<div style="font-family:Syne,sans-serif;font-size:1rem;font-weight:700;'
-        f'color:#e8eaf0;padding:6px 0 10px;border-bottom:1px solid #1e2d4a;'
+        f'<div style="font-family:Inter,-apple-system,sans-serif;font-size:1rem;font-weight:700;'
+        f'color:#0F172A;padding:6px 0 10px;border-bottom:1px solid #E2E8F0;'
         f'margin:16px 0 14px;">{text}</div>', unsafe_allow_html=True)
 
 def durum_renk(d):
-    return {"Mükemmel":C_GREEN,"İyi":C_BLUE,"Orta":C_YELLOW,"Zayıf":C_RED}.get(d,"#8899bb")
+    return {"Mükemmel":C_GREEN,"İyi":C_BLUE,"Orta":C_YELLOW,"Zayıf":C_RED}.get(d,"#94A3B8")
 
 
 # ─────────────────────────────────────────────
@@ -76,7 +76,7 @@ def show_profile_form() -> CompanyProfile:
     sec("🏢 Şirket Profili Bilgileri")
 
     st.markdown(
-        '<div style="color:#4a6fa5;font-size:.82rem;margin-bottom:16px;">'
+        '<div style="color:#64748B;font-size:.82rem;margin-bottom:16px;">'
         'Ne kadar çok bilgi girerseniz analizlerimiz o kadar isabetli olur. '
         'Tüm alanlar opsiyonel — bildiğiniz kadarını doldurun.</div>',
         unsafe_allow_html=True)
@@ -200,11 +200,11 @@ def show_profile_form() -> CompanyProfile:
                 placeholder="Örn: Logo, Netsis, Mikro...",
                 key="cp_rakipler")
         st.markdown(
-            '<div style="background:#0d1520;border:1px solid #1e3a5f;'
+            '<div style="background:#F8FAFC;border:1px solid #E2E8F0;'
             'border-radius:10px;padding:12px 16px;margin-top:10px;">'
-            '<div style="color:#60a5fa;font-size:.8rem;font-weight:600;'
+            '<div style="color:#1D4ED8;font-size:.8rem;font-weight:600;'
             'margin-bottom:6px;">💡 Bu bilgiler ne işe yarar?</div>'
-            '<div style="color:#4a6fa5;font-size:.8rem;line-height:1.6;">'
+            '<div style="color:#64748B;font-size:.8rem;line-height:1.6;">'
             'Müşteri sayısı ve churn oranından LTV hesaplanır. '
             'Yeni müşteri sayısından büyüme potansiyeli görülür. '
             'Rakip bilgisiyle karşılaştırmalı analiz yapılır.</div></div>',
@@ -226,11 +226,11 @@ def show_profile_form() -> CompanyProfile:
                 help="SAP, Logo, Mikro, Netsis vb.")
         with c2:
             st.markdown(
-                '<div style="background:#0a1a10;border:1px solid #10d99422;'
+                '<div style="background:#F0FDF4;border:1px solid #05966922;'
                 'border-radius:10px;padding:12px 14px;">'
-                '<div style="color:#10d994;font-size:.8rem;font-weight:600;'
+                '<div style="color:#059669;font-size:.8rem;font-weight:600;'
                 'margin-bottom:8px;">🎯 Doldurunca neler açılır?</div>'
-                '<div style="color:#4a6fa5;font-size:.78rem;line-height:1.7;">'
+                '<div style="color:#64748B;font-size:.78rem;line-height:1.7;">'
                 '✅ Dijital oran → E-ticaret KPI karşılaştırması<br>'
                 '✅ CRM → Müşteri yönetimi skoru<br>'
                 '✅ ERP → Operasyonel verimlilik puanı<br>'
@@ -281,11 +281,11 @@ def show_company_tab(fin_rapor: dict):
     """Şirket profili ana sekmesi."""
 
     st.markdown(
-        '<div style="font-family:Syne,sans-serif;font-size:1.5rem;font-weight:800;'
-        'background:linear-gradient(135deg,#00d4ff,#0066ff);'
+        '<div style="font-family:Inter,-apple-system,sans-serif;font-size:1.5rem;font-weight:800;'
+        'background:linear-gradient(135deg,#0EA5E9,#1D4ED8);'
         '-webkit-background-clip:text;-webkit-text-fill-color:transparent;">'
         '🏢 Şirket Profili & Piyasa Analizi</div>'
-        '<div style="color:#4a6fa5;font-size:.78rem;letter-spacing:2px;'
+        '<div style="color:#64748B;font-size:.78rem;letter-spacing:2px;'
         'text-transform:uppercase;margin-bottom:18px;">'
         'Profil · Sektöre Özel KPI · BIST Karşılaştırması · Rakip Analizi</div>',
         unsafe_allow_html=True)
@@ -333,45 +333,45 @@ def show_company_tab(fin_rapor: dict):
         # Özet kart
         yas = profil["yas"]
         st.markdown(
-            f'<div style="background:linear-gradient(135deg,#0f1629,#1a2540);'
-            f'border:1px solid #1e3a5f;border-radius:20px;padding:28px 32px;'
+            f'<div style="background:linear-gradient(135deg,#0f1629,#F8FAFC);'
+            f'border:1px solid #E2E8F0;border-radius:20px;padding:28px 32px;'
             f'margin-bottom:20px;">'
             f'<div style="display:flex;align-items:center;gap:20px;margin-bottom:20px;">'
-            f'<div style="width:64px;height:64px;background:linear-gradient(135deg,#0066ff,#7c3aed);'
+            f'<div style="width:64px;height:64px;background:linear-gradient(135deg,#1D4ED8,#4F46E5);'
             f'border-radius:16px;display:flex;align-items:center;justify-content:center;'
             f'font-size:2rem;">🏢</div>'
             f'<div>'
-            f'<div style="font-family:Syne,sans-serif;font-size:1.4rem;font-weight:800;'
-            f'color:#e8eaf0;">{profil["sirket_adi"]}</div>'
-            f'<div style="color:#4a6fa5;font-size:.85rem;">'
+            f'<div style="font-family:Inter,-apple-system,sans-serif;font-size:1.4rem;font-weight:800;'
+            f'color:#0F172A;">{profil["sirket_adi"]}</div>'
+            f'<div style="color:#64748B;font-size:.85rem;">'
             f'{profil["sektor"]} · {profil["sehir"]}</div>'
             f'</div></div>'
             f'<div style="display:grid;grid-template-columns:repeat(4,1fr);gap:16px;">'
             f'<div style="background:#0a0e1a;border-radius:12px;padding:14px;">'
-            f'<div style="color:#4a6fa5;font-size:.7rem;text-transform:uppercase;'
+            f'<div style="color:#64748B;font-size:.7rem;text-transform:uppercase;'
             f'letter-spacing:1px;">Kuruluş</div>'
-            f'<div style="color:#e8eaf0;font-weight:700;">{profil["kuruluş_yili"]}</div>'
-            f'<div style="color:#4a6fa5;font-size:.75rem;">{yas} yıl önce</div>'
+            f'<div style="color:#0F172A;font-weight:700;">{profil["kuruluş_yili"]}</div>'
+            f'<div style="color:#64748B;font-size:.75rem;">{yas} yıl önce</div>'
             f'</div>'
             f'<div style="background:#0a0e1a;border-radius:12px;padding:14px;">'
-            f'<div style="color:#4a6fa5;font-size:.7rem;text-transform:uppercase;'
+            f'<div style="color:#64748B;font-size:.7rem;text-transform:uppercase;'
             f'letter-spacing:1px;">Çalışan</div>'
-            f'<div style="color:#e8eaf0;font-weight:700;">{profil["calissan_sayisi"]}</div>'
-            f'<div style="color:#4a6fa5;font-size:.75rem;">{profil["buyukluk"]}</div>'
+            f'<div style="color:#0F172A;font-weight:700;">{profil["calissan_sayisi"]}</div>'
+            f'<div style="color:#64748B;font-size:.75rem;">{profil["buyukluk"]}</div>'
             f'</div>'
             f'<div style="background:#0a0e1a;border-radius:12px;padding:14px;">'
-            f'<div style="color:#4a6fa5;font-size:.7rem;text-transform:uppercase;'
+            f'<div style="color:#64748B;font-size:.7rem;text-transform:uppercase;'
             f'letter-spacing:1px;">Segment</div>'
-            f'<div style="color:#60a5fa;font-weight:700;">'
+            f'<div style="color:#1D4ED8;font-weight:700;">'
             f'{profil["buyukluk"].split("(")[0].strip()}</div>'
-            f'<div style="color:#4a6fa5;font-size:.75rem;">{profil["sektor"]}</div>'
+            f'<div style="color:#64748B;font-size:.75rem;">{profil["sektor"]}</div>'
             f'</div>'
             f'<div style="background:#0a0e1a;border-radius:12px;padding:14px;">'
-            f'<div style="color:#4a6fa5;font-size:.7rem;text-transform:uppercase;'
+            f'<div style="color:#64748B;font-size:.7rem;text-transform:uppercase;'
             f'letter-spacing:1px;">Özellik</div>'
-            f'<div style="color:#e8eaf0;font-weight:700;">'
+            f'<div style="color:#0F172A;font-weight:700;">'
             f'{"🌍 İhracatçı" if profil["ihracat"] else "🇹🇷 Yerel"}</div>'
-            f'<div style="color:#4a6fa5;font-size:.75rem;">'
+            f'<div style="color:#64748B;font-size:.75rem;">'
             f'{"📈 BIST" if profil["borsada"] else "🔒 Özel"}</div>'
             f'</div>'
             f'</div></div>',
@@ -394,11 +394,11 @@ def show_company_tab(fin_rapor: dict):
         # Vergi avantajı detayı
         if market.get("vergi_avantaji"):
             st.markdown(
-                f'<div style="background:#0a1a10;border-left:3px solid {C_GREEN};'
+                f'<div style="background:#F0FDF4;border-left:3px solid {C_GREEN};'
                 f'border-radius:0 10px 10px 0;padding:10px 14px;margin-top:8px;">'
-                f'<div style="color:#4a6fa5;font-size:.75rem;margin-bottom:3px;">'
+                f'<div style="color:#64748B;font-size:.75rem;margin-bottom:3px;">'
                 f'💰 Vergi & Teşvik Avantajları</div>'
-                f'<div style="color:#a0e8c0;font-size:.85rem;">'
+                f'<div style="color:#065F46;font-size:.85rem;">'
                 f'{market["vergi_avantaji"]}</div></div>',
                 unsafe_allow_html=True)
 
@@ -433,15 +433,15 @@ def show_company_tab(fin_rapor: dict):
                     hedef_str = f"{hedef} {birim}"
 
                 st.markdown(
-                    f'<div style="background:#111827;border:1px solid #1e3a5f;'
+                    f'<div style="background:#FFFFFF;border:1px solid #E2E8F0;'
                     f'border-radius:14px;padding:16px;margin-bottom:10px;">'
-                    f'<div style="font-size:.72rem;color:#4a6fa5;letter-spacing:1px;'
+                    f'<div style="font-size:.72rem;color:#64748B;letter-spacing:1px;'
                     f'text-transform:uppercase;margin-bottom:6px;">{kpi_adi}</div>'
-                    f'<div style="font-family:Syne,sans-serif;font-size:1.3rem;'
+                    f'<div style="font-family:Inter,-apple-system,sans-serif;font-size:1.3rem;'
                     f'font-weight:700;color:{renk};margin-bottom:4px;">{deger_str}</div>'
-                    f'<div style="color:#4a6fa5;font-size:.75rem;margin-bottom:8px;">'
+                    f'<div style="color:#64748B;font-size:.75rem;margin-bottom:8px;">'
                     f'Hedef: {hedef_str}</div>'
-                    f'<div style="background:#1e3a5f;border-radius:4px;height:6px;'
+                    f'<div style="background:#E2E8F0;border-radius:4px;height:6px;'
                     f'overflow:hidden;">'
                     f'<div style="background:{renk};width:{min(perf_pct,100)}%;'
                     f'height:100%;border-radius:4px;"></div></div>'
@@ -504,44 +504,44 @@ def show_company_tab(fin_rapor: dict):
         col_r1, col_r2, col_r3 = st.columns(3)
         with col_r1:
             st.markdown(
-                f'''<div style="background:linear-gradient(135deg,#111827,#1a2540);
-                border:1px solid #1e3a5f;border-radius:14px;padding:16px 18px;
+                f'''<div style="background:var(--bg-surface);
+                border:1px solid #E2E8F0;border-radius:14px;padding:16px 18px;
                 position:relative;overflow:hidden;margin-bottom:8px;">
-                <div style="position:absolute;top:0;left:0;right:0;height:3px;
-                background:linear-gradient(90deg,#00d4ff,#0066ff);"></div>
-                <div style="font-size:.7rem;color:#4a6fa5;letter-spacing:1.5px;
+                <div style="position:absolute;left:0;top:0;bottom:0;width:3px;border-radius:4px 0 0 4px;
+                background:linear-gradient(90deg,#0EA5E9,#1D4ED8);"></div>
+                <div style="font-size:.7rem;color:#64748B;letter-spacing:1.5px;
                 text-transform:uppercase;margin-bottom:5px;">SEGMENT RAKİP SAYISI</div>
-                <div style="font-family:Syne,sans-serif;font-size:1.5rem;
-                font-weight:700;color:#e8eaf0;">{toplam_n}</div>
-                <div style="font-size:.75rem;color:#4a6fa5;margin-top:3px;">
+                <div style="font-family:Inter,-apple-system,sans-serif;font-size:1.5rem;
+                font-weight:700;color:#0F172A;">{toplam_n}</div>
+                <div style="font-size:.75rem;color:#64748B;margin-top:3px;">
                 {profil["sektor"]} segmenti</div></div>''',
                 unsafe_allow_html=True)
         with col_r2:
             st.markdown(
-                f'''<div style="background:linear-gradient(135deg,#111827,#1a2540);
-                border:1px solid #1e3a5f;border-radius:14px;padding:16px 18px;
+                f'''<div style="background:var(--bg-surface);
+                border:1px solid #E2E8F0;border-radius:14px;padding:16px 18px;
                 position:relative;overflow:hidden;margin-bottom:8px;">
-                <div style="position:absolute;top:0;left:0;right:0;height:3px;
-                background:linear-gradient(90deg,#00d4ff,#0066ff);"></div>
-                <div style="font-size:.7rem;color:#4a6fa5;letter-spacing:1.5px;
+                <div style="position:absolute;left:0;top:0;bottom:0;width:3px;border-radius:4px 0 0 4px;
+                background:linear-gradient(90deg,#0EA5E9,#1D4ED8);"></div>
+                <div style="font-size:.7rem;color:#64748B;letter-spacing:1.5px;
                 text-transform:uppercase;margin-bottom:5px;">KAR MARJI SIRALAMASI</div>
-                <div style="font-family:Syne,sans-serif;font-size:1.5rem;
+                <div style="font-family:Inter,-apple-system,sans-serif;font-size:1.5rem;
                 font-weight:700;color:{y_renk};">{sirket_sirasi}. / {toplam_n+1}</div>
-                <div style="font-size:.75rem;color:#4a6fa5;margin-top:3px;">
+                <div style="font-size:.75rem;color:#64748B;margin-top:3px;">
                 Rakipler arasında</div></div>''',
                 unsafe_allow_html=True)
         with col_r3:
             st.markdown(
-                f'''<div style="background:linear-gradient(135deg,#111827,#1a2540);
-                border:1px solid #1e3a5f;border-radius:14px;padding:16px 18px;
+                f'''<div style="background:var(--bg-surface);
+                border:1px solid #E2E8F0;border-radius:14px;padding:16px 18px;
                 position:relative;overflow:hidden;margin-bottom:8px;">
-                <div style="position:absolute;top:0;left:0;right:0;height:3px;
-                background:linear-gradient(90deg,#00d4ff,#0066ff);"></div>
-                <div style="font-size:.7rem;color:#4a6fa5;letter-spacing:1.5px;
+                <div style="position:absolute;left:0;top:0;bottom:0;width:3px;border-radius:4px 0 0 4px;
+                background:linear-gradient(90deg,#0EA5E9,#1D4ED8);"></div>
+                <div style="font-size:.7rem;color:#64748B;letter-spacing:1.5px;
                 text-transform:uppercase;margin-bottom:5px;">YÜZDELİK DİLİM</div>
-                <div style="font-family:Syne,sans-serif;font-size:1.5rem;
+                <div style="font-family:Inter,-apple-system,sans-serif;font-size:1.5rem;
                 font-weight:700;color:{y_renk};">%{int(yuzdelik)}</div>
-                <div style="font-size:.75rem;color:#4a6fa5;margin-top:3px;">
+                <div style="font-size:.75rem;color:#64748B;margin-top:3px;">
                 Üst % daha iyi</div></div>''',
                 unsafe_allow_html=True)
 
@@ -568,7 +568,7 @@ def show_company_tab(fin_rapor: dict):
         sec("📊 Kar Marjı Karşılaştırması")
         sorted_df = rakip_df.sort_values("Kar Marjı (%)", ascending=True)
         bar_colors = [
-            C_BLUE if "★" in str(s) else "#1e3a5f"
+            C_BLUE if "★" in str(s) else "#E2E8F0"
             for s in sorted_df["Şirket"]
         ]
         fig = go.Figure(go.Bar(
@@ -583,7 +583,7 @@ def show_company_tab(fin_rapor: dict):
             title=f"Kar Marjı — {profil['sektor']} {profil['buyukluk'].split('(')[0].strip()} Segment",
             height=max(280, len(sorted_df) * 45),
             **{k:v for k,v in PT.items() if k != 'xaxis'},
-            xaxis=dict(ticksuffix="%", gridcolor="#1e2d4a",
+            xaxis=dict(ticksuffix="%", gridcolor="#E2E8F0",
                        showgrid=True, zeroline=False),
         )
         st.plotly_chart(fig, use_container_width=True)
@@ -597,13 +597,13 @@ def show_company_tab(fin_rapor: dict):
         # BIST sektör oyuncuları
         if bist_list:
             st.markdown(
-                f'<div style="background:#0d1520;border:1px solid #1e3a5f;'
+                f'<div style="background:#F8FAFC;border:1px solid #E2E8F0;'
                 f'border-radius:12px;padding:16px 20px;margin-bottom:16px;">'
-                f'<div style="color:#4a6fa5;font-size:.75rem;text-transform:uppercase;'
+                f'<div style="color:#64748B;font-size:.75rem;text-transform:uppercase;'
                 f'letter-spacing:1px;margin-bottom:10px;">'
                 f'📊 {profil["sektor"]} Sektörü BIST Oyuncuları</div>'
                 + "".join([
-                    f'<span style="background:#1e3a5f;color:#60a5fa;'
+                    f'<span style="background:#E2E8F0;color:#1D4ED8;'
                     f'padding:4px 10px;border-radius:20px;font-size:.8rem;'
                     f'margin:3px 3px;display:inline-block;">{b}</span>'
                     for b in bist_list
@@ -676,10 +676,10 @@ def show_company_tab(fin_rapor: dict):
         for baslik, deger, iyi in bilgiler:
             renk = C_GREEN if iyi else C_RED
             st.markdown(
-                f'<div style="background:#111827;border-left:3px solid {renk};'
+                f'<div style="background:#FFFFFF;border-left:3px solid {renk};'
                 f'border-radius:0 10px 10px 0;padding:10px 16px;margin-bottom:6px;'
                 f'display:flex;justify-content:space-between;">'
-                f'<span style="color:#8aabcc;font-size:.85rem;">{baslik}</span>'
+                f'<span style="color:#4B5563;font-size:.85rem;">{baslik}</span>'
                 f'<span style="color:{renk};font-weight:700;font-size:.88rem;">'
                 f'{deger}</span></div>',
                 unsafe_allow_html=True)
