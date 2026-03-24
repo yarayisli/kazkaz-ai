@@ -251,7 +251,7 @@ def show_budget_tab(df: pd.DataFrame, fin_rapor: dict = None):
                 yaxis2=dict(overlaying="y", side="right",
                             gridcolor="#E2E8F0"),
                 legend=dict(orientation="h", y=1.1, x=0),
-                **PT,
+                **PLOTLY_THEME,
             )
             st.plotly_chart(fig, use_container_width=True)
 
@@ -274,7 +274,7 @@ def show_budget_tab(df: pd.DataFrame, fin_rapor: dict = None):
                 fillcolor="rgba(16,217,148,0.07)",
             )
             fig2.update_layout(
-                height=250, **PT,
+                height=250, **PLOTLY_THEME,
                 legend=dict(orientation="h", y=1.1, x=0),
             )
             st.plotly_chart(fig2, use_container_width=True)
@@ -299,7 +299,7 @@ def show_budget_tab(df: pd.DataFrame, fin_rapor: dict = None):
                           line_color="#64748B", opacity=.6)
             fig.update_layout(
                 title="Aylık Gelir Sapması (Gerçekleşen - Bütçe)",
-                height=280, **PT,
+                height=280, **PLOTLY_THEME,
             )
             st.plotly_chart(fig, use_container_width=True)
 
@@ -413,7 +413,7 @@ def show_budget_tab(df: pd.DataFrame, fin_rapor: dict = None):
                 )
                 fig.update_layout(
                     title="Aylık Gelir + Yıl Sonu Tahmini",
-                    height=320, **PT,
+                    height=320, **PLOTLY_THEME,
                 )
                 st.plotly_chart(fig, use_container_width=True)
 

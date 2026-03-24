@@ -624,7 +624,7 @@ def show_company_tab(fin_rapor: dict):
         fig.update_layout(
             barmode="group",
             title="Şirket vs Sektör vs BIST Karşılaştırması",
-            height=300, **PT,
+            height=300, **PLOTLY_THEME,
             legend=dict(orientation="h", y=1.12, x=0),
         )
         st.plotly_chart(fig, use_container_width=True)

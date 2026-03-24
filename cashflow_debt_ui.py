@@ -147,7 +147,7 @@ def show_cashflow_tab(fin_engine=None, fin_rapor=None):
                         line=dict(color=C_CYAN, width=2.5),
                         marker=dict(size=7))
         fig.add_hline(y=0, line_dash="dash", line_color="#64748B", opacity=.5)
-        fig.update_layout(barmode="relative", height=290, **PT,
+        fig.update_layout(barmode="relative", height=290, **PLOTLY_THEME,
                           legend=dict(orientation="h",y=1.1,x=0))
         st.plotly_chart(fig, use_container_width=True)
 
@@ -162,7 +162,7 @@ def show_cashflow_tab(fin_engine=None, fin_rapor=None):
             marker=dict(color=colors_kum, size=8),
         ))
         fig2.add_hline(y=0, line_dash="dash", line_color=C_RED, opacity=.6)
-        fig2.update_layout(height=230, **PT)
+        fig2.update_layout(height=230, **PLOTLY_THEME)
         st.plotly_chart(fig2, use_container_width=True)
 
         # Özet tablo
@@ -252,7 +252,7 @@ def show_cashflow_tab(fin_engine=None, fin_rapor=None):
                         angularaxis=dict(gridcolor="#E2E8F0",
                                          tickfont=dict(color="#94A3B8",size=9)),
                     ),
-                    height=280, **PT)
+                    height=280, **PLOTLY_THEME)
                 st.plotly_chart(fig, use_container_width=True)
             else:
                 st.info("Dönen varlık ve KVB bilgisi girilirse likidite oranları hesaplanır.")
@@ -318,7 +318,7 @@ def show_cashflow_tab(fin_engine=None, fin_rapor=None):
                             marker=dict(size=6))
         fig.add_hline(y=0, line_dash="dash", line_color="#64748B", opacity=.5)
         fig.update_layout(title="Kümülatif Nakit Projeksiyon Senaryoları",
-                          height=300, **PT,
+                          height=300, **PLOTLY_THEME,
                           legend=dict(orientation="h",y=1.12,x=0))
         st.plotly_chart(fig, use_container_width=True)
 
@@ -507,7 +507,7 @@ def show_debt_tab(fin_rapor=None):
                                  C_RED,"#1D4ED8","#374151","#0F766E",
                                  "#6B7280","#1D4ED8"],
                              hole=0.5)
-                fig.update_layout(height=280, **PT)
+                fig.update_layout(height=280, **PLOTLY_THEME)
                 st.plotly_chart(fig, use_container_width=True)
 
         # Borç özet tablosu
@@ -558,7 +558,7 @@ def show_debt_tab(fin_rapor=None):
             barmode="stack", height=290,
             yaxis2=dict(overlaying="y", side="right",
                         gridcolor="#E2E8F0"),
-            legend=dict(orientation="h",y=1.1,x=0), **PT)
+            legend=dict(orientation="h",y=1.1,x=0), **PLOTLY_THEME)
         st.plotly_chart(fig, use_container_width=True)
 
         st.dataframe(

@@ -152,7 +152,7 @@ def show_customer_tab(df: pd.DataFrame):
                                 range=[0,110], ticksuffix="%",
                                 gridcolor="#E2E8F0"),
                     legend=dict(orientation="h", y=1.1, x=0),
-                    **PT,
+                    **PLOTLY_THEME,
                 )
                 st.plotly_chart(fig2, use_container_width=True)
 
@@ -206,7 +206,7 @@ def show_customer_tab(df: pd.DataFrame):
                         C_PURPLE, "#f97316", "#06b6d4", "#84cc16"],
                     hole=0.5,
                 )
-                fig2.update_layout(title="Gelir Dağılımı", height=280, **PT)
+                fig2.update_layout(title="Gelir Dağılımı", height=280, **PLOTLY_THEME)
                 st.plotly_chart(fig2, use_container_width=True)
 
             sec("📋 Ürün Detay Tablosu")
@@ -238,7 +238,7 @@ def show_customer_tab(df: pd.DataFrame):
                               line_color=C_RED, opacity=.5)
                 fig.update_layout(
                     title="Müşteri Bazında Net Kar",
-                    height=280, **PT)
+                    height=280, **PLOTLY_THEME)
                 st.plotly_chart(fig, use_container_width=True)
 
                 st.dataframe(
@@ -321,7 +321,7 @@ def show_customer_tab(df: pd.DataFrame):
                             C_YELLOW, C_RED, C_PURPLE, "#f97316"],
                         hole=0.4,
                     )
-                    fig.update_layout(height=280, **PT)
+                    fig.update_layout(height=280, **PLOTLY_THEME)
                     st.plotly_chart(fig, use_container_width=True)
 
             with col2:
@@ -339,7 +339,7 @@ def show_customer_tab(df: pd.DataFrame):
                     ))
                     fig2.update_layout(
                         title="Segment Bazında Toplam Gelir",
-                        height=280, **PT)
+                        height=280, **PLOTLY_THEME)
                     st.plotly_chart(fig2, use_container_width=True)
 
             sec("📋 Segment Özet Tablosu")
@@ -416,7 +416,7 @@ def show_customer_tab(df: pd.DataFrame):
                     },
                     hole=0.5,
                 )
-                fig.update_layout(height=280, **PT)
+                fig.update_layout(height=280, **PLOTLY_THEME)
                 st.plotly_chart(fig, use_container_width=True)
 
             sec("📋 Tüm Müşteri Risk Tablosu")

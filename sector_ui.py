@@ -207,7 +207,7 @@ def show_sector_tab(df, rapor, sirket_adi="Şirketim", gemini=None):
                     angularaxis=dict(gridcolor="#E2E8F0",
                                      tickfont=dict(color="#94A3B8",size=9)),
                 ),
-                height=320, **PT,
+                height=320, **PLOTLY_THEME,
                 legend=dict(orientation="h",y=-0.15,x=0.5,xanchor="center"),
             )
             st.plotly_chart(fig, use_container_width=True)
