@@ -23,18 +23,18 @@ from investment_engine import Investment, InvestmentEngine, InvestmentComparator
 
 PLOTLY_THEME = dict(
     paper_bgcolor="rgba(0,0,0,0)", plot_bgcolor="rgba(0,0,0,0)",
-    font=dict(color="#8899bb", family="DM Sans"),
-    xaxis=dict(gridcolor="#1e2d4a", showgrid=True, zeroline=False),
-    yaxis=dict(gridcolor="#1e2d4a", showgrid=True, zeroline=False),
+    font=dict(color="#94A3B8", family="Inter"),
+    xaxis=dict(gridcolor="#E2E8F0", showgrid=True, zeroline=False),
+    yaxis=dict(gridcolor="#E2E8F0", showgrid=True, zeroline=False),
     margin=dict(l=10, r=10, t=36, b=10),
 )
 
-C_BLUE   = "#0066ff"
-C_CYAN   = "#00d4ff"
-C_GREEN  = "#10d994"
-C_RED    = "#ff4757"
-C_YELLOW = "#fbbf24"
-C_PURPLE = "#7c3aed"
+C_BLUE   = "#1D4ED8"
+C_CYAN   = "#0EA5E9"
+C_GREEN  = "#059669"
+C_RED    = "#DC2626"
+C_YELLOW = "#D97706"
+C_PURPLE = "#4F46E5"
 
 
 def fmt(v: float) -> str:
@@ -43,17 +43,17 @@ def fmt(v: float) -> str:
     return f"{v:,.0f} ₺"
 
 
-def kpi_card(label, value, delta="", color="#e8eaf0", positive=True):
-    dc = "#10d994" if positive else "#ff4757"
+def kpi_card(label, value, delta="", color="#0F172A", positive=True):
+    dc = "#059669" if positive else "#DC2626"
     di = "▲" if positive else "▼"
     dh = f'<div style="font-size:0.76rem;color:{dc};margin-top:3px;">{di} {delta}</div>' if delta else ""
     st.markdown(f"""
-    <div style="background:linear-gradient(135deg,#111827,#1a2540);
-                border:1px solid #1e3a5f;border-radius:14px;
+    <div style="background:var(--bg-surface);
+                border:1px solid #E2E8F0;border-radius:14px;
                 padding:16px 18px;position:relative;overflow:hidden;margin-bottom:8px;">
-        <div style="position:absolute;top:0;left:0;right:0;height:3px;
-                    background:linear-gradient(90deg,#00d4ff,#0066ff);"></div>
-        <div style="font-size:0.7rem;color:#4a6fa5;letter-spacing:1.5px;
+        <div style="position:absolute;left:0;top:0;bottom:0;width:3px;border-radius:4px 0 0 4px;
+                    background:linear-gradient(90deg,#0EA5E9,#1D4ED8);"></div>
+        <div style="font-size:0.7rem;color:#64748B;letter-spacing:1.5px;
                     text-transform:uppercase;margin-bottom:5px;">{label}</div>
         <div style="font-family:'Syne',sans-serif;font-size:1.55rem;
                     font-weight:700;color:{color};">{value}</div>
@@ -64,14 +64,14 @@ def kpi_card(label, value, delta="", color="#e8eaf0", positive=True):
 def section_title(text: str):
     st.markdown(f"""
     <div style="font-family:'Syne',sans-serif;font-size:1rem;font-weight:700;
-                color:#e8eaf0;padding:6px 0 10px;border-bottom:1px solid #1e2d4a;
+                color:#0F172A;padding:6px 0 10px;border-bottom:1px solid #E2E8F0;
                 margin:16px 0 14px;">{text}</div>""", unsafe_allow_html=True)
 
 
 def score_color(k: str) -> str:
     return {"Mükemmel Yatırım": C_GREEN, "İyi Yatırım": C_BLUE,
             "Kabul Edilebilir": C_YELLOW, "Riskli": "#f97316",
-            "Önerilmez": C_RED}.get(k, "#e8eaf0")
+            "Önerilmez": C_RED}.get(k, "#0F172A")
 
 
 # ─────────────────────────────────────────────
@@ -83,10 +83,10 @@ def show_investment_tab():
 
     st.markdown("""
     <div style="font-family:'Syne',sans-serif;font-size:1.5rem;font-weight:800;
-                background:linear-gradient(135deg,#00d4ff,#0066ff);
+                background:linear-gradient(135deg,#0EA5E9,#1D4ED8);
                 -webkit-background-clip:text;-webkit-text-fill-color:transparent;
                 margin-bottom:4px;">💼 Yatırım Analizi</div>
-    <div style="color:#4a6fa5;font-size:0.78rem;letter-spacing:2px;
+    <div style="color:#64748B;font-size:0.78rem;letter-spacing:2px;
                 text-transform:uppercase;margin-bottom:20px;">
         ROI · NPV · IRR · Payback · Monte Carlo Risk Simülasyonu
     </div>""", unsafe_allow_html=True)
@@ -126,7 +126,7 @@ def _single_investment_ui():
         enflasyon   = st.slider("Enflasyon Oranı (%)", 0, 100, 40, key="inv_enfl") / 100
         yil_sayisi  = st.slider("Analiz Süresi (Yıl)", 1, 20, 5, key="inv_yil")
 
-        st.markdown('<div style="color:#4a6fa5;font-size:0.78rem;margin-bottom:6px;">'
+        st.markdown('<div style="color:#64748B;font-size:0.78rem;margin-bottom:6px;">'
                     'Yıllık Nakit Akışları (₺)</div>', unsafe_allow_html=True)
         nakit_akislari = []
         cols_cf = st.columns(min(yil_sayisi, 5))
@@ -214,8 +214,8 @@ def _single_investment_ui():
 
     # Tavsiye kutusu
     st.markdown(f"""
-    <div style="background:#0d1520;border:1px solid #0066ff44;border-radius:12px;
-                padding:14px 18px;color:#a0c0e8;font-size:0.88rem;
+    <div style="background:#F8FAFC;border:1px solid #BFDBFE;border-radius:12px;
+                padding:14px 18px;color:#475569;font-size:0.88rem;
                 line-height:1.6;margin:12px 0;">
         <span style="color:{renk};font-weight:700;">💡 Tavsiye:</span>
         {skor["tavsiye"]}
@@ -259,10 +259,10 @@ def _single_investment_ui():
         fig.update_layout(
             polar=dict(
                 bgcolor="rgba(0,0,0,0)",
-                radialaxis=dict(range=[0,100], gridcolor="#1e2d4a",
-                                tickfont=dict(color="#4a6fa5", size=8)),
-                angularaxis=dict(gridcolor="#1e2d4a",
-                                 tickfont=dict(color="#8899bb", size=9)),
+                radialaxis=dict(range=[0,100], gridcolor="#E2E8F0",
+                                tickfont=dict(color="#64748B", size=8)),
+                angularaxis=dict(gridcolor="#E2E8F0",
+                                 tickfont=dict(color="#94A3B8", size=9)),
             ),
             height=300, **PLOTLY_THEME,
         )
@@ -276,8 +276,8 @@ def _single_investment_ui():
             "PV Nakit Akışı": "{:,.0f} ₺",
             "Kümülatif":      "{:,.0f} ₺",
         }).map(
-            lambda v: "color: #10d994" if isinstance(v, (int, float)) and v >= 0
-                      else "color: #ff4757" if isinstance(v, (int, float)) and v < 0
+            lambda v: "color: #059669" if isinstance(v, (int, float)) and v >= 0
+                      else "color: #DC2626" if isinstance(v, (int, float)) and v < 0
                       else "",
             subset=["Kümülatif"]
         ),
@@ -335,8 +335,8 @@ def _comparison_ui():
         return
 
     st.markdown(f"""
-    <div style="background:#0a1a10;border:1px solid #10d99444;border-radius:10px;
-                padding:12px 16px;color:#10d994;font-size:0.9rem;margin:12px 0;">
+    <div style="background:#F0FDF4;border:1px solid #05966944;border-radius:10px;
+                padding:12px 16px;color:#059669;font-size:0.9rem;margin:12px 0;">
         🏆 En İyi Yatırım: <b>{best}</b>
     </div>""", unsafe_allow_html=True)
 
@@ -372,10 +372,10 @@ def _comparison_ui():
     fig.update_layout(
         polar=dict(
             bgcolor="rgba(0,0,0,0)",
-            radialaxis=dict(range=[0,100], gridcolor="#1e2d4a",
-                            tickfont=dict(color="#4a6fa5", size=8)),
-            angularaxis=dict(gridcolor="#1e2d4a",
-                             tickfont=dict(color="#8899bb")),
+            radialaxis=dict(range=[0,100], gridcolor="#E2E8F0",
+                            tickfont=dict(color="#64748B", size=8)),
+            angularaxis=dict(gridcolor="#E2E8F0",
+                             tickfont=dict(color="#94A3B8")),
         ),
         height=380, **PLOTLY_THEME,
         legend=dict(orientation="h", y=-0.1, x=0.5, xanchor="center"),
@@ -429,12 +429,12 @@ def _monte_carlo_ui():
     }.get(mc["risk_seviyesi"], C_YELLOW)
 
     st.markdown(f"""
-    <div style="background:#0d1520;border:1px solid {risk_renk}44;border-radius:12px;
+    <div style="background:#F8FAFC;border:1px solid {risk_renk}44;border-radius:12px;
                 padding:14px 18px;margin:8px 0 16px;">
         <span style="color:{risk_renk};font-weight:700;font-size:1rem;">
             ⚠️ {mc["risk_seviyesi"]}
         </span>
-        <span style="color:#8aabcc;font-size:0.85rem;margin-left:12px;">
+        <span style="color:#4B5563;font-size:0.85rem;margin-left:12px;">
             NPV pozitif olma olasılığı: <b style="color:{risk_renk};">
             %{mc["npv_pozitif_oran"]}</b>
         </span>
