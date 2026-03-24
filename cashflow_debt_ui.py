@@ -45,7 +45,7 @@ def fmt(v):
     if abs(v) >= 1_000:     return f"{v/1_000:.0f}K ₺"
     return f"{v:,.0f} ₺"
 
-def kpi(label, value, color="#0F172A", delta="", positive=True):
+def kpi(label, value, delta="", color="#0F172A", positive=True):
     try:
         _p = bool(positive)
     except Exception:
@@ -204,8 +204,7 @@ def show_cashflow_tab(fin_engine=None, fin_rapor=None):
                      positive=bool(ozet["pozitif_ay"]>ozet["negatif_ay"]))
         with c4:
             renk = score_color(skor["kategori"])
-            kpi("Nakit Sağlık", f'{skor["skor"]}/100',
-                skor["kategori"], color=renk, positive=bool(skor["skor"]>=50))
+            kpi("Nakit Sağlık", f'{skor["skor"]}/100', delta=skor["kategori"], color=renk, positive=bool(skor["skor"]>=50))
 
         st.markdown("---")
 
@@ -268,19 +267,14 @@ def show_cashflow_tab(fin_engine=None, fin_rapor=None):
                      burn["durum"], C_YELLOW)
 
         c1,c2,c3,c4 = st.columns(4)
-        with c1: kpi("Brüt Yakma Hızı", fmt(burn["brut_yakma_hizi"]),
-                     "Aylık ortalama çıkış", color=C_RED, positive=False)
-        with c2: kpi("Net Yakma Hızı",  fmt(abs(burn["net_yakma_hizi"])),
-                     "Aylık nakit değişimi",
-                     color=C_GREEN if burn["net_yakma_hizi"]>=0 else C_RED,
+        with c1: kpi("Brüt Yakma Hızı", fmt(burn["brut_yakma_hizi"]), delta="Aylık ortalama çıkış", color=C_RED, positive=False)
+        with c2: kpi("Net Yakma Hızı", fmt(abs(burn["net_yakma_hizi"])), delta="Aylık nakit değişimi", color=C_GREEN if burn["net_yakma_hizi"]>=0 else C_RED,
                      positive=bool(burn["net_yakma_hizi"]>=0))
         with c3:
             runway = burn["runway_ay"]
-            kpi("Runway", f'{runway:.0f} Ay' if runway else "∞",
-                burn["durum"], color=burn_renk,
+            kpi("Runway", f'{runway:.0f} Ay' if runway else "∞", delta=burn["durum"], color=burn_renk,
                 positive=bool(not burn["nakit_yakilip_yakilmiyor"]))
-        with c4: kpi("Verimlilik Oranı", str(burn["verimlilik_orani"]),
-                     "> 1 iyi", color=C_GREEN if burn["verimlilik_orani"]>=1 else C_RED,
+        with c4: kpi("Verimlilik Oranı", str(burn["verimlilik_orani"]), delta="> 1 iyi", color=C_GREEN if burn["verimlilik_orani"]>=1 else C_RED,
                      positive=bool(burn["verimlilik_orani"]>=1))
 
         # Likidite
@@ -289,15 +283,11 @@ def show_cashflow_tab(fin_engine=None, fin_rapor=None):
         c1,c2,c3,c4 = st.columns(4)
         with c1:
             cr = liq["cari_oran"]
-            kpi("Cari Oran", str(cr) if cr else "Veri Yok",
-                "Hedef: > 2",
-                color=durum_renk(liq["cari_oran_durum"]),
+            kpi("Cari Oran", str(cr) if cr else "Veri Yok", delta="Hedef: > 2", color=durum_renk(liq["cari_oran_durum"]),
                 positive=bool(liq["cari_oran_durum"]=="İyi"))
         with c2:
             qr = liq["asit_oran"]
-            kpi("Asit-Test Oranı", str(qr) if qr else "Veri Yok",
-                "Hedef: > 1",
-                color=durum_renk(liq["asit_oran_durum"]),
+            kpi("Asit-Test Oranı", str(qr) if qr else "Veri Yok", delta="Hedef: > 1", color=durum_renk(liq["asit_oran_durum"]),
                 positive=bool(liq["asit_oran_durum"]=="İyi"))
         with c3:
             kpi("Net İşletme Ser.", fmt(liq["net_isletme_ser"]),
@@ -305,9 +295,7 @@ def show_cashflow_tab(fin_engine=None, fin_rapor=None):
                 color=C_GREEN if liq["net_isletme_ser"]>=0 else C_RED)
         with c4:
             ccc = liq["nakit_donusum_gun"]
-            kpi("Nakit Dönüşüm", f'{ccc} Gün',
-                liq["ccc_durum"],
-                color=durum_renk(liq["ccc_durum"]),
+            kpi("Nakit Dönüşüm", f'{ccc} Gün', delta=liq["ccc_durum"], color=durum_renk(liq["ccc_durum"]),
                 positive=bool(ccc<=30))
 
         # Likidite radar
@@ -532,12 +520,9 @@ def show_debt_tab(fin_rapor=None):
     with c2: kpi("Aylık Taksit",   fmt(port["aylik_taksit"]),
                  f'Yıllık: {fmt(port["aylik_taksit"]*12)}',
                  color=C_YELLOW, positive=False)
-    with c3: kpi("Ağ. Faiz Oranı", f'%{port["agirlikli_faiz"]}',
-                 f'{port["borc_sayisi"]} borç kalemi',
-                 color=C_RED if port["agirlikli_faiz"]>40 else C_YELLOW,
+    with c3: kpi("Ağ. Faiz Oranı", f'%{port["agirlikli_faiz"]}', delta=f'{port["borc_sayisi"]} borç kalemi', color=C_RED if port["agirlikli_faiz"]>40 else C_YELLOW,
                  positive=bool(port["agirlikli_faiz"]<=30))
-    with c4: kpi("Borç Skoru",     f'{skor["skor"]}/100',
-                 skor["kategori"], color=sk_renk,
+    with c4: kpi("Borç Skoru", f'{skor["skor"]}/100', delta=skor["kategori"], color=sk_renk,
                  positive=bool(skor["skor"]>=50))
 
     st.markdown(
@@ -680,9 +665,7 @@ def show_debt_tab(fin_rapor=None):
                 f'margin-top:8px;">%{kap["kullanim_orani"]}</div>'
                 f'</div>', unsafe_allow_html=True)
             kpi("Mevcut Borç",    fmt(kap["mevcut_borc"]), positive=False)
-            kpi("Ek Borç Kapasitesi", fmt(kap["maks_ek_borc"]),
-                "DSCR≥1.25 koşulunda",
-                color=C_GREEN if kap["maks_ek_borc"]>0 else C_RED,
+            kpi("Ek Borç Kapasitesi", fmt(kap["maks_ek_borc"]), delta="DSCR≥1.25 koşulunda", color=C_GREEN if kap["maks_ek_borc"]>0 else C_RED,
                 positive=bool(kap["maks_ek_borc"]>0))
             st.markdown(
                 f'<div style="background:#F0FDF4;border-left:3px solid #059669;'

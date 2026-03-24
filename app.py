@@ -111,6 +111,23 @@ st.set_page_config(
     initial_sidebar_state="expanded",
 )
 
+# Streamlit'e açık temayı zorla
+import streamlit.components.v1 as _components
+_FORCE_LIGHT = """
+<script>
+(function() {
+  var root = window.parent.document.querySelector(':root');
+  if (root) {
+    root.setAttribute('data-theme', 'light');
+    root.style.colorScheme = 'light';
+  }
+  var app = window.parent.document.querySelector('.stApp');
+  if (app) app.style.backgroundColor = '#F1F5F9';
+})();
+</script>
+"""
+_components.html(_FORCE_LIGHT, height=0, scrolling=False)
+
 # ─────────────────────────────────────────────
 # SECRETS
 # ─────────────────────────────────────────────
@@ -598,7 +615,7 @@ def score_color(k):
         "Kritik":    C_RED,
     }.get(k, "#7a90b5")
 
-def kpi(label, value, color="#0F172A", delta="", positive=True):
+def kpi(label, value, delta="", color="#0F172A", positive=True):
     try:
         _p = bool(positive)
     except Exception:
@@ -1013,8 +1030,7 @@ with tab_gelir:
     c1, c2, c3 = st.columns(3)
     with c1: kpi("Toplam Gelir",   fmt(g["toplam_gelir"]))
     with c2: kpi("Aylık Ortalama", fmt(g["ortalama_aylik_gelir"]))
-    with c3: kpi("Ort. Büyüme",    f'%{g["ortalama_buyume_orani"]}',
-                 positive=g["ortalama_buyume_orani"] >= 0)
+    with c3: kpi("Ort. Büyüme", delta=f'%{g["ortalama_buyume_orani"]}', positive=g["ortalama_buyume_orani"] >= 0)
     col1, col2 = st.columns(2)
     with col1:
         mr  = engine.revenue.monthly_revenue()
@@ -1118,9 +1134,8 @@ with tab_tahmin:
             with col2:
                 c1, c2, c3 = st.columns(3)
                 with c1: kpi("Toplam Tahmin", fmt(sonuc["toplam_tahmin"]))
-                with c2: kpi("Aylık Ort.",    fmt(sonuc["ortalama_tahmin"]))
-                with c3: kpi("Büyüme Bkl.",   f'%{sonuc["buyume_beklentisi"]}',
-                             positive=sonuc["buyume_beklentisi"] >= 0)
+                with c2: kpi("Aylık Ort.", fmt(sonuc["ortalama_tahmin"]))
+                with c3: kpi("Büyüme Bkl.", delta=f'%{sonuc["buyume_beklentisi"]}', positive=sonuc["buyume_beklentisi"] >= 0)
             t_df = sonuc["tahmin_tablosu"]
             mr   = engine.revenue.monthly_revenue()
             fig  = go.Figure()

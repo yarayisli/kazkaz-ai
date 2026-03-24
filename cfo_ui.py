@@ -61,7 +61,7 @@ def sec(text, small=False):
         unsafe_allow_html=True
     )
 
-def kpi(label, value, color="#0F172A", delta="", positive=True):
+def kpi(label, value, delta="", color="#0F172A", positive=True):
     try:
         _p = bool(positive)
     except Exception:

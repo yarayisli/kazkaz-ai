@@ -33,7 +33,7 @@ def fmt(v):
     if abs(v) >= 1_000:     return f"{v/1_000:.0f}K ₺"
     return f"{v:,.0f} ₺"
 
-def kpi(label, value, color="#0F172A", delta="", positive=True):
+def kpi(label, value, delta="", color="#0F172A", positive=True):
     try:
         _p = bool(positive)
     except Exception:
@@ -223,18 +223,14 @@ def show_sector_tab(df, rapor, sirket_adi="Şirketim", gemini=None):
         # Genel skor
         c1,c2,c3,c4 = st.columns(4)
         with c1:
-            kpi("Benchmark Skoru", f'{bm["genel_skor"]}/100',
-                bm["kategori"], color=renk, positive=bool(bm["genel_skor"]>=50))
+            kpi("Benchmark Skoru", f'{bm["genel_skor"]}/100', delta=bm["kategori"], color=renk, positive=bool(bm["genel_skor"]>=50))
         with c2:
-            kpi("Sektör", tespit["sektor"], tespit["emoji"],
-                color="#3B82F6", positive=True)
+            kpi("Sektör", tespit["sektor"], delta=tespit["emoji"], color="#3B82F6", positive=True)
         with c3:
-            kpi("Güçlü Yönler", str(len(bm["guclu_yonler"])),
-                "Sektör ortalaması üstü", color="#059669",
+            kpi("Güçlü Yönler", str(len(bm["guclu_yonler"])), delta="Sektör ortalaması üstü", color="#059669",
                 positive=bool(len(bm["guclu_yonler"]))>0)
         with c4:
-            kpi("Gelişim Alanı", str(len(bm["zayif_yonler"])),
-                "Sektör ortalaması altı", color="#D97706",
+            kpi("Gelişim Alanı", str(len(bm["zayif_yonler"])), delta="Sektör ortalaması altı", color="#D97706",
                 positive=bool(len(bm["zayif_yonler"]))==0)
 
         st.markdown("---")
@@ -397,16 +393,12 @@ def show_sector_tab(df, rapor, sirket_adi="Şirketim", gemini=None):
 
         c1, c2, c3 = st.columns(3)
         with c1:
-            kpi("Sektör Rakip Sayısı", str(rank["toplam_rakip"]),
-                f'{tespit["sektor"]} sektörü', color="#3B82F6")
+            kpi("Sektör Rakip Sayısı", str(rank["toplam_rakip"]), delta=f'{tespit["sektor"]} sektörü', color="#3B82F6")
         with c2:
-            kpi("Kar Marjı Sıralaması",
-                f'{rank["kar_marji_sira"]}. / {rank["toplam_rakip"]+1}',
-                "Rakipler arasında", color=y_renk,
+            kpi("Kar Marjı Sıralaması", f'{rank["kar_marji_sira"]}. / {rank["toplam_rakip"]+1}', delta="Rakipler arasında", color=y_renk,
                 positive=bool(rank["kar_marji_sira"] <= rank["toplam_rakip"]//2 + 1))
         with c3:
-            kpi("Yüzdelik Dilim", f'%{int(yuzdelik)}',
-                "Üst %: daha iyi", color=y_renk,
+            kpi("Yüzdelik Dilim", f'%{int(yuzdelik)}', delta="Üst %: daha iyi", color=y_renk,
                 positive=bool(yuzdelik>=50))
 
         st.markdown("---")

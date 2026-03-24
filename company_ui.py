@@ -41,7 +41,7 @@ def fmt(v):
     if abs(v) >= 1_000:     return f"{v/1_000:.0f}K ₺"
     return f"{v:,.0f} ₺"
 
-def kpi(label, value, color="#0F172A", delta="", positive=True):
+def kpi(label, value, delta="", color="#0F172A", positive=True):
     try:
         _p = bool(positive)
     except Exception:
