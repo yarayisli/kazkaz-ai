@@ -524,4 +524,3 @@ def show_budget_tab(df: pd.DataFrame, fin_rapor: dict = None):
                 "butce_karsilastirma.csv", "text/csv",
                 use_container_width=True,
             )
-
