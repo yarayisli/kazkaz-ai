@@ -21,23 +21,23 @@ from budget_engine import BudgetEngine, BudgetPlan, BudgetPeriod
 
 PT = dict(
     paper_bgcolor="rgba(0,0,0,0)", plot_bgcolor="rgba(0,0,0,0)",
-    font=dict(color="#8899bb", family="DM Sans"),
-    xaxis=dict(gridcolor="#1e2d4a", showgrid=True, zeroline=False),
-    yaxis=dict(gridcolor="#1e2d4a", showgrid=True, zeroline=False),
+    font=dict(color="#94A3B8", family="Inter"),
+    xaxis=dict(gridcolor="#E2E8F0", showgrid=True, zeroline=False),
+    yaxis=dict(gridcolor="#E2E8F0", showgrid=True, zeroline=False),
     margin=dict(l=10, r=10, t=30, b=10),
 )
-C_GREEN  = "#10d994"
-C_RED    = "#ff4757"
-C_BLUE   = "#0066ff"
-C_YELLOW = "#fbbf24"
-C_CYAN   = "#00d4ff"
+C_GREEN  = "#059669"
+C_RED    = "#DC2626"
+C_BLUE   = "#1D4ED8"
+C_YELLOW = "#D97706"
+C_CYAN   = "#0EA5E9"
 
 def fmt(v):
     if abs(v) >= 1_000_000: return f"{v/1_000_000:.1f}M ₺"
     if abs(v) >= 1_000:     return f"{v/1_000:.0f}K ₺"
     return f"{v:,.0f} ₺"
 
-def kpi(label, value, color="#e8eaf0", delta="", positive=True):
+def kpi(label, value, color="#0F172A", delta="", positive=True):
     try:
         _pos = bool(positive)
     except Exception:
@@ -46,21 +46,21 @@ def kpi(label, value, color="#e8eaf0", delta="", positive=True):
     di = "▲" if _pos else "▼"
     dh = f'<div style="font-size:.75rem;color:{dc};margin-top:3px;">{di} {delta}</div>' if delta else ""
     st.markdown(
-        f'<div style="background:linear-gradient(135deg,#111827,#1a2540);'
-        f'border:1px solid #1e3a5f;border-radius:14px;padding:16px 18px;'
+        f'<div style="background:var(--bg-surface);'
+        f'border:1px solid #E2E8F0;border-radius:14px;padding:16px 18px;'
         f'position:relative;overflow:hidden;margin-bottom:8px;">'
-        f'<div style="position:absolute;top:0;left:0;right:0;height:3px;'
-        f'background:linear-gradient(90deg,#00d4ff,#0066ff);"></div>'
-        f'<div style="font-size:.7rem;color:#4a6fa5;letter-spacing:1.5px;'
+        f'<div style="position:absolute;left:0;top:0;bottom:0;width:3px;border-radius:4px 0 0 4px;'
+        f'background:linear-gradient(90deg,#0EA5E9,#1D4ED8);"></div>'
+        f'<div style="font-size:.7rem;color:#64748B;letter-spacing:1.5px;'
         f'text-transform:uppercase;margin-bottom:5px;">{label}</div>'
-        f'<div style="font-family:Syne,sans-serif;font-size:1.5rem;'
+        f'<div style="font-family:Inter,-apple-system,sans-serif;font-size:1.5rem;'
         f'font-weight:700;color:{color};">{value}</div>{dh}</div>',
         unsafe_allow_html=True)
 
 def sec(text):
     st.markdown(
-        f'<div style="font-family:Syne,sans-serif;font-size:1rem;font-weight:700;'
-        f'color:#e8eaf0;padding:6px 0 10px;border-bottom:1px solid #1e2d4a;'
+        f'<div style="font-family:Inter,-apple-system,sans-serif;font-size:1rem;font-weight:700;'
+        f'color:#0F172A;padding:6px 0 10px;border-bottom:1px solid #E2E8F0;'
         f'margin:16px 0 14px;">{text}</div>', unsafe_allow_html=True)
 
 
@@ -94,9 +94,9 @@ def show_budget_form(gercek_df: pd.DataFrame) -> BudgetPlan:
 
     if "Otomatik" in giris_yontemi:
         st.markdown(
-            '<div style="background:#0a1a10;border:1px solid #10d99422;'
+            '<div style="background:#F0FDF4;border:1px solid #05966922;'
             'border-radius:10px;padding:12px 16px;margin-bottom:12px;">'
-            '<div style="color:#10d994;font-size:.82rem;">'
+            '<div style="color:#059669;font-size:.82rem;">'
             '✅ Ortalama aylık gerçekleşenin %10 üzeri bütçe olarak ayarlandı. '
             'İstersen aşağıdan düzenleyebilirsin.</div></div>',
             unsafe_allow_html=True)
@@ -104,7 +104,7 @@ def show_budget_form(gercek_df: pd.DataFrame) -> BudgetPlan:
 
     elif "Manuel" in giris_yontemi:
         st.markdown(
-            '<div style="color:#4a6fa5;font-size:.8rem;margin-bottom:12px;">'
+            '<div style="color:#64748B;font-size:.8rem;margin-bottom:12px;">'
             'Her dönem için gelir ve gider bütçenizi girin.</div>',
             unsafe_allow_html=True)
 
@@ -114,7 +114,7 @@ def show_budget_form(gercek_df: pd.DataFrame) -> BudgetPlan:
 
         for j, lbl in enumerate(col_labels):
             cols[j].markdown(
-                f'<div style="color:#4a6fa5;font-size:.75rem;'
+                f'<div style="color:#64748B;font-size:.75rem;'
                 f'text-transform:uppercase;letter-spacing:1px;'
                 f'margin-bottom:4px;">{lbl}</div>',
                 unsafe_allow_html=True)
@@ -188,11 +188,11 @@ def show_budget_tab(df: pd.DataFrame, fin_rapor: dict = None):
     """Bütçe vs Gerçekleşen ana sekmesi."""
 
     st.markdown(
-        '<div style="font-family:Syne,sans-serif;font-size:1.5rem;font-weight:800;'
-        'background:linear-gradient(135deg,#00d4ff,#0066ff);'
+        '<div style="font-family:Inter,-apple-system,sans-serif;font-size:1.5rem;font-weight:800;'
+        'background:linear-gradient(135deg,#0EA5E9,#1D4ED8);'
         '-webkit-background-clip:text;-webkit-text-fill-color:transparent;">'
         '🎯 Bütçe vs Gerçekleşen</div>'
-        '<div style="color:#4a6fa5;font-size:.78rem;letter-spacing:2px;'
+        '<div style="color:#64748B;font-size:.78rem;letter-spacing:2px;'
         'text-transform:uppercase;margin-bottom:18px;">'
         'Sapma Analizi · Kategori Takibi · Yıl Sonu Tahmini</div>',
         unsafe_allow_html=True)
@@ -271,7 +271,7 @@ def show_budget_tab(df: pd.DataFrame, fin_rapor: dict = None):
         if not kars.empty:
             fig = go.Figure()
             fig.add_bar(x=kars["Dönem"], y=kars["Bütçe Gelir"],
-                        name="Bütçe Gelir", marker_color="#1e3a5f", opacity=.9)
+                        name="Bütçe Gelir", marker_color="#E2E8F0", opacity=.9)
             fig.add_bar(x=kars["Dönem"], y=kars["Gercek_Gelir"],
                         name="Gerçekleşen Gelir", marker_color=C_BLUE, opacity=.9)
             fig.add_scatter(
@@ -286,11 +286,11 @@ def show_budget_tab(df: pd.DataFrame, fin_rapor: dict = None):
                 ),
             )
             fig.add_hline(y=0, line_dash="dash",
-                          line_color="#4a6fa5", opacity=.4, yref="y2")
+                          line_color="#64748B", opacity=.4, yref="y2")
             fig.update_layout(
                 barmode="group", height=320,
                 yaxis2=dict(overlaying="y", side="right",
-                            gridcolor="#1e2d4a"),
+                            gridcolor="#E2E8F0"),
                 legend=dict(orientation="h", y=1.1, x=0),
                 **PT,
             )
@@ -303,7 +303,7 @@ def show_budget_tab(df: pd.DataFrame, fin_rapor: dict = None):
             fig2.add_scatter(
                 x=kars["Dönem"], y=kars["Bütçe Net"],
                 name="Bütçe Net", mode="lines+markers",
-                line=dict(color="#1e3a5f", width=2, dash="dash"),
+                line=dict(color="#E2E8F0", width=2, dash="dash"),
                 marker=dict(size=6),
             )
             fig2.add_scatter(
@@ -337,7 +337,7 @@ def show_budget_tab(df: pd.DataFrame, fin_rapor: dict = None):
                 textposition="outside",
             ))
             fig.add_hline(y=0, line_dash="dash",
-                          line_color="#4a6fa5", opacity=.6)
+                          line_color="#64748B", opacity=.6)
             fig.update_layout(
                 title="Aylık Gelir Sapması (Gerçekleşen - Bütçe)",
                 height=280, **PT,
@@ -366,7 +366,7 @@ def show_budget_tab(df: pd.DataFrame, fin_rapor: dict = None):
             fig2.update_layout(
                 height=230,
                 yaxis=dict(ticksuffix="%",
-                           gridcolor="#1e2d4a", showgrid=True, zeroline=False),
+                           gridcolor="#E2E8F0", showgrid=True, zeroline=False),
                 **{k:v for k,v in PT.items() if k!="yaxis"},
             )
             st.plotly_chart(fig2, use_container_width=True)
@@ -387,42 +387,42 @@ def show_budget_tab(df: pd.DataFrame, fin_rapor: dict = None):
             c1,c2,c3 = st.columns(3)
             with c1:
                 st.markdown(
-                    f'<div style="background:linear-gradient(135deg,#111827,#1a2540);'
-                    f'border:1px solid #1e3a5f;border-radius:14px;padding:16px 18px;'
+                    f'<div style="background:var(--bg-surface);'
+                    f'border:1px solid #E2E8F0;border-radius:14px;padding:16px 18px;'
                     f'position:relative;overflow:hidden;margin-bottom:8px;">'
-                    f'<div style="position:absolute;top:0;left:0;right:0;height:3px;'
-                    f'background:linear-gradient(90deg,#00d4ff,#0066ff);"></div>'
-                    f'<div style="font-size:.7rem;color:#4a6fa5;letter-spacing:1.5px;'
+                    f'<div style="position:absolute;left:0;top:0;bottom:0;width:3px;border-radius:4px 0 0 4px;'
+                    f'background:linear-gradient(90deg,#0EA5E9,#1D4ED8);"></div>'
+                    f'<div style="font-size:.7rem;color:#64748B;letter-spacing:1.5px;'
                     f'text-transform:uppercase;margin-bottom:5px;">YIL SONU GELİR TAHMİNİ</div>'
-                    f'<div style="font-family:Syne,sans-serif;font-size:1.5rem;'
-                    f'font-weight:700;color:#e8eaf0;">{fmt(yilsonu_gelir)}</div>'
-                    f'<div style="font-size:.75rem;color:#4a6fa5;margin-top:3px;">'
+                    f'<div style="font-family:Inter,-apple-system,sans-serif;font-size:1.5rem;'
+                    f'font-weight:700;color:#0F172A;">{fmt(yilsonu_gelir)}</div>'
+                    f'<div style="font-size:.75rem;color:#64748B;margin-top:3px;">'
                     f'Yıllık Bütçe: {fmt(yillik_butce)}</div></div>',
                     unsafe_allow_html=True)
             with c2:
                 st.markdown(
-                    f'<div style="background:linear-gradient(135deg,#111827,#1a2540);'
-                    f'border:1px solid #1e3a5f;border-radius:14px;padding:16px 18px;'
+                    f'<div style="background:var(--bg-surface);'
+                    f'border:1px solid #E2E8F0;border-radius:14px;padding:16px 18px;'
                     f'position:relative;overflow:hidden;margin-bottom:8px;">'
-                    f'<div style="position:absolute;top:0;left:0;right:0;height:3px;'
-                    f'background:linear-gradient(90deg,#00d4ff,#0066ff);"></div>'
-                    f'<div style="font-size:.7rem;color:#4a6fa5;letter-spacing:1.5px;'
+                    f'<div style="position:absolute;left:0;top:0;bottom:0;width:3px;border-radius:4px 0 0 4px;'
+                    f'background:linear-gradient(90deg,#0EA5E9,#1D4ED8);"></div>'
+                    f'<div style="font-size:.7rem;color:#64748B;letter-spacing:1.5px;'
                     f'text-transform:uppercase;margin-bottom:5px;">BÜTÇEYE GÖRE FARK</div>'
-                    f'<div style="font-family:Syne,sans-serif;font-size:1.5rem;'
+                    f'<div style="font-family:Inter,-apple-system,sans-serif;font-size:1.5rem;'
                     f'font-weight:700;color:{fark_renk};">{fmt(abs(fark_raw))}</div>'
                     f'<div style="font-size:.75rem;color:{fark_renk};margin-top:3px;">'
                     f'{fark_etiket}</div></div>',
                     unsafe_allow_html=True)
             with c3:
                 st.markdown(
-                    f'<div style="background:linear-gradient(135deg,#111827,#1a2540);'
-                    f'border:1px solid #1e3a5f;border-radius:14px;padding:16px 18px;'
+                    f'<div style="background:var(--bg-surface);'
+                    f'border:1px solid #E2E8F0;border-radius:14px;padding:16px 18px;'
                     f'position:relative;overflow:hidden;margin-bottom:8px;">'
-                    f'<div style="position:absolute;top:0;left:0;right:0;height:3px;'
-                    f'background:linear-gradient(90deg,#00d4ff,#0066ff);"></div>'
-                    f'<div style="font-size:.7rem;color:#4a6fa5;letter-spacing:1.5px;'
+                    f'<div style="position:absolute;left:0;top:0;bottom:0;width:3px;border-radius:4px 0 0 4px;'
+                    f'background:linear-gradient(90deg,#0EA5E9,#1D4ED8);"></div>'
+                    f'<div style="font-size:.7rem;color:#64748B;letter-spacing:1.5px;'
                     f'text-transform:uppercase;margin-bottom:5px;">YILLIK BAŞARI TAHMİNİ</div>'
-                    f'<div style="font-family:Syne,sans-serif;font-size:1.5rem;'
+                    f'<div style="font-family:Inter,-apple-system,sans-serif;font-size:1.5rem;'
                     f'font-weight:700;color:{yp_renk};">%{yp_raw:.1f}</div></div>',
                     unsafe_allow_html=True)
 
@@ -460,16 +460,16 @@ def show_budget_tab(df: pd.DataFrame, fin_rapor: dict = None):
 
             # Özet kutu
             st.markdown(
-                f'<div style="background:#0d1520;border:1px solid #1e3a5f;'
+                f'<div style="background:#F8FAFC;border:1px solid #E2E8F0;'
                 f'border-radius:12px;padding:16px 20px;margin-top:10px;">'
-                f'<div style="color:#60a5fa;font-weight:700;margin-bottom:8px;">'
+                f'<div style="color:#1D4ED8;font-weight:700;margin-bottom:8px;">'
                 f'📋 Projeksiyon Özeti</div>'
-                f'<div style="color:#8aabcc;font-size:.86rem;line-height:1.8;">'
-                f'✅ Tamamlanan: <b style="color:#e8eaf0;">{tamamlanan_ay} ay</b> &nbsp;|&nbsp; '
-                f'⏳ Kalan: <b style="color:#e8eaf0;">{kalan_ay} ay</b><br>'
+                f'<div style="color:#4B5563;font-size:.86rem;line-height:1.8;">'
+                f'✅ Tamamlanan: <b style="color:#0F172A;">{tamamlanan_ay} ay</b> &nbsp;|&nbsp; '
+                f'⏳ Kalan: <b style="color:#0F172A;">{kalan_ay} ay</b><br>'
                 f'💰 Tahmini Yıl Sonu Gelir: <b style="color:{C_CYAN};">'
                 f'{fmt(proj.get("yilsonu_gelir",0))}</b><br>'
-                f'🎯 Yıllık Bütçe: <b style="color:#e8eaf0;">'
+                f'🎯 Yıllık Bütçe: <b style="color:#0F172A;">'
                 f'{fmt(proj.get("yillik_butce",0))}</b><br>'
                 f'{"✅" if proj.get("butce_fark",0)>=0 else "❌"} '
                 f'Bütçe {"üstü" if proj.get("butce_fark",0)>=0 else "altı"}: '
@@ -501,8 +501,8 @@ def show_budget_tab(df: pd.DataFrame, fin_rapor: dict = None):
 
             def color_sapma(val):
                 if isinstance(val, (int, float)):
-                    if val > 0:  return "color:#10d994"
-                    if val < 0:  return "color:#ff4757"
+                    if val > 0:  return "color:#059669"
+                    if val < 0:  return "color:#DC2626"
                 return ""
 
             st.dataframe(
