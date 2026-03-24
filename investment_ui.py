@@ -174,11 +174,11 @@ def _single_investment_ui():
     with c1: kpi_card("ROI",   f'%{ozet["roi"]}',
                       f'Yıllık: %{ozet["yillik_roi"]}',
                       color=C_GREEN if ozet["roi"]>0 else C_RED,
-                      positive=ozet["roi"]>0)
+                      positive=bool(ozet["roi"]>0))
     with c2:
         npv_col = C_GREEN if ozet["npv"]>0 else C_RED
         kpi_card("NPV", fmt(ozet["npv"]), "Net Bugünkü Değer",
-                 color=npv_col, positive=ozet["npv"]>0)
+                 color=npv_col, positive=bool(ozet["npv"]>0))
     with c3:
         irr_val = ozet.get("irr")
         irr_str = f'%{irr_val}' if irr_val else "Hesaplanamadı"
@@ -191,26 +191,26 @@ def _single_investment_ui():
         kpi_card("Geri Ödeme", pb_str,
                  "✅ Geri Ödendi" if ozet["geri_odendi"] else "❌ Süre Dışı",
                  color=C_GREEN if ozet["geri_odendi"] else C_RED,
-                 positive=ozet["geri_odendi"])
+                 positive=bool(ozet["geri_odendi"]))
 
     # KPI satırı 2
     c1,c2,c3,c4 = st.columns(4)
     with c1: kpi_card("PI", str(ozet["pi"]),
                       "PI > 1 → Kabul Edilebilir",
                       color=C_GREEN if ozet["pi"]>1 else C_RED,
-                      positive=ozet["pi"]>1)
+                      positive=bool(ozet["pi"]>1))
     with c2: kpi_card("NPV (Reel)", fmt(ozet["npv_reel"]),
                       "Enflasyon Düzeltmeli",
                       color=C_GREEN if ozet["npv_reel"]>0 else C_RED,
-                      positive=ozet["npv_reel"]>0)
+                      positive=bool(ozet["npv_reel"]>0))
     with c3: kpi_card("NPV (Vergi Sonrası)", fmt(ozet["npv_vergi_sonrasi"]),
                       f'Vergi: %{ozet.get("vergi_orani",0.22)*100:.0f}',
                       color=C_GREEN if ozet["npv_vergi_sonrasi"]>0 else C_RED,
-                      positive=ozet["npv_vergi_sonrasi"]>0)
+                      positive=bool(ozet["npv_vergi_sonrasi"]>0))
     with c4:
         renk = score_color(skor["kategori"])
         kpi_card("Yatırım Skoru", f'{skor["skor"]}/100',
-                 skor["kategori"], color=renk, positive=skor["skor"]>=50)
+                 skor["kategori"], color=renk, positive=bool(skor["skor"]>=50))
 
     # Tavsiye kutusu
     st.markdown(f"""
@@ -443,11 +443,11 @@ def _monte_carlo_ui():
     # KPI satırı
     c1,c2,c3,c4 = st.columns(4)
     with c1: kpi_card("Ort. NPV",   fmt(mc["npv_ortalama"]),
-                      positive=mc["npv_ortalama"]>0)
+                      positive=bool(mc["npv_ortalama"]>0))
     with c2: kpi_card("Medyan NPV", fmt(mc["npv_medyan"]),
-                      positive=mc["npv_medyan"]>0)
+                      positive=bool(mc["npv_medyan"]>0))
     with c3: kpi_card("NPV P10",    fmt(mc["npv_p10"]),   "Kötümser Senaryo",
-                      positive=mc["npv_p10"]>0)
+                      positive=bool(mc["npv_p10"]>0))
     with c4: kpi_card("NPV P90",    fmt(mc["npv_p90"]),   "İyimser Senaryo",
                       positive=True)
 
