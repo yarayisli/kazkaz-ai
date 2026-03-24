@@ -40,12 +40,15 @@ def fmt(v):
 
 def kpi(label, value, color="#e8eaf0", delta="", positive=True):
     try:
-        _pos = bool(positive) if not isinstance(positive, (bool, int)) else bool(positive)
+        _p = positive
+        if not isinstance(_p, bool):
+            _p = bool(int(float(str(_p))) if str(_p).replace('.','').replace('-','').isdigit() else _p)
     except Exception:
-        _pos = True
-    dc = C_GREEN if _pos else C_RED
-    di = "▲" if _pos else "▼"
-    dh = f'<div style="font-size:.75rem;color:{dc};margin-top:3px;">{di} {delta}</div>' if delta else ""
+        _p = True
+    dc = C_GREEN if _p else C_RED
+    di = "▲" if _p else "▼"
+    dh = (f'<div style="font-size:.75rem;color:{dc};margin-top:3px;">{di} {delta}</div>'
+          if delta else "")
     st.markdown(
         f'<div style="background:linear-gradient(135deg,#111827,#1a2540);'
         f'border:1px solid #1e3a5f;border-radius:14px;padding:16px 18px;'
@@ -410,16 +413,11 @@ def show_customer_tab(df: pd.DataFrame):
         _rgelir = float(risk_ozet.get("risk_gelir") or 0)
         c1,c2,c3 = st.columns(3)
         with c1:
-            kpi("Yüksek Riskli", str(_yuksek),
-                "Acil aksiyon", color=C_RED,
-                positive=(_yuksek == 0))
+            kpi("Yüksek Riskli", str(_yuksek), delta="Acil aksiyon", color=C_RED, positive=bool(_yuksek == 0))
         with c2:
-            kpi("Orta Riskli", str(_orta),
-                "Takip et", color=C_YELLOW, positive=False)
+            kpi("Orta Riskli", str(_orta), delta="Takip et", color=C_YELLOW, positive=False)
         with c3:
-            kpi("Risk Altındaki Gelir", fmt(_rgelir),
-                "Yüksek risk segmenti", color=C_RED,
-                positive=(_rgelir == 0))
+            kpi("Risk Altındaki Gelir", fmt(_rgelir), delta="Yüksek risk segmenti", color=C_RED, positive=bool(_rgelir == 0))
 
         churn_df = rapor["churn_risk"]
         if churn_df.empty:
