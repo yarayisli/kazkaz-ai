@@ -1,10 +1,10 @@
 """
-KazKaz AI - Şirket Profili & Sektör Analizi Streamlit Modülü
-=============================================================
+KazKaz AI - Müşteri & Ürün Analizi Streamlit Modülü
+====================================================
 app.py entegrasyonu:
-    from company_ui import show_company_tab, get_profile_from_session
-    with tab_profil:
-        show_company_tab(fin_rapor)
+    from customer_ui import show_customer_tab
+    with tab_musteri:
+        show_customer_tab(df)
 """
 
 import streamlit as st
@@ -12,12 +12,8 @@ import pandas as pd
 import numpy as np
 import plotly.graph_objects as go
 import plotly.express as px
-from datetime import datetime
 
-from company_profile import (
-    CompanyProfile, CompanyProfileEngine,
-    TURKEY_MARKET_DATA, CompanySize
-)
+from customer_engine import CustomerEngine
 
 # ─────────────────────────────────────────────
 # TEMA
@@ -35,6 +31,7 @@ C_RED    = "#DC2626"
 C_BLUE   = "#1D4ED8"
 C_YELLOW = "#D97706"
 C_CYAN   = "#0EA5E9"
+C_PURPLE = "#4F46E5"
 
 def fmt(v):
     if abs(v) >= 1_000_000: return f"{v/1_000_000:.1f}M ₺"
@@ -42,9 +39,16 @@ def fmt(v):
     return f"{v:,.0f} ₺"
 
 def kpi(label, value, color="#0F172A", delta="", positive=True):
-    dc = C_GREEN if positive else C_RED
-    di = "▲" if positive else "▼"
-    dh = f'<div style="font-size:.75rem;color:{dc};margin-top:3px;">{di} {delta}</div>' if delta else ""
+    try:
+        _p = positive
+        if not isinstance(_p, bool):
+            _p = bool(int(float(str(_p))) if str(_p).replace('.','').replace('-','').isdigit() else _p)
+    except Exception:
+        _p = True
+    dc = C_GREEN if _p else C_RED
+    di = "▲" if _p else "▼"
+    dh = (f'<div style="font-size:.75rem;color:{dc};margin-top:3px;">{di} {delta}</div>'
+          if delta else "")
     st.markdown(
         f'<div style="background:var(--bg-surface);'
         f'border:1px solid #E2E8F0;border-radius:14px;padding:16px 18px;'
@@ -63,630 +67,446 @@ def sec(text):
         f'color:#0F172A;padding:6px 0 10px;border-bottom:1px solid #E2E8F0;'
         f'margin:16px 0 14px;">{text}</div>', unsafe_allow_html=True)
 
-def durum_renk(d):
-    return {"Mükemmel":C_GREEN,"İyi":C_BLUE,"Orta":C_YELLOW,"Zayıf":C_RED}.get(d,"#94A3B8")
-
-
-# ─────────────────────────────────────────────
-# PROFİL FORM
-# ─────────────────────────────────────────────
-
-def show_profile_form() -> CompanyProfile:
-    """Şirket profili — 4 kategorili detaylı form."""
-    sec("🏢 Şirket Profili Bilgileri")
-
-    st.markdown(
-        '<div style="color:#64748B;font-size:.82rem;margin-bottom:16px;">'
-        'Ne kadar çok bilgi girerseniz analizlerimiz o kadar isabetli olur. '
-        'Tüm alanlar opsiyonel — bildiğiniz kadarını doldurun.</div>',
-        unsafe_allow_html=True)
-
-    f1, f2, f3, f4 = st.tabs([
-        "🏢 Temel Bilgiler",
-        "📊 Finansal Hedefler",
-        "👥 Müşteri & Pazar",
-        "⚙️ Operasyonel",
-    ])
-
-    # ── TAB 1: TEMEL ──
-    with f1:
-        c1, c2, c3 = st.columns(3)
-        with c1:
-            sirket_adi = st.text_input(
-                "Şirket Adı *",
-                value=st.session_state.get("sirket_adi", "Şirketim"),
-                key="cp_adi")
-            sektor = st.selectbox(
-                "Ana Sektör *",
-                options=list(TURKEY_MARKET_DATA.keys()),
-                key="cp_sektor")
-            alt_sektor = st.text_input(
-                "Alt Sektör",
-                placeholder="Örn: SaaS, B2B, Gıda Üretimi...",
-                key="cp_alt")
-        with c2:
-            kuruluş_yili = st.number_input(
-                "Kuruluş Yılı", min_value=1900,
-                max_value=datetime.now().year,
-                value=2020, key="cp_yil")
-            calissan = st.number_input(
-                "Çalışan Sayısı", min_value=1,
-                max_value=100_000, value=15, key="cp_calissan")
-            sehir = st.selectbox(
-                "Merkez Şehir",
-                ["İstanbul","Ankara","İzmir","Bursa","Antalya",
-                 "Konya","Adana","Gaziantep","Diğer"],
-                key="cp_sehir")
-        with c3:
-            sermaye = st.number_input(
-                "Ödenmiş Sermaye (₺)", min_value=0,
-                value=500_000, step=50_000, key="cp_sermaye")
-            hedef_pazar = st.selectbox(
-                "Hedef Pazar",
-                ["Yurt İçi","Yurt Dışı","Her İkisi"],
-                key="cp_pazar")
-            ihracat = st.checkbox("İhracat Yapıyor", key="cp_ihracat")
-            ihracat_orani = st.slider(
-                "İhracat Oranı (%)", 0, 100, 0,
-                key="cp_ihracat_oran",
-                disabled=not ihracat)
-            borsada = st.checkbox("Borsada İşlem Görüyor", key="cp_borsa")
-        aciklama = st.text_area(
-            "Şirket Ne Yapıyor? (Özet)",
-            placeholder="Örn: B2B SaaS muhasebe yazılımı geliştiriyoruz. "
-                        "250 KOBİ müşterimiz var. Abonelik modeliyle çalışıyoruz.",
-            height=90, key="cp_aciklama")
-        rekabet_avantaji = st.text_area(
-            "Rekabet Avantajı / Fark Yaratan Özellik",
-            placeholder="Örn: Rakiplerimizden %40 daha hızlı kurulum, "
-                        "Türkçe destek, entegre muhasebe modülü...",
-            height=70, key="cp_rekabet")
-
-    # ── TAB 2: FİNANSAL HEDEFLER ──
-    with f2:
-        c1, c2 = st.columns(2)
-        with c1:
-            yillik_ciro_hedef = st.number_input(
-                "Bu Yıl Ciro Hedefiniz (₺)",
-                min_value=0, value=0, step=100_000,
-                key="cp_ciro_hedef",
-                help="Yıl sonunda ulaşmak istediğiniz ciro")
-            buyume_hedefi = st.slider(
-                "Yıllık Büyüme Hedefiniz (%)",
-                0, 200, 20, key="cp_buyume_hedef")
-            kar_marji_hedefi = st.slider(
-                "Hedef Kar Marjı (%)",
-                0, 60, 15, key="cp_km_hedef")
-        with c2:
-            ortalama_sepet = st.number_input(
-                "Ortalama Sipariş/İşlem Tutarı (₺)",
-                min_value=0, value=0, step=100,
-                key="cp_sepet",
-                help="Müşteri başına ortalama satış tutarı")
-            sabit_gider_orani = st.slider(
-                "Tahmini Sabit Gider Oranı (%)",
-                0, 100, 40, key="cp_sabit_gider",
-                help="Toplam giderlerin kaçı sabit (kira, maaş vb.)?")
-            personel_gider_orani = st.slider(
-                "Personel Gideri Oranı (%)",
-                0, 80, 30, key="cp_personel_gider",
-                help="Toplam giderlerin kaçı personel maliyeti?")
-        en_buyuk_gider = st.text_input(
-            "En Büyük Gider Kaleminiz",
-            placeholder="Örn: Personel, Kira, Hammadde, Pazarlama...",
-            key="cp_buyuk_gider")
-
-    # ── TAB 3: MÜŞTERİ & PAZAR ──
-    with f3:
-        c1, c2 = st.columns(2)
-        with c1:
-            musteri_sayisi = st.number_input(
-                "Aktif Müşteri Sayısı",
-                min_value=0, value=0, step=10,
-                key="cp_musteri")
-            aylik_yeni_musteri = st.number_input(
-                "Aylık Ortalama Yeni Müşteri",
-                min_value=0, value=0, key="cp_yeni_musteri")
-            musteri_kayip = st.slider(
-                "Aylık Müşteri Kaybı / Churn (%)",
-                0, 30, 0, key="cp_churn",
-                help="Her ay müşterilerin kaçı ayrılıyor?")
-        with c2:
-            urun_sayisi = st.number_input(
-                "Ürün / Hizmet Sayısı",
-                min_value=1, value=1, key="cp_urun")
-            ana_rakipler = st.text_input(
-                "Ana Rakipleriniz (virgülle ayırın)",
-                placeholder="Örn: Logo, Netsis, Mikro...",
-                key="cp_rakipler")
-        st.markdown(
-            '<div style="background:#F8FAFC;border:1px solid #E2E8F0;'
-            'border-radius:10px;padding:12px 16px;margin-top:10px;">'
-            '<div style="color:#1D4ED8;font-size:.8rem;font-weight:600;'
-            'margin-bottom:6px;">💡 Bu bilgiler ne işe yarar?</div>'
-            '<div style="color:#64748B;font-size:.8rem;line-height:1.6;">'
-            'Müşteri sayısı ve churn oranından LTV hesaplanır. '
-            'Yeni müşteri sayısından büyüme potansiyeli görülür. '
-            'Rakip bilgisiyle karşılaştırmalı analiz yapılır.</div></div>',
-            unsafe_allow_html=True)
-
-    # ── TAB 4: OPERASYONEL ──
-    with f4:
-        c1, c2 = st.columns(2)
-        with c1:
-            dijital_satis = st.slider(
-                "Dijital / Online Satış Oranı (%)",
-                0, 100, 0, key="cp_dijital",
-                help="Satışlarınızın kaçı online/dijital kanaldan?")
-            crm = st.checkbox(
-                "CRM Sistemi Kullanıyor", key="cp_crm",
-                help="Salesforce, HubSpot, Zoho vb.")
-            erp = st.checkbox(
-                "ERP Sistemi Kullanıyor", key="cp_erp",
-                help="SAP, Logo, Mikro, Netsis vb.")
-        with c2:
-            st.markdown(
-                '<div style="background:#F0FDF4;border:1px solid #05966922;'
-                'border-radius:10px;padding:12px 14px;">'
-                '<div style="color:#059669;font-size:.8rem;font-weight:600;'
-                'margin-bottom:8px;">🎯 Doldurunca neler açılır?</div>'
-                '<div style="color:#64748B;font-size:.78rem;line-height:1.7;">'
-                '✅ Dijital oran → E-ticaret KPI karşılaştırması<br>'
-                '✅ CRM → Müşteri yönetimi skoru<br>'
-                '✅ ERP → Operasyonel verimlilik puanı<br>'
-                '✅ Churn → Gelir riski hesabı<br>'
-                '✅ Rakipler → Özel karşılaştırma tablosu'
-                '</div></div>',
-                unsafe_allow_html=True)
-
-    st.session_state["sirket_adi"] = sirket_adi
-
-    return CompanyProfile(
-        sirket_adi           = sirket_adi,
-        sektor               = sektor,
-        alt_sektor           = alt_sektor,
-        kuruluş_yili         = int(kuruluş_yili),
-        calissan_sayisi      = int(calissan),
-        sehir                = sehir,
-        sermaye              = float(sermaye),
-        yillik_ciro_hedef    = float(yillik_ciro_hedef),
-        buyume_hedefi        = float(buyume_hedefi),
-        kar_marji_hedefi     = float(kar_marji_hedefi),
-        musteri_sayisi       = int(musteri_sayisi),
-        aylik_yeni_musteri   = int(aylik_yeni_musteri),
-        musteri_kayip_orani  = float(musteri_kayip),
-        ortalama_sepet       = float(ortalama_sepet),
-        urun_hizmet_sayisi   = int(urun_sayisi),
-        hedef_pazar          = hedef_pazar,
-        ana_rakipler         = ana_rakipler,
-        rekabet_avantaji     = rekabet_avantaji,
-        en_buyuk_gider       = en_buyuk_gider,
-        sabit_gider_orani    = float(sabit_gider_orani),
-        personel_gider_orani = float(personel_gider_orani),
-        dijital_satis_orani  = float(dijital_satis),
-        crm_kullaniyor       = crm,
-        erp_kullaniyor       = erp,
-        ihracat_yapıyor      = ihracat,
-        ihracat_orani        = float(ihracat_orani),
-        borsada_mi           = borsada,
-        aciklama             = aciklama,
-    )
-
 
 # ─────────────────────────────────────────────
 # ANA SEKME
 # ─────────────────────────────────────────────
 
-def show_company_tab(fin_rapor: dict):
-    """Şirket profili ana sekmesi."""
+def show_customer_tab(df: pd.DataFrame):
+    """Müşteri & ürün analizi ana sekmesi."""
 
     st.markdown(
         '<div style="font-family:Inter,-apple-system,sans-serif;font-size:1.5rem;font-weight:800;'
         'background:linear-gradient(135deg,#0EA5E9,#1D4ED8);'
         '-webkit-background-clip:text;-webkit-text-fill-color:transparent;">'
-        '🏢 Şirket Profili & Piyasa Analizi</div>'
+        '👥 Müşteri & Ürün Analizi</div>'
         '<div style="color:#64748B;font-size:.78rem;letter-spacing:2px;'
         'text-transform:uppercase;margin-bottom:18px;">'
-        'Profil · Sektöre Özel KPI · BIST Karşılaştırması · Rakip Analizi</div>',
+        'Gelir · Karlılık · RFM Segmentasyon · Churn Risk</div>',
         unsafe_allow_html=True)
 
-    # ── Profil Formu ──
-    profile = show_profile_form()
+    # Motor başlat
+    try:
+        engine = CustomerEngine(df)
+        rapor  = engine.full_report()
+    except Exception as e:
+        st.error(f"Müşteri analizi hatası: {e}")
+        return
 
-    if st.button("🔍 Analizi Güncelle", use_container_width=True, key="cp_analyze"):
-        with st.spinner("Sektör analizi yapılıyor..."):
-            try:
-                engine = CompanyProfileEngine(profile, fin_rapor)
-                st.session_state["cp_rapor"]   = engine.full_report()
-                st.session_state["cp_profile"] = profile
-            except Exception as e:
-                st.error(f"Analiz hatası: {e}")
-        st.rerun()
+    # Müşteri/ürün verisi yoksa yönlendir
+    if not rapor["has_customers"]:
+        _show_no_data_guide()
+        return
 
-    # İlk kez otomatik hesapla
-    if "cp_rapor" not in st.session_state:
-        with st.spinner("İlk analiz yapılıyor..."):
-            try:
-                engine = CompanyProfileEngine(profile, fin_rapor)
-                st.session_state["cp_rapor"]   = engine.full_report()
-                st.session_state["cp_profile"] = profile
-            except Exception as e:
-                st.error(f"Hata: {e}")
-                return
+    # ── Özet KPI ──
+    mo = rapor["musteri_ozet"]
+    uo = rapor["urun_ozet"]
+    co = rapor["churn_ozet"]
 
-    cp     = st.session_state["cp_rapor"]
-    profil = cp["profil"]
-    market = cp["market_data"]
+    c1,c2,c3,c4,c5 = st.columns(5)
+    with c1: kpi("Toplam Müşteri",   str(mo.get("toplam_musteri",0)),   color=C_BLUE)
+    with c2: kpi("Toplam Ürün",      str(uo.get("toplam_urun",0)),      color=C_CYAN)
+    with c3: kpi("Churn Riski Yük.", str(co.get("yuksek_risk",0)),
+                 color=C_RED if co.get("yuksek_risk",0)>0 else C_GREEN,
+                 positive=bool(int(co.get("yuksek_risk") or 0) == 0))
+    with c4: kpi("En İyi Müşteri",   mo.get("top3_musteri",["-"])[0] if mo.get("top3_musteri") else "-",
+                 color=C_GREEN)
+    with c5: kpi("En İyi Ürün",      uo.get("en_iyi_urun","-"),         color=C_GREEN)
+
+    # Konsantrasyon uyarısı
+    konc = rapor["konsantrasyon"]
+    if konc.get("konsantrasyon_riski"):
+        st.markdown(
+            f'<div style="background:#FFF7F7;border:1px solid #DC262644;'
+            f'border-radius:10px;padding:12px 16px;margin:8px 0;color:#ff8080;'
+            f'font-size:.86rem;">⚠️ <b>Müşteri Konsantrasyonu Riski:</b> '
+            f'En büyük %20 müşteriniz toplam gelirin '
+            f'<b>%{konc.get("top20_pct_pay",0)}</b>'
+            f'ini oluşturuyor. Bu müşterilerin kaybı büyük risk yaratır.</div>',
+            unsafe_allow_html=True)
 
     st.markdown("---")
 
     # ── Alt Sekmeler ──
-    s1, s2, s3, s4 = st.tabs([
-        "📋 Şirket Kartı",
-        "📊 Sektöre Özel KPI'lar",
-        "🏆 Rakip Analizi",
-        "📈 BIST & Piyasa",
+    s1, s2, s3, s4, s5 = st.tabs([
+        "💰 Müşteri Gelirleri",
+        "📦 Ürün Analizi",
+        "📊 Karlılık",
+        "🎯 RFM Segmentasyon",
+        "⚠️ Churn Riski",
     ])
 
-    # ════════════ ŞİRKET KARTI ════════════
+    # ════════ MÜŞTERİ GELİRLERİ ════════
     with s1:
-        # Özet kart
-        yas = profil["yas"]
+        sec("💰 Müşteri Bazında Gelir Sıralaması")
+        musteri_df = rapor["musteri_gelir"]
+
+        if musteri_df.empty:
+            st.info("Müşteri bazında veri bulunamadı.")
+        else:
+            # Yatay bar chart — top 15
+            top15 = musteri_df.head(15)
+            fig = go.Figure(go.Bar(
+                x=top15["Toplam Gelir (₺)"],
+                y=top15["Müşteri"],
+                orientation="h",
+                marker=dict(
+                    color=top15["Toplam Gelir (₺)"],
+                    colorscale=[[0,"#E2E8F0"],[1,C_BLUE]],
+                ),
+                text=[fmt(v) for v in top15["Toplam Gelir (₺)"]],
+                textposition="outside",
+            ))
+            fig.update_layout(
+                title="En Değerli Müşteriler (Top 15)",
+                height=max(300, len(top15)*40),
+                yaxis=dict(autorange="reversed",
+                           gridcolor="#E2E8F0", showgrid=True, zeroline=False),
+                **{k:v for k,v in PT.items() if k!="yaxis"},
+            )
+            st.plotly_chart(fig, use_container_width=True)
+
+            # Pareto grafiği
+            sec("📊 Pareto Analizi (80/20 Kuralı)")
+            pareto = konc.get("pareto_df", pd.DataFrame())
+            if not pareto.empty:
+                fig2 = go.Figure()
+                fig2.add_bar(
+                    x=pareto["Müşteri"],
+                    y=pareto["Toplam Gelir (₺)"],
+                    name="Gelir", marker_color=C_BLUE, opacity=.85,
+                )
+                fig2.add_scatter(
+                    x=pareto["Müşteri"],
+                    y=pareto["Kümülatif Pay (%)"],
+                    name="Kümülatif %", yaxis="y2",
+                    mode="lines+markers",
+                    line=dict(color=C_YELLOW, width=2),
+                    marker=dict(size=5),
+                )
+                fig2.add_hline(
+                    y=80, line_dash="dash",
+                    line_color=C_RED, opacity=.6,
+                    annotation_text="%80 eşiği",
+                    annotation_font_color=C_RED,
+                    yref="y2",
+                )
+                fig2.update_layout(
+                    height=300,
+                    yaxis2=dict(overlaying="y", side="right",
+                                range=[0,110], ticksuffix="%",
+                                gridcolor="#E2E8F0"),
+                    legend=dict(orientation="h", y=1.1, x=0),
+                    **PT,
+                )
+                st.plotly_chart(fig2, use_container_width=True)
+
+            # Tablo
+            sec("📋 Müşteri Gelir Tablosu")
+            st.dataframe(
+                musteri_df.style.format({
+                    "Toplam Gelir (₺)": "{:,.0f} ₺",
+                    "Ort. İşlem (₺)":   "{:,.0f} ₺",
+                }),
+                use_container_width=True, hide_index=True)
+
+    # ════════ ÜRÜN ANALİZİ ════════
+    with s2:
+        sec("📦 Ürün / Hizmet Bazında Gelir")
+        urun_df = rapor["urun_gelir"]
+
+        if urun_df.empty:
+            st.info("Ürün bazında veri bulunamadı.")
+        else:
+            col1, col2 = st.columns(2)
+
+            with col1:
+                # Bar chart
+                fig = go.Figure(go.Bar(
+                    x=urun_df["Toplam Gelir (₺)"],
+                    y=urun_df["Ürün"],
+                    orientation="h",
+                    marker=dict(
+                        color=urun_df["Toplam Gelir (₺)"],
+                        colorscale=[[0,"#E2E8F0"],[1,C_CYAN]],
+                    ),
+                    text=[fmt(v) for v in urun_df["Toplam Gelir (₺)"]],
+                    textposition="outside",
+                ))
+                fig.update_layout(
+                    title="Ürün Bazında Gelir",
+                    height=max(280, len(urun_df)*45),
+                    yaxis=dict(autorange="reversed",
+                               gridcolor="#E2E8F0", showgrid=True, zeroline=False),
+                    **{k:v for k,v in PT.items() if k!="yaxis"},
+                )
+                st.plotly_chart(fig, use_container_width=True)
+
+            with col2:
+                # Pasta
+                fig2 = px.pie(
+                    urun_df, values="Toplam Gelir (₺)", names="Ürün",
+                    color_discrete_sequence=[
+                        C_BLUE, C_CYAN, C_GREEN, C_YELLOW,
+                        C_PURPLE, "#f97316", "#06b6d4", "#84cc16"],
+                    hole=0.5,
+                )
+                fig2.update_layout(title="Gelir Dağılımı", height=280, **PT)
+                st.plotly_chart(fig2, use_container_width=True)
+
+            sec("📋 Ürün Detay Tablosu")
+            st.dataframe(
+                urun_df.style.format({
+                    "Toplam Gelir (₺)": "{:,.0f} ₺",
+                    "Ort. Fiyat (₺)":   "{:,.0f} ₺",
+                }),
+                use_container_width=True, hide_index=True)
+
+    # ════════ KARLILIK ════════
+    with s3:
+        col1, col2 = st.columns(2)
+
+        with col1:
+            sec("👥 Müşteri Karlılığı")
+            musteri_kar = rapor["musteri_kar"]
+            if not musteri_kar.empty:
+                colors_m = [C_GREEN if v >= 0 else C_RED
+                            for v in musteri_kar["Net Kar (₺)"]]
+                fig = go.Figure(go.Bar(
+                    x=musteri_kar["Müşteri"],
+                    y=musteri_kar["Net Kar (₺)"],
+                    marker_color=colors_m,
+                    text=[fmt(v) for v in musteri_kar["Net Kar (₺)"]],
+                    textposition="outside",
+                ))
+                fig.add_hline(y=0, line_dash="dash",
+                              line_color=C_RED, opacity=.5)
+                fig.update_layout(
+                    title="Müşteri Bazında Net Kar",
+                    height=280, **PT)
+                st.plotly_chart(fig, use_container_width=True)
+
+                st.dataframe(
+                    musteri_kar.style.format({
+                        "Gelir (₺)":         "{:,.0f} ₺",
+                        "Tahmini Gider (₺)":  "{:,.0f} ₺",
+                        "Net Kar (₺)":        "{:,.0f} ₺",
+                        "Kar Marjı (%)":      "{:.1f}%",
+                    }).applymap(
+                        lambda v: "color:#059669" if isinstance(v,(int,float)) and v>0
+                                  else "color:#DC2626" if isinstance(v,(int,float)) and v<0
+                                  else "",
+                        subset=["Net Kar (₺)"]
+                    ),
+                    use_container_width=True, hide_index=True)
+
+        with col2:
+            sec("📦 Ürün Katkı Marjı")
+            urun_kar = rapor["urun_kar"]
+            if not urun_kar.empty:
+                colors_u = [C_GREEN if v >= 0 else C_RED
+                            for v in urun_kar["Katkı Marjı (%)"]]
+                fig2 = go.Figure(go.Bar(
+                    x=urun_kar["Ürün/Hizmet"],
+                    y=urun_kar["Katkı Marjı (%)"],
+                    marker_color=colors_u,
+                    text=[f'%{v:.1f}' for v in urun_kar["Katkı Marjı (%)"]],
+                    textposition="outside",
+                ))
+                fig2.update_layout(
+                    title="Ürün Katkı Marjı (%)",
+                    height=280,
+                    yaxis=dict(ticksuffix="%",
+                               gridcolor="#E2E8F0", showgrid=True, zeroline=False),
+                    **{k:v for k,v in PT.items() if k!="yaxis"},
+                )
+                st.plotly_chart(fig2, use_container_width=True)
+
+                st.dataframe(
+                    urun_kar.style.format({
+                        "Gelir (₺)":         "{:,.0f} ₺",
+                        "Tahmini Gider (₺)":  "{:,.0f} ₺",
+                        "Katkı Marjı (₺)":    "{:,.0f} ₺",
+                        "Katkı Marjı (%)":    "{:.1f}%",
+                    }),
+                    use_container_width=True, hide_index=True)
+
+    # ════════ RFM SEGMENTASYON ════════
+    with s4:
+        sec("🎯 RFM Müşteri Segmentasyonu")
         st.markdown(
-            f'<div style="background:linear-gradient(135deg,#0f1629,#F8FAFC);'
-            f'border:1px solid #E2E8F0;border-radius:20px;padding:28px 32px;'
-            f'margin-bottom:20px;">'
-            f'<div style="display:flex;align-items:center;gap:20px;margin-bottom:20px;">'
-            f'<div style="width:64px;height:64px;background:linear-gradient(135deg,#1D4ED8,#4F46E5);'
-            f'border-radius:16px;display:flex;align-items:center;justify-content:center;'
-            f'font-size:2rem;">🏢</div>'
-            f'<div>'
-            f'<div style="font-family:Inter,-apple-system,sans-serif;font-size:1.4rem;font-weight:800;'
-            f'color:#0F172A;">{profil["sirket_adi"]}</div>'
-            f'<div style="color:#64748B;font-size:.85rem;">'
-            f'{profil["sektor"]} · {profil["sehir"]}</div>'
-            f'</div></div>'
-            f'<div style="display:grid;grid-template-columns:repeat(4,1fr);gap:16px;">'
-            f'<div style="background:#0a0e1a;border-radius:12px;padding:14px;">'
-            f'<div style="color:#64748B;font-size:.7rem;text-transform:uppercase;'
-            f'letter-spacing:1px;">Kuruluş</div>'
-            f'<div style="color:#0F172A;font-weight:700;">{profil["kuruluş_yili"]}</div>'
-            f'<div style="color:#64748B;font-size:.75rem;">{yas} yıl önce</div>'
-            f'</div>'
-            f'<div style="background:#0a0e1a;border-radius:12px;padding:14px;">'
-            f'<div style="color:#64748B;font-size:.7rem;text-transform:uppercase;'
-            f'letter-spacing:1px;">Çalışan</div>'
-            f'<div style="color:#0F172A;font-weight:700;">{profil["calissan_sayisi"]}</div>'
-            f'<div style="color:#64748B;font-size:.75rem;">{profil["buyukluk"]}</div>'
-            f'</div>'
-            f'<div style="background:#0a0e1a;border-radius:12px;padding:14px;">'
-            f'<div style="color:#64748B;font-size:.7rem;text-transform:uppercase;'
-            f'letter-spacing:1px;">Segment</div>'
-            f'<div style="color:#1D4ED8;font-weight:700;">'
-            f'{profil["buyukluk"].split("(")[0].strip()}</div>'
-            f'<div style="color:#64748B;font-size:.75rem;">{profil["sektor"]}</div>'
-            f'</div>'
-            f'<div style="background:#0a0e1a;border-radius:12px;padding:14px;">'
-            f'<div style="color:#64748B;font-size:.7rem;text-transform:uppercase;'
-            f'letter-spacing:1px;">Özellik</div>'
-            f'<div style="color:#0F172A;font-weight:700;">'
-            f'{"🌍 İhracatçı" if profil["ihracat"] else "🇹🇷 Yerel"}</div>'
-            f'<div style="color:#64748B;font-size:.75rem;">'
-            f'{"📈 BIST" if profil["borsada"] else "🔒 Özel"}</div>'
-            f'</div>'
-            f'</div></div>',
+            '<div style="background:#F8FAFC;border:1px solid #E2E8F0;'
+            'border-radius:10px;padding:12px 16px;margin-bottom:14px;">'
+            '<div style="color:#1D4ED8;font-size:.82rem;font-weight:600;'
+            'margin-bottom:6px;">RFM Nedir?</div>'
+            '<div style="color:#64748B;font-size:.8rem;line-height:1.6;">'
+            '📅 <b>Recency</b>: Son alışveriş ne kadar yakın? (Yakın = iyi)<br>'
+            '🔄 <b>Frequency</b>: Ne sıklıkla alışveriş yapıyor? (Sık = iyi)<br>'
+            '💰 <b>Monetary</b>: Ne kadar harcıyor? (Fazla = iyi)'
+            '</div></div>',
             unsafe_allow_html=True)
 
-        # Piyasa bilgileri
-        sec("📊 Sektör Piyasa Bilgileri")
-        c1,c2,c3,c4 = st.columns(4)
-        with c1: kpi("2024 Sektör Büyümesi",
-                     market.get("sektör_buyume_2024","-"), color=C_GREEN)
-        with c2: kpi("Enflasyon Üzeri",
-                     market.get("enflasyon_uzeri_buyume","-"),
-                     color=C_GREEN if "+" in str(market.get("enflasyon_uzeri_buyume","")) else C_RED)
-        with c3: kpi("Ort. F/K Oranı",
-                     str(market.get("ortalama_fiyat_kazanc","-")), color=C_BLUE)
-        with c4: kpi("Vergi Avantajı",
-                     "✅ Var" if market.get("vergi_avantaji") else "❌ Yok",
-                     color=C_GREEN)
+        rfm_df    = rapor["rfm"]
+        seg_df    = rapor["rfm_segment"]
 
-        # Vergi avantajı detayı
-        if market.get("vergi_avantaji"):
-            st.markdown(
-                f'<div style="background:#F0FDF4;border-left:3px solid {C_GREEN};'
-                f'border-radius:0 10px 10px 0;padding:10px 14px;margin-top:8px;">'
-                f'<div style="color:#64748B;font-size:.75rem;margin-bottom:3px;">'
-                f'💰 Vergi & Teşvik Avantajları</div>'
-                f'<div style="color:#065F46;font-size:.85rem;">'
-                f'{market["vergi_avantaji"]}</div></div>',
-                unsafe_allow_html=True)
+        if rfm_df.empty:
+            st.info("RFM analizi için en az 2 farklı müşteri ve işlem gereklidir.")
+        else:
+            col1, col2 = st.columns(2)
 
-    # ════════════ SEKTÖRE ÖZEL KPI'LAR ════════════
-    with s2:
-        sec(f"📊 {profil['sektor']} Sektörü KPI Analizi")
+            with col1:
+                sec("📊 Segment Dağılımı")
+                if not seg_df.empty:
+                    fig = px.pie(
+                        seg_df,
+                        values="Müşteri Sayısı",
+                        names="Segment",
+                        color_discrete_sequence=[
+                            C_GREEN, C_BLUE, C_CYAN,
+                            C_YELLOW, C_RED, C_PURPLE, "#f97316"],
+                        hole=0.4,
+                    )
+                    fig.update_layout(height=280, **PT)
+                    st.plotly_chart(fig, use_container_width=True)
 
-        kpiler = cp["kpiler"]
-        if not kpiler:
-            st.info("KPI hesaplamak için finansal veri yükleyin.")
-            return
+            with col2:
+                sec("💰 Segment Gelir Karşılaştırması")
+                if not seg_df.empty:
+                    fig2 = go.Figure(go.Bar(
+                        x=seg_df["Segment"],
+                        y=seg_df["Toplam Gelir (₺)"],
+                        marker=dict(
+                            color=seg_df["Toplam Gelir (₺)"],
+                            colorscale=[[0,"#E2E8F0"],[1,C_GREEN]],
+                        ),
+                        text=[fmt(v) for v in seg_df["Toplam Gelir (₺)"]],
+                        textposition="outside",
+                    ))
+                    fig2.update_layout(
+                        title="Segment Bazında Toplam Gelir",
+                        height=280, **PT)
+                    st.plotly_chart(fig2, use_container_width=True)
 
-        # KPI kartları
-        kpi_listesi = list(kpiler.items())
-        cols = st.columns(min(len(kpi_listesi), 3))
+            sec("📋 Segment Özet Tablosu")
+            st.dataframe(
+                seg_df.style.format({
+                    "Ort. Gelir (₺)":     "{:,.0f} ₺",
+                    "Toplam Gelir (₺)":   "{:,.0f} ₺",
+                }),
+                use_container_width=True, hide_index=True)
 
-        for i, (kpi_adi, kpi_data) in enumerate(kpi_listesi):
-            with cols[i % 3]:
-                deger    = kpi_data.get("deger", 0)
-                hedef    = kpi_data.get("hedef", 0)
-                birim    = kpi_data.get("birim", "")
-                durum    = kpi_data.get("durum", "Orta")
-                perf_pct = kpi_data.get("performans_pct", 50)
-                renk     = durum_renk(durum)
+            sec("📋 Müşteri RFM Detayı")
+            display_rfm = rfm_df[[
+                "Müşteri","Recency","Frequency","Monetary",
+                "R_Score","F_Score","M_Score","RFM_Score","Segment"
+            ]].copy()
+            display_rfm["Monetary"] = display_rfm["Monetary"].apply(fmt)
+            st.dataframe(display_rfm, use_container_width=True, hide_index=True)
 
-                # Değer formatlama
-                if birim == "₺/yıl" or birim == "₺":
-                    deger_str = fmt(deger)
-                    hedef_str = fmt(hedef)
+    # ════════ CHURN RİSKİ ════════
+    with s5:
+        sec("⚠️ Churn Risk Analizi")
+
+        risk_ozet = co
+        _yuksek = int(risk_ozet.get("yuksek_risk") or 0)
+        _orta   = int(risk_ozet.get("orta_risk") or 0)
+        _rgelir = float(risk_ozet.get("risk_gelir") or 0)
+        c1,c2,c3 = st.columns(3)
+        with c1:
+            kpi("Yüksek Riskli", str(_yuksek), delta="Acil aksiyon", color=C_RED, positive=bool(_yuksek == 0))
+        with c2:
+            kpi("Orta Riskli", str(_orta), delta="Takip et", color=C_YELLOW, positive=False)
+        with c3:
+            kpi("Risk Altındaki Gelir", fmt(_rgelir), delta="Yüksek risk segmenti", color=C_RED, positive=bool(_rgelir == 0))
+
+        churn_df = rapor["churn_risk"]
+        if churn_df.empty:
+            st.info("Churn analizi için çoklu dönem verisi gereklidir.")
+        else:
+            # Yüksek risk öne al
+            col1, col2 = st.columns(2)
+
+            with col1:
+                sec("🔴 Yüksek Riskli Müşteriler")
+                yuksek = churn_df[churn_df["Risk Seviyesi"] == "🔴 Yüksek"]
+                if yuksek.empty:
+                    st.success("✅ Yüksek riskli müşteri yok!")
                 else:
-                    deger_str = f"{deger:,.1f} {birim}"
-                    hedef_str = f"{hedef} {birim}"
+                    for _, row in yuksek.iterrows():
+                        st.markdown(
+                            f'<div style="background:#FFF7F7;border-left:4px solid {C_RED};'
+                            f'border-radius:0 10px 10px 0;padding:12px 16px;'
+                            f'margin-bottom:8px;">'
+                            f'<div style="color:{C_RED};font-weight:700;font-size:.88rem;">'
+                            f'{row["Müşteri"]}</div>'
+                            f'<div style="color:#4B5563;font-size:.8rem;margin-top:4px;">'
+                            f'Son işlem: {row["Son İşlem"]} · '
+                            f'{row["Geçen Gün"]} gün geçti · '
+                            f'Risk: %{row["Risk Skoru (%)"]}</div>'
+                            f'<div style="color:{C_YELLOW};font-size:.78rem;margin-top:3px;">'
+                            f'💰 Toplam gelir: {fmt(row["Toplam Gelir (₺)"])}</div>'
+                            f'</div>',
+                            unsafe_allow_html=True)
 
-                st.markdown(
-                    f'<div style="background:#FFFFFF;border:1px solid #E2E8F0;'
-                    f'border-radius:14px;padding:16px;margin-bottom:10px;">'
-                    f'<div style="font-size:.72rem;color:#64748B;letter-spacing:1px;'
-                    f'text-transform:uppercase;margin-bottom:6px;">{kpi_adi}</div>'
-                    f'<div style="font-family:Inter,-apple-system,sans-serif;font-size:1.3rem;'
-                    f'font-weight:700;color:{renk};margin-bottom:4px;">{deger_str}</div>'
-                    f'<div style="color:#64748B;font-size:.75rem;margin-bottom:8px;">'
-                    f'Hedef: {hedef_str}</div>'
-                    f'<div style="background:#E2E8F0;border-radius:4px;height:6px;'
-                    f'overflow:hidden;">'
-                    f'<div style="background:{renk};width:{min(perf_pct,100)}%;'
-                    f'height:100%;border-radius:4px;"></div></div>'
-                    f'<div style="color:{renk};font-size:.72rem;margin-top:4px;">'
-                    f'{durum} — %{perf_pct:.0f}</div>'
-                    f'</div>',
-                    unsafe_allow_html=True)
+            with col2:
+                sec("📊 Risk Dağılımı")
+                risk_counts = churn_df["Risk Seviyesi"].value_counts().reset_index()
+                risk_counts.columns = ["Risk", "Sayı"]
+                fig = px.pie(
+                    risk_counts, values="Sayı", names="Risk",
+                    color_discrete_map={
+                        "🔴 Yüksek": C_RED,
+                        "🟡 Orta":   C_YELLOW,
+                        "🟢 Düşük":  C_GREEN,
+                    },
+                    hole=0.5,
+                )
+                fig.update_layout(height=280, **PT)
+                st.plotly_chart(fig, use_container_width=True)
 
-        # KPI tablo özeti
-        sec("📋 KPI Özet Tablosu")
-        kpi_df = pd.DataFrame([
-            {
-                "KPI":      k,
-                "Değer":    f'{v.get("deger",0):,.1f} {v.get("birim","")}',
-                "Hedef":    f'{v.get("hedef",0)} {v.get("birim","")}',
-                "Perf. %":  v.get("performans_pct", 0),
-                "Durum":    v.get("durum", "-"),
-            }
-            for k, v in kpiler.items()
-        ])
-        def color_d(val):
-            c = {"Mükemmel":C_GREEN,"İyi":C_BLUE,
-                 "Orta":C_YELLOW,"Zayıf":C_RED}.get(val,"")
-            return f"color:{c};font-weight:600" if c else ""
-
-        st.dataframe(
-            kpi_df.style.applymap(color_d, subset=["Durum"])
-                        .format({"Perf. %": "{:.0f}%"}),
-            use_container_width=True, hide_index=True)
-
-        # Sektörün hedef KPI'ları
-        market_kpiler = market.get("kpiler", {})
-        if market_kpiler:
-            sec(f"🎯 {profil['sektor']} Sektörü Tüm Hedef KPI'lar")
-            hedef_df = pd.DataFrame([
-                {"KPI": k, "Sektör Hedefi": f'{v["hedef"]} {v["birim"]}'}
-                for k, v in market_kpiler.items()
-            ])
-            st.dataframe(hedef_df, use_container_width=True, hide_index=True)
-
-    # ════════════ RAKİP ANALİZİ ════════════
-    with s3:
-        sec(f"🏆 {profil['buyukluk'].split('(')[0].strip()} Segment Rakip Analizi")
-
-        rakip_df = cp["rakip_tablosu"]
-        toplam = cp["toplam_rakip"]
-
-        # Sıralama — tüm hesaplamalar güvenli
-        raw_sira = cp.get("sirket_sirasi", toplam + 1)
-        try:
-            sirket_sirasi = int(float(str(raw_sira)))
-        except Exception:
-            sirket_sirasi = toplam + 1
-
-        toplam_n   = max(int(toplam), 1)
-        yuzdelik   = float(round((1 - sirket_sirasi / (toplam_n + 1)) * 100, 0))
-        y_renk     = C_GREEN if yuzdelik >= 60 else C_YELLOW if yuzdelik >= 40 else C_RED
-        ust_yarida = sirket_sirasi <= (toplam_n // 2 + 1)
-
-        col_r1, col_r2, col_r3 = st.columns(3)
-        with col_r1:
-            st.markdown(
-                f'''<div style="background:var(--bg-surface);
-                border:1px solid #E2E8F0;border-radius:14px;padding:16px 18px;
-                position:relative;overflow:hidden;margin-bottom:8px;">
-                <div style="position:absolute;left:0;top:0;bottom:0;width:3px;border-radius:4px 0 0 4px;
-                background:linear-gradient(90deg,#0EA5E9,#1D4ED8);"></div>
-                <div style="font-size:.7rem;color:#64748B;letter-spacing:1.5px;
-                text-transform:uppercase;margin-bottom:5px;">SEGMENT RAKİP SAYISI</div>
-                <div style="font-family:Inter,-apple-system,sans-serif;font-size:1.5rem;
-                font-weight:700;color:#0F172A;">{toplam_n}</div>
-                <div style="font-size:.75rem;color:#64748B;margin-top:3px;">
-                {profil["sektor"]} segmenti</div></div>''',
-                unsafe_allow_html=True)
-        with col_r2:
-            st.markdown(
-                f'''<div style="background:var(--bg-surface);
-                border:1px solid #E2E8F0;border-radius:14px;padding:16px 18px;
-                position:relative;overflow:hidden;margin-bottom:8px;">
-                <div style="position:absolute;left:0;top:0;bottom:0;width:3px;border-radius:4px 0 0 4px;
-                background:linear-gradient(90deg,#0EA5E9,#1D4ED8);"></div>
-                <div style="font-size:.7rem;color:#64748B;letter-spacing:1.5px;
-                text-transform:uppercase;margin-bottom:5px;">KAR MARJI SIRALAMASI</div>
-                <div style="font-family:Inter,-apple-system,sans-serif;font-size:1.5rem;
-                font-weight:700;color:{y_renk};">{sirket_sirasi}. / {toplam_n+1}</div>
-                <div style="font-size:.75rem;color:#64748B;margin-top:3px;">
-                Rakipler arasında</div></div>''',
-                unsafe_allow_html=True)
-        with col_r3:
-            st.markdown(
-                f'''<div style="background:var(--bg-surface);
-                border:1px solid #E2E8F0;border-radius:14px;padding:16px 18px;
-                position:relative;overflow:hidden;margin-bottom:8px;">
-                <div style="position:absolute;left:0;top:0;bottom:0;width:3px;border-radius:4px 0 0 4px;
-                background:linear-gradient(90deg,#0EA5E9,#1D4ED8);"></div>
-                <div style="font-size:.7rem;color:#64748B;letter-spacing:1.5px;
-                text-transform:uppercase;margin-bottom:5px;">YÜZDELİK DİLİM</div>
-                <div style="font-family:Inter,-apple-system,sans-serif;font-size:1.5rem;
-                font-weight:700;color:{y_renk};">%{int(yuzdelik)}</div>
-                <div style="font-size:.75rem;color:#64748B;margin-top:3px;">
-                Üst % daha iyi</div></div>''',
-                unsafe_allow_html=True)
-
-        # Tablo
-        sec("📋 Detaylı Rakip Tablosu")
-
-        def highlight(row):
-            if "★" in str(row["Şirket"]):
-                return ["background-color:#0a1e3a;color:#60d4ff;font-weight:bold"] * len(row)
-            return [""] * len(row)
-
-        display_df = rakip_df.drop(columns=["Kaynak"], errors="ignore")
-        st.dataframe(
-            display_df.style.apply(highlight, axis=1)
-                            .format({
-                                "Kar Marjı (%)":      "{:.1f}%",
-                                "Büyüme (%)":         "{:.1f}%",
-                                "Gider/Gelir (%)":    "{:.1f}%",
-                                "Çalışan/Gelir (K₺)": "{:.0f}K ₺",
-                            }),
-            use_container_width=True, hide_index=True)
-
-        # Bar grafik
-        sec("📊 Kar Marjı Karşılaştırması")
-        sorted_df = rakip_df.sort_values("Kar Marjı (%)", ascending=True)
-        bar_colors = [
-            C_BLUE if "★" in str(s) else "#E2E8F0"
-            for s in sorted_df["Şirket"]
-        ]
-        fig = go.Figure(go.Bar(
-            x=sorted_df["Kar Marjı (%)"],
-            y=sorted_df["Şirket"],
-            orientation="h",
-            marker_color=bar_colors,
-            text=[f'%{v:.1f}' for v in sorted_df["Kar Marjı (%)"]],
-            textposition="outside",
-        ))
-        fig.update_layout(
-            title=f"Kar Marjı — {profil['sektor']} {profil['buyukluk'].split('(')[0].strip()} Segment",
-            height=max(280, len(sorted_df) * 45),
-            **{k:v for k,v in PT.items() if k != 'xaxis'},
-            xaxis=dict(ticksuffix="%", gridcolor="#E2E8F0",
-                       showgrid=True, zeroline=False),
-        )
-        st.plotly_chart(fig, use_container_width=True)
-
-    # ════════════ BIST & PİYASA ════════════
-    with s4:
-        sec("📈 BIST & Türkiye Piyasa Verileri")
-
-        bist_list = cp["bist_sektorleri"]
-
-        # BIST sektör oyuncuları
-        if bist_list:
-            st.markdown(
-                f'<div style="background:#F8FAFC;border:1px solid #E2E8F0;'
-                f'border-radius:12px;padding:16px 20px;margin-bottom:16px;">'
-                f'<div style="color:#64748B;font-size:.75rem;text-transform:uppercase;'
-                f'letter-spacing:1px;margin-bottom:10px;">'
-                f'📊 {profil["sektor"]} Sektörü BIST Oyuncuları</div>'
-                + "".join([
-                    f'<span style="background:#E2E8F0;color:#1D4ED8;'
-                    f'padding:4px 10px;border-radius:20px;font-size:.8rem;'
-                    f'margin:3px 3px;display:inline-block;">{b}</span>'
-                    for b in bist_list
-                ]) +
-                f'</div>', unsafe_allow_html=True)
-
-        # Piyasa karşılaştırması
-        sec("📊 Şirketiniz vs Piyasa Ortalaması")
-
-        g = fin_rapor.get("gelir", {})
-        k = fin_rapor.get("karlilik", {})
-        bm = TURKEY_MARKET_DATA.get(profil["sektor"], {})
-
-        # Gerçek sektör büyüme rakamını parse et
-        buyume_str = bm.get("sektör_buyume_2024", "%0")
-        try:
-            sektor_buyume = float(buyume_str.replace("%","").replace("+",""))
-        except:
-            sektor_buyume = 10.0
-
-        karsilastirma = [
-            {
-                "Metrik":        "Kar Marjı (%)",
-                "Şirketiniz":    k.get("kar_marji", 0),
-                "Sektör Hedef":  12.0,
-                "BIST Ort.":     8.5,
-            },
-            {
-                "Metrik":        "Büyüme (%)",
-                "Şirketiniz":    g.get("ortalama_buyume_orani", 0),
-                "Sektör Hedef":  sektor_buyume / 12,
-                "BIST Ort.":     5.0,
-            },
-        ]
-        df_kars = pd.DataFrame(karsilastirma)
-
-        fig = go.Figure()
-        for col, color in [
-            ("Şirketiniz", C_BLUE),
-            ("Sektör Hedef", C_GREEN),
-            ("BIST Ort.", C_YELLOW),
-        ]:
-            fig.add_bar(
-                name=col,
-                x=df_kars["Metrik"],
-                y=df_kars[col],
-                marker_color=color,
-                opacity=0.85,
-            )
-        fig.update_layout(
-            barmode="group",
-            title="Şirket vs Sektör vs BIST Karşılaştırması",
-            height=300, **PT,
-            legend=dict(orientation="h", y=1.12, x=0),
-        )
-        st.plotly_chart(fig, use_container_width=True)
-
-        # Enflasyon bağlamı
-        sec("💡 Piyasa Bağlamı")
-        enf_uzeri = bm.get("enflasyon_uzeri_buyume", "0%")
-        pozitif   = "+" in str(enf_uzeri) or (
-            "-" not in str(enf_uzeri) and "0" not in str(enf_uzeri))
-
-        bilgiler = [
-            ("2024 Sektör Büyümesi", bm.get("sektör_buyume_2024","-"), True),
-            ("Enflasyon Üzeri Reel Büyüme", enf_uzeri, pozitif),
-            ("Ortalama F/K Çarpanı", str(bm.get("ortalama_fiyat_kazanc","-")), True),
-            ("Vergi & Teşvik", bm.get("vergi_avantaji","Yok"), bool(bm.get("vergi_avantaji"))),
-        ]
-        for baslik, deger, iyi in bilgiler:
-            renk = C_GREEN if iyi else C_RED
-            st.markdown(
-                f'<div style="background:#FFFFFF;border-left:3px solid {renk};'
-                f'border-radius:0 10px 10px 0;padding:10px 16px;margin-bottom:6px;'
-                f'display:flex;justify-content:space-between;">'
-                f'<span style="color:#4B5563;font-size:.85rem;">{baslik}</span>'
-                f'<span style="color:{renk};font-weight:700;font-size:.88rem;">'
-                f'{deger}</span></div>',
-                unsafe_allow_html=True)
+            sec("📋 Tüm Müşteri Risk Tablosu")
+            st.dataframe(
+                churn_df.style.format({
+                    "Toplam Gelir (₺)": "{:,.0f} ₺",
+                }).applymap(
+                    lambda v: "color:#DC2626;font-weight:600"
+                    if v == "🔴 Yüksek" else
+                    "color:#D97706" if v == "🟡 Orta" else
+                    "color:#059669" if v == "🟢 Düşük" else "",
+                    subset=["Risk Seviyesi"]
+                ),
+                use_container_width=True, hide_index=True)
 
 
-def get_profile_from_session() -> dict:
-    """Session state'ten mevcut profili döndürür."""
-    if "cp_profile" in st.session_state:
-        return st.session_state["cp_profile"].to_dict()
-    return {}
+def _show_no_data_guide():
+    """Müşteri verisi yoksa nasıl ekleneceğini göster."""
+    st.markdown(
+        '<div style="background:#F8FAFC;border:1px solid #BFDBFE;'
+        'border-radius:14px;padding:24px;margin-bottom:20px;">'
+        '<div style="font-family:Inter,-apple-system,sans-serif;font-size:1.1rem;'
+        'font-weight:700;color:#1D4ED8;margin-bottom:12px;">'
+        '📋 Müşteri & Ürün Analizi Nasıl Aktifleştirilir?</div>'
+        '<div style="color:#4B5563;font-size:.88rem;line-height:1.8;">'
+        'Mevcut CSV/Excel dosyanıza 2 sütun ekleyin:'
+        '</div></div>',
+        unsafe_allow_html=True)
+
+    from customer_engine import CustomerEngine
+    ornek = CustomerEngine.ornek_veri()
+    st.dataframe(ornek, use_container_width=True, hide_index=True)
+
+    st.download_button(
+        "⬇ Örnek CSV İndir (Müşteri & Ürün sütunlu)",
+        ornek.to_csv(index=False).encode("utf-8"),
+        "ornek_musteri_urun.csv",
+        "text/csv",
+        use_container_width=True,
+    )
+
+    st.markdown("""
+    **Adımlar:**
+    1. Örnek CSV'yi indirin
+    2. Kendi verilerinizi aynı formatta düzenleyin
+    3. Sol panelden yeni CSV'yi yükleyin
+    4. Bu sekme otomatik dolacak
+    """)
