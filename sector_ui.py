@@ -12,6 +12,13 @@ import pandas as pd
 import numpy as np
 import plotly.graph_objects as go
 import plotly.express as px
+from design_system import (
+    DS, fmt, kpi, sec, exec_summary, alert, page_header,
+    badge, PLOTLY_THEME,
+    C_BLUE, C_GREEN, C_RED, C_AMBER, C_SLATE, C_CYAN,
+    C_YELLOW, C_PURPLE, CHART_COLORS, score_color
+)
+
 
 from sector_engine import SectorEngine, SECTOR_DB, GENEL_SEKTOR
 
@@ -20,82 +27,10 @@ from sector_engine import SectorEngine, SECTOR_DB, GENEL_SEKTOR
 # TEMA
 # ─────────────────────────────────────────────
 
-PT = dict(
-    paper_bgcolor="rgba(0,0,0,0)", plot_bgcolor="rgba(0,0,0,0)",
-    font=dict(color="#94A3B8", family="Inter"),
-    xaxis=dict(gridcolor="#E2E8F0", showgrid=True, zeroline=False),
-    yaxis=dict(gridcolor="#E2E8F0", showgrid=True, zeroline=False),
-    margin=dict(l=10, r=10, t=30, b=10),
-)
-
-def fmt(v):
-    if abs(v) >= 1_000_000: return f"{v/1_000_000:.1f}M ₺"
-    if abs(v) >= 1_000:     return f"{v/1_000:.0f}K ₺"
-    return f"{v:,.0f} ₺"
-
-def kpi(label, value, delta="", color="#0F172A", positive=True):
-    try:
-        _p = bool(positive)
-    except Exception:
-        _p = True
-    accent_color = "#059669" if _p else "#DC2626"
-    delta_bg     = "#F0FDF4" if _p else "#FFF7F7"
-    delta_color  = "#059669" if _p else "#DC2626"
-    sign         = "+" if _p else "−"
-    dh = (
-        f'<div style="display:inline-flex;align-items:center;gap:3px;'
-        f'font-size:11px;font-weight:500;padding:2px 6px;border-radius:3px;'
-        f'margin-top:6px;background:{delta_bg};color:{delta_color};">'
-        f'{sign} {delta}</div>'
-    ) if delta else ""
-    st.markdown(
-        f'<div style="'
-        f'background:#FFFFFF;'
-        f'border:1px solid #E2E8F0;'
-        f'border-radius:10px;'
-        f'padding:18px 20px 16px 22px;'
-        f'position:relative;overflow:hidden;'
-        f'margin-bottom:8px;'
-        f'box-shadow:0 1px 3px rgba(15,23,42,.06),0 2px 8px rgba(15,23,42,.04);'
-        f'transition:border-color 0.15s;">'
-        f'<div style="'
-        f'position:absolute;left:0;top:0;bottom:0;width:3px;'
-        f'border-radius:4px 0 0 4px;'
-        f'background:{accent_color};"></div>'
-        f'<div style="'
-        f'font-size:10px;font-weight:600;letter-spacing:0.1em;'
-        f'text-transform:uppercase;color:#94A3B8;'
-        f'margin-bottom:8px;">{label}</div>'
-        f'<div style="'
-        f'font-family:Inter,-apple-system,sans-serif;'
-        f'font-size:24px;font-weight:600;'
-        f'letter-spacing:-0.025em;line-height:1.1;'
-        f'color:{color};">{value}</div>'
-        f'{dh}</div>',
-        unsafe_allow_html=True
-    )
-
-def sec(text, small=False):
-    fs = "0.78rem" if small else "0.8rem"
-    st.markdown(
-        f'<div style="'
-        f'font-size:{fs};font-weight:600;'
-        f'letter-spacing:0.08em;text-transform:uppercase;'
-        f'color:#94A3B8;'
-        f'padding:0 0 10px;'
-        f'border-bottom:1px solid #E2E8F0;'
-        f'margin:28px 0 16px;">{text}</div>',
-        unsafe_allow_html=True
-    )
 
 def badge_color(durum: str) -> str:
     return {"Mükemmel":"#059669","İyi":"#3B82F6",
             "Orta":"#D97706","Zayıf":"#DC2626"}.get(durum,"#94A3B8")
-
-def score_color(k: str) -> str:
-    return {"Sektör Lideri":"#059669","Ortalamanın Üstü":"#3B82F6",
-            "Sektör Ortalaması":"#D97706","Ortalamanın Altı":"#f97316",
-            "Sektörde Zayıf":"#DC2626"}.get(k,"#0F172A")
 
 def pt_merge(**overrides):
     """PT temasını override parametrelerle birleştirir."""

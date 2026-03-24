@@ -13,6 +13,13 @@ import pandas as pd
 import numpy as np
 import plotly.graph_objects as go
 import plotly.express as px
+from design_system import (
+    DS, fmt, kpi, sec, exec_summary, alert, page_header,
+    badge, PLOTLY_THEME,
+    C_BLUE, C_GREEN, C_RED, C_AMBER, C_SLATE, C_CYAN,
+    C_YELLOW, C_PURPLE, CHART_COLORS, score_color
+)
+
 from typing import List
 
 from investment_engine import Investment, InvestmentEngine, InvestmentComparator
@@ -29,18 +36,6 @@ PLOTLY_THEME = dict(
     margin=dict(l=10, r=10, t=36, b=10),
 )
 
-C_BLUE   = "#1D4ED8"
-C_CYAN   = "#0EA5E9"
-C_GREEN  = "#059669"
-C_RED    = "#DC2626"
-C_YELLOW = "#D97706"
-C_PURPLE = "#4F46E5"
-
-
-def fmt(v: float) -> str:
-    if abs(v) >= 1_000_000: return f"{v/1_000_000:.2f}M ₺"
-    if abs(v) >= 1_000:     return f"{v/1_000:.1f}K ₺"
-    return f"{v:,.0f} ₺"
 
 
 def kpi_card(label, value, delta="", color="#0F172A", positive=True):
@@ -67,16 +62,6 @@ def section_title(text: str):
                 color:#0F172A;padding:6px 0 10px;border-bottom:1px solid #E2E8F0;
                 margin:16px 0 14px;">{text}</div>""", unsafe_allow_html=True)
 
-
-def score_color(k: str) -> str:
-    return {"Mükemmel Yatırım": C_GREEN, "İyi Yatırım": C_BLUE,
-            "Kabul Edilebilir": C_YELLOW, "Riskli": "#f97316",
-            "Önerilmez": C_RED}.get(k, "#0F172A")
-
-
-# ─────────────────────────────────────────────
-# ANA SEKME
-# ─────────────────────────────────────────────
 
 def show_investment_tab():
     """Ana yatırım analizi sekmesi — app.py'e entegre edilir."""

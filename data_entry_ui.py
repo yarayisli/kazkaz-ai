@@ -24,30 +24,7 @@ try:
 except ImportError:
     IMPORTER_OK = False
 
-C_GREEN  = "#059669"
-C_RED    = "#DC2626"
-C_BLUE   = "#1D4ED8"
-C_YELLOW = "#D97706"
-C_CYAN   = "#0EA5E9"
 
-
-def sec(text, small=False):
-    fs = "0.78rem" if small else "0.8rem"
-    st.markdown(
-        f'<div style="'
-        f'font-size:{fs};font-weight:600;'
-        f'letter-spacing:0.08em;text-transform:uppercase;'
-        f'color:#94A3B8;'
-        f'padding:0 0 10px;'
-        f'border-bottom:1px solid #E2E8F0;'
-        f'margin:28px 0 16px;">{text}</div>',
-        unsafe_allow_html=True
-    )
-
-
-# ─────────────────────────────────────────────
-# ANA VERİ GİRİŞ SEKMESİ
-# ─────────────────────────────────────────────
 
 def show_data_entry_tab():
     """Tam sayfa veri giriş merkezi."""
