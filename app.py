@@ -662,11 +662,8 @@ with tab_genel:
                 marker=dict(size=6, color=DS.GREEN,
                             line=dict(color=DS.BG_BASE, width=1.5)),
             )
-            fig.update_layout(
-                barmode="group", height=300,
-                **PLOTLY_THEME,
-                xaxis=dict(gridcolor=DS.BORDER, showgrid=True, zeroline=False,
-                           tickfont=dict(size=10, color=DS.TEXT_TER)),
+            fig.update_layout(**chart_layout(height=300, barmode="group",xaxis=dict(gridcolor=DS.BORDER, showgrid=True, zeroline=False,
+                           tickfont=dict(size=10, color=DS.TEXT_TER))),
                 yaxis=dict(gridcolor=DS.BORDER, showgrid=True, zeroline=False,
                            tickfont=dict(size=10, color=DS.TEXT_TER)),
                 legend=dict(orientation="h", y=1.06, x=0,
@@ -729,10 +726,8 @@ with tab_gelir:
             marker_color=DS.C1, opacity=0.9,
             hovertemplate="%{x}<br>%{y:,.0f} ₺<extra></extra>",
         ))
-        fig.update_layout(
-            height=260, **PLOTLY_THEME,
-            xaxis=dict(gridcolor=DS.BORDER, showgrid=False, zeroline=False,
-                       tickfont=dict(size=10, color=DS.TEXT_TER)),
+        fig.update_layout(**chart_layout(height=260, xaxis=dict(gridcolor=DS.BORDER, showgrid=False, zeroline=False,
+                       tickfont=dict(size=10, color=DS.TEXT_TER))),
             yaxis=dict(gridcolor=DS.BORDER, showgrid=True, zeroline=False,
                        tickfont=dict(size=10, color=DS.TEXT_TER)),
         )
@@ -749,8 +744,7 @@ with tab_gelir:
                                     "#6366F1","#0891B2","#059669"]),
                 textfont=dict(size=11),
             ))
-            fig.update_layout(height=260, **PLOTLY_THEME,
-                               legend=dict(font=dict(size=11, color=DS.TEXT_SEC),
+            fig.update_layout(**chart_layout(height=260, legend=dict(font=dict(size=11, color=DS.TEXT_SEC)),
                                            bgcolor="rgba(0,0,0,0)"))
             st.plotly_chart(fig, use_container_width=True)
 
@@ -768,10 +762,8 @@ with tab_gelir:
                         line=dict(color=DS.BG_BASE, width=1.5)),
         )
         fig.add_hline(y=0, line_dash="dash", line_color=DS.RED, opacity=0.4)
-        fig.update_layout(
-            height=220, **PLOTLY_THEME,
-            xaxis=dict(gridcolor=DS.BORDER, showgrid=True, zeroline=False,
-                       tickfont=dict(size=10, color=DS.TEXT_TER)),
+        fig.update_layout(**chart_layout(height=220, xaxis=dict(gridcolor=DS.BORDER, showgrid=True, zeroline=False,
+                       tickfont=dict(size=10, color=DS.TEXT_TER))),
             yaxis=dict(gridcolor=DS.BORDER, showgrid=True, zeroline=False,
                        tickfont=dict(size=10, color=DS.TEXT_TER),
                        ticksuffix="%"),

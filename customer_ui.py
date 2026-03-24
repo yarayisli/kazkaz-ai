@@ -320,7 +320,7 @@ def show_customer_tab(df: pd.DataFrame):
                             C_YELLOW, C_RED, C_PURPLE, "#f97316"],
                         hole=0.4,
                     )
-                    fig.update_layout(height=280, **PLOTLY_THEME)
+                    fig.update_layout(**chart_layout(height=280))
                     st.plotly_chart(fig, use_container_width=True)
 
             with col2:
@@ -415,7 +415,7 @@ def show_customer_tab(df: pd.DataFrame):
                     },
                     hole=0.5,
                 )
-                fig.update_layout(height=280, **PLOTLY_THEME)
+                fig.update_layout(**chart_layout(height=280))
                 st.plotly_chart(fig, use_container_width=True)
 
             sec("📋 Tüm Müşteri Risk Tablosu")

@@ -19,7 +19,7 @@ from design_system import (
     inject_css, PLOTLY_THEME, score_color,
     C_BLUE, C_GREEN, C_RED, C_AMBER, C_SLATE, C_CYAN,
     C_YELLOW, C_PURPLE, CHART_COLORS,
-)
+    chart_layout,)
 
 from typing import List
 

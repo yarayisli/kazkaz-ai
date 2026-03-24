@@ -160,7 +160,7 @@ def show_cashflow_tab(fin_engine=None, fin_rapor=None):
             marker=dict(color=colors_kum, size=8),
         ))
         fig2.add_hline(y=0, line_dash="dash", line_color=C_RED, opacity=.6)
-        fig2.update_layout(height=230, **PLOTLY_THEME)
+        fig2.update_layout(**chart_layout(height=230))
         st.plotly_chart(fig2, use_container_width=True)
 
         # Özet tablo
@@ -504,7 +504,7 @@ def show_debt_tab(fin_rapor=None):
                                  C_RED,"#1D4ED8","#374151","#0F766E",
                                  "#6B7280","#1D4ED8"],
                              hole=0.5)
-                fig.update_layout(height=280, **PLOTLY_THEME)
+                fig.update_layout(**chart_layout(height=280))
                 st.plotly_chart(fig, use_container_width=True)
 
         # Borç özet tablosu

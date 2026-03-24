@@ -502,3 +502,27 @@ small, .stCaption {{ color: {DS.TEXT_TER} !important; font-size: 11px !important
 def inject_css():
     """app.py'de bir kez çağrılır"""
     st.markdown(GLOBAL_CSS, unsafe_allow_html=True)
+
+def chart_layout(height=300, **extra):
+    """
+    Plotly update_layout için standart koyu tema parametreleri.
+    Tüm grafiklerde bu fonksiyonu kullan — çakışma olmaz.
+    """
+    return dict(
+        paper_bgcolor="rgba(0,0,0,0)",
+        plot_bgcolor="rgba(0,0,0,0)",
+        font=dict(color=DS.TEXT_SEC, family=DS.FONT, size=11),
+        margin=dict(l=8, r=8, t=36, b=8),
+        height=height,
+        xaxis=dict(gridcolor=DS.BORDER, showgrid=True, zeroline=False,
+                   tickfont=dict(size=10, color=DS.TEXT_TER),
+                   linecolor=DS.BORDER),
+        yaxis=dict(gridcolor=DS.BORDER, showgrid=True, zeroline=False,
+                   tickfont=dict(size=10, color=DS.TEXT_TER),
+                   linecolor=DS.BORDER),
+        legend=dict(bgcolor="rgba(0,0,0,0)", bordercolor=DS.BORDER,
+                    borderwidth=0, font=dict(size=11, color=DS.TEXT_SEC)),
+        hoverlabel=dict(bgcolor=DS.BG_ELEVATED, bordercolor=DS.BORDER_STR,
+                        font=dict(size=11, color=DS.TEXT_PRI)),
+        **extra,
+    )
