@@ -55,7 +55,10 @@ def sec(text):
         f'margin:16px 0 14px;">{text}</div>', unsafe_allow_html=True)
 
 def kpi(label, value, color="#e8eaf0", delta="", positive=True):
-    _pos = bool(positive) if positive is not None else True
+    try:
+        _pos = bool(positive)
+    except Exception:
+        _pos = True if positive is not None else True
     dc = C_GREEN if _pos else C_RED
     di = "▲" if _pos else "▼"
     dh = f'<div style="font-size:.75rem;color:{dc};margin-top:3px;">{di} {delta}</div>' if delta else ""
@@ -142,10 +145,10 @@ def show_cfo_tab(
     with c2: kpi("Kategori", durum["kategori"], color=skor_renk)
     with c3: kpi("🔴 Kritik", str(durum["kritik_uyari"]),
                  color=C_RED if durum["kritik_uyari"]>0 else C_GREEN,
-                 positive=durum["kritik_uyari"]==0)
+                 positive=bool(durum["kritik_uyari"]==0))
     with c4: kpi("🟡 Dikkat", str(durum["dikkat_uyari"]),
                  color=C_YELLOW if durum["dikkat_uyari"]>0 else C_GREEN,
-                 positive=durum["dikkat_uyari"]==0)
+                 positive=bool(durum["dikkat_uyari"]==0))
     with c5: kpi("Risk Profili", durum["risk_profili"], color=C_BLUE)
 
     # ── Alt Sekmeler ──
