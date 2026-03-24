@@ -94,6 +94,12 @@ try:
 except ImportError:
     BUDGET_OK = False
 
+try:
+    from data_entry_ui import show_data_entry_tab
+    DATA_ENTRY_OK = True
+except ImportError:
+    DATA_ENTRY_OK = False
+
 # ─────────────────────────────────────────────
 # SAYFA AYARLARI
 # ─────────────────────────────────────────────
@@ -476,12 +482,13 @@ df     = st.session_state.df
 (tab_genel, tab_gelir, tab_gider, tab_kar,
  tab_tahmin, tab_senaryo, tab_yatirim,
  tab_nakit, tab_borc, tab_sektor,
- tab_profil, tab_musteri, tab_butce, tab_cfo, tab_ai, tab_sohbet) = st.tabs([
+ tab_profil, tab_musteri, tab_butce,
+ tab_veri, tab_cfo, tab_ai, tab_sohbet) = st.tabs([
     "📊 Genel", "💰 Gelir", "📉 Gider", "📈 Karlılık",
     "🔮 Tahmin", "🎯 Senaryo", "💼 Yatırım",
     "💧 Nakit Akışı", "🏦 Borç Analizi",
     "🏭 Sektör", "🏢 Şirket Profili", "👥 Müşteri & Ürün", "🎯 Bütçe",
-    "🧠 CFO Agent", "🤖 AI Analiz", "💬 AI Sohbet",
+    "📥 Veri Girişi", "🧠 CFO Agent", "🤖 AI Analiz", "💬 AI Sohbet",
 ])
 
 # ══ GENEL ══
@@ -780,6 +787,13 @@ with tab_butce:
         st.error("`budget_engine.py` ve `budget_ui.py` dosyaları klasörde olmalı.")
     else:
         show_budget_tab(df=df, fin_rapor=rapor)
+
+# ══ VERİ GİRİŞ MERKEZİ ══
+with tab_veri:
+    if not DATA_ENTRY_OK:
+        st.error("`data_importer.py` ve `data_entry_ui.py` dosyaları klasörde olmalı.")
+    else:
+        show_data_entry_tab()
 
 # ══ CFO AGENT ══
 with tab_cfo:
