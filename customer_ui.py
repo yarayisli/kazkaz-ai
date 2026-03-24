@@ -40,7 +40,7 @@ def fmt(v):
 
 def kpi(label, value, color="#e8eaf0", delta="", positive=True):
     try:
-        _pos = bool(positive)
+        _pos = bool(positive) if not isinstance(positive, (bool, int)) else bool(positive)
     except Exception:
         _pos = True
     dc = C_GREEN if _pos else C_RED
@@ -405,16 +405,21 @@ def show_customer_tab(df: pd.DataFrame):
         sec("⚠️ Churn Risk Analizi")
 
         risk_ozet = co
+        _yuksek = int(risk_ozet.get("yuksek_risk") or 0)
+        _orta   = int(risk_ozet.get("orta_risk") or 0)
+        _rgelir = float(risk_ozet.get("risk_gelir") or 0)
         c1,c2,c3 = st.columns(3)
-        with c1: kpi("Yüksek Riskli",  str(risk_ozet.get("yuksek_risk",0)),
-                     "Acil aksiyon", color=C_RED,
-                     positive=bool(int(risk_ozet.get("yuksek_risk") or 0) == 0))
-        with c2: kpi("Orta Riskli",    str(risk_ozet.get("orta_risk",0)),
-                     "Takip et", color=C_YELLOW, positive=False)
-        with c3: kpi("Risk Altındaki Gelir",
-                     fmt(risk_ozet.get("risk_gelir",0)),
-                     "Yüksek risk segmenti", color=C_RED,
-                     positive=bool(float(risk_ozet.get("risk_gelir") or 0) == 0))
+        with c1:
+            kpi("Yüksek Riskli", str(_yuksek),
+                "Acil aksiyon", color=C_RED,
+                positive=(_yuksek == 0))
+        with c2:
+            kpi("Orta Riskli", str(_orta),
+                "Takip et", color=C_YELLOW, positive=False)
+        with c3:
+            kpi("Risk Altındaki Gelir", fmt(_rgelir),
+                "Yüksek risk segmenti", color=C_RED,
+                positive=(_rgelir == 0))
 
         churn_df = rapor["churn_risk"]
         if churn_df.empty:
