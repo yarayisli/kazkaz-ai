@@ -105,7 +105,7 @@ def show_customer_tab(df: pd.DataFrame):
     with c2: kpi("Toplam Ürün",      str(uo.get("toplam_urun",0)),      color=C_CYAN)
     with c3: kpi("Churn Riski Yük.", str(co.get("yuksek_risk",0)),
                  color=C_RED if co.get("yuksek_risk",0)>0 else C_GREEN,
-                 positive=bool(co.get("yuksek_risk"),0)==0)
+                 positive=bool(int(co.get("yuksek_risk") or 0) == 0))
     with c4: kpi("En İyi Müşteri",   mo.get("top3_musteri",["-"])[0] if mo.get("top3_musteri") else "-",
                  color=C_GREEN)
     with c5: kpi("En İyi Ürün",      uo.get("en_iyi_urun","-"),         color=C_GREEN)
@@ -408,13 +408,13 @@ def show_customer_tab(df: pd.DataFrame):
         c1,c2,c3 = st.columns(3)
         with c1: kpi("Yüksek Riskli",  str(risk_ozet.get("yuksek_risk",0)),
                      "Acil aksiyon", color=C_RED,
-                     positive=bool(risk_ozet.get("yuksek_risk"),0)==0)
+                     positive=bool(int(risk_ozet.get("yuksek_risk") or 0) == 0))
         with c2: kpi("Orta Riskli",    str(risk_ozet.get("orta_risk",0)),
                      "Takip et", color=C_YELLOW, positive=False)
         with c3: kpi("Risk Altındaki Gelir",
                      fmt(risk_ozet.get("risk_gelir",0)),
                      "Yüksek risk segmenti", color=C_RED,
-                     positive=bool(risk_ozet.get("risk_gelir"),0)==0)
+                     positive=bool(float(risk_ozet.get("risk_gelir") or 0) == 0))
 
         churn_df = rapor["churn_risk"]
         if churn_df.empty:
