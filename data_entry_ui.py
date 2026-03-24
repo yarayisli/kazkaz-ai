@@ -18,6 +18,8 @@ import numpy as np
 from datetime import datetime, date
 from io import BytesIO
 
+from design_system import DS, sec, kpi, alert, fmt
+
 try:
     from data_importer import DataImporter
     IMPORTER_OK = True

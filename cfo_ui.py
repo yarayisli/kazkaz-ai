@@ -9,6 +9,7 @@ app.py entegrasyonu:
 
 import streamlit as st
 import pandas as pd
+from design_system import DS, sec, kpi, alert, fmt, PLOTLY_THEME, score_color, C_GREEN, C_RED, C_BLUE, C_AMBER, C_CYAN, C_PURPLE
 from datetime import datetime
 
 from cfo_agent import (
