@@ -20,12 +20,12 @@ from cfo_agent import (
 # TEMA
 # ─────────────────────────────────────────────
 
-C_GREEN  = "#10d994"
-C_RED    = "#ff4757"
-C_YELLOW = "#fbbf24"
-C_BLUE   = "#0066ff"
-C_CYAN   = "#00d4ff"
-C_PURPLE = "#7c3aed"
+C_GREEN  = "#059669"
+C_RED    = "#DC2626"
+C_YELLOW = "#D97706"
+C_BLUE   = "#1D4ED8"
+C_CYAN   = "#0EA5E9"
+C_PURPLE = "#4F46E5"
 
 def fmt(v):
     if abs(v) >= 1_000_000: return f"{v/1_000_000:.1f}M ₺"
@@ -38,7 +38,7 @@ def alert_color(seviye: AlertLevel) -> str:
         AlertLevel.DIKKAT:  C_YELLOW,
         AlertLevel.BILGI:   C_BLUE,
         AlertLevel.POZITIF: C_GREEN,
-    }.get(seviye, "#8899bb")
+    }.get(seviye, "#94A3B8")
 
 def alert_bg(seviye: AlertLevel) -> str:
     return {
@@ -46,15 +46,15 @@ def alert_bg(seviye: AlertLevel) -> str:
         AlertLevel.DIKKAT:  "#1a1500",
         AlertLevel.BILGI:   "#0a0f1a",
         AlertLevel.POZITIF: "#0a1a0f",
-    }.get(seviye, "#111827")
+    }.get(seviye, "#FFFFFF")
 
 def sec(text):
     st.markdown(
-        f'<div style="font-family:Syne,sans-serif;font-size:1rem;font-weight:700;'
-        f'color:#e8eaf0;padding:6px 0 10px;border-bottom:1px solid #1e2d4a;'
+        f'<div style="font-family:Inter,-apple-system,sans-serif;font-size:1rem;font-weight:700;'
+        f'color:#0F172A;padding:6px 0 10px;border-bottom:1px solid #E2E8F0;'
         f'margin:16px 0 14px;">{text}</div>', unsafe_allow_html=True)
 
-def kpi(label, value, color="#e8eaf0", delta="", positive=True):
+def kpi(label, value, color="#0F172A", delta="", positive=True):
     try:
         _pos = bool(positive)
     except Exception:
@@ -63,14 +63,14 @@ def kpi(label, value, color="#e8eaf0", delta="", positive=True):
     di = "▲" if _pos else "▼"
     dh = f'<div style="font-size:.75rem;color:{dc};margin-top:3px;">{di} {delta}</div>' if delta else ""
     st.markdown(
-        f'<div style="background:linear-gradient(135deg,#111827,#1a2540);'
-        f'border:1px solid #1e3a5f;border-radius:14px;padding:16px 18px;'
+        f'<div style="background:var(--bg-surface);'
+        f'border:1px solid #E2E8F0;border-radius:14px;padding:16px 18px;'
         f'position:relative;overflow:hidden;margin-bottom:8px;">'
-        f'<div style="position:absolute;top:0;left:0;right:0;height:3px;'
-        f'background:linear-gradient(90deg,#00d4ff,#0066ff);"></div>'
-        f'<div style="font-size:.7rem;color:#4a6fa5;letter-spacing:1.5px;'
+        f'<div style="position:absolute;left:0;top:0;bottom:0;width:3px;border-radius:4px 0 0 4px;'
+        f'background:linear-gradient(90deg,#0EA5E9,#1D4ED8);"></div>'
+        f'<div style="font-size:.7rem;color:#64748B;letter-spacing:1.5px;'
         f'text-transform:uppercase;margin-bottom:5px;">{label}</div>'
-        f'<div style="font-family:Syne,sans-serif;font-size:1.5rem;'
+        f'<div style="font-family:Inter,-apple-system,sans-serif;font-size:1.5rem;'
         f'font-weight:700;color:{color};">{value}</div>{dh}</div>',
         unsafe_allow_html=True)
 
@@ -87,21 +87,21 @@ def show_cfo_tab(
     debt_rapor: dict = None,
 ):
     st.markdown(
-        '<div style="font-family:Syne,sans-serif;font-size:1.5rem;font-weight:800;'
-        'background:linear-gradient(135deg,#00d4ff,#0066ff,#7c3aed);'
+        '<div style="font-family:Inter,-apple-system,sans-serif;font-size:1.5rem;font-weight:800;'
+        'background:linear-gradient(135deg,#0EA5E9,#1D4ED8,#4F46E5);'
         '-webkit-background-clip:text;-webkit-text-fill-color:transparent;">'
         '🧠 CFO AI Agent</div>'
-        '<div style="color:#4a6fa5;font-size:.78rem;letter-spacing:2px;'
+        '<div style="color:#64748B;font-size:.78rem;letter-spacing:2px;'
         'text-transform:uppercase;margin-bottom:18px;">'
         'Proaktif Analiz · Uyarılar · Yatırım & Borç Önerileri · Otomatik Rapor</div>',
         unsafe_allow_html=True)
 
     if ai_engine is None:
         st.markdown(
-            '<div style="background:#0d1520;border:1px solid #ff475744;'
+            '<div style="background:#F8FAFC;border:1px solid #DC262644;'
             'border-radius:12px;padding:20px;text-align:center;color:#ff8080;">'
             '🔒 CFO Agent için AI motoru gerekli.<br>'
-            '<span style="font-size:.85rem;color:#4a6fa5;">'
+            '<span style="font-size:.85rem;color:#64748B;">'
             'Sol panelden Groq veya Gemini API anahtarınızı ekleyin.</span></div>',
             unsafe_allow_html=True)
         return
@@ -195,11 +195,11 @@ def show_cfo_tab(
 
         if "cfo_uyari_yorum" in st.session_state:
             st.markdown(
-                f'<div style="background:#0d1520;border:1px solid #0066ff44;'
-                f'border-radius:12px;padding:16px 20px;color:#a8c8e8;'
+                f'<div style="background:#F8FAFC;border:1px solid #BFDBFE;'
+                f'border-radius:12px;padding:16px 20px;color:#334155;'
                 f'font-size:.9rem;line-height:1.8;">'
-                f'<span style="display:inline-block;background:#0066ff22;'
-                f'border:1px solid #0066ff44;color:#60a5fa;font-size:.7rem;'
+                f'<span style="display:inline-block;background:#1D4ED822;'
+                f'border:1px solid #BFDBFE;color:#1D4ED8;font-size:.7rem;'
                 f'padding:2px 8px;border-radius:20px;margin-bottom:8px;">CFO Agent</span><br>'
                 f'{st.session_state["cfo_uyari_yorum"].replace(chr(10),"<br>")}'
                 f'</div>',
@@ -219,22 +219,22 @@ def show_cfo_tab(
         for i, oneri in enumerate(inv["oneriler"], 1):
             oncelik_renk = C_RED if oneri["oncelik"]=="Yüksek" else C_YELLOW
             st.markdown(
-                f'<div style="background:#111827;border:1px solid #1e3a5f;'
+                f'<div style="background:#FFFFFF;border:1px solid #E2E8F0;'
                 f'border-radius:12px;padding:16px 18px;margin-bottom:10px;">'
                 f'<div style="display:flex;justify-content:space-between;'
                 f'align-items:center;margin-bottom:8px;">'
-                f'<span style="font-family:Syne,sans-serif;font-weight:700;'
-                f'color:#e8eaf0;font-size:.95rem;">{i}. {oneri["tip"]}</span>'
+                f'<span style="font-family:Inter,-apple-system,sans-serif;font-weight:700;'
+                f'color:#0F172A;font-size:.95rem;">{i}. {oneri["tip"]}</span>'
                 f'<span style="background:{oncelik_renk}22;color:{oncelik_renk};'
                 f'font-size:.72rem;padding:2px 8px;border-radius:20px;">'
                 f'{oneri["oncelik"]} Öncelik</span></div>'
                 f'<div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;">'
-                f'<div style="color:#4a6fa5;font-size:.78rem;">Tutar<br>'
-                f'<span style="color:#60a5fa;font-weight:600;">{fmt(oneri["tutar"])}</span></div>'
-                f'<div style="color:#4a6fa5;font-size:.78rem;">Süre<br>'
-                f'<span style="color:#e8eaf0;">{oneri["sure"]}</span></div>'
-                f'<div style="color:#4a6fa5;font-size:.78rem;">Beklenen ROI<br>'
-                f'<span style="color:#10d994;font-weight:600;">{oneri["beklenen_roi"]}</span></div>'
+                f'<div style="color:#64748B;font-size:.78rem;">Tutar<br>'
+                f'<span style="color:#1D4ED8;font-weight:600;">{fmt(oneri["tutar"])}</span></div>'
+                f'<div style="color:#64748B;font-size:.78rem;">Süre<br>'
+                f'<span style="color:#0F172A;">{oneri["sure"]}</span></div>'
+                f'<div style="color:#64748B;font-size:.78rem;">Beklenen ROI<br>'
+                f'<span style="color:#059669;font-weight:600;">{oneri["beklenen_roi"]}</span></div>'
                 f'</div></div>',
                 unsafe_allow_html=True)
 
@@ -249,8 +249,8 @@ def show_cfo_tab(
 
         if "cfo_inv_yorum" in st.session_state:
             st.markdown(
-                f'<div style="background:#0d1520;border:1px solid #0066ff44;'
-                f'border-radius:12px;padding:16px 20px;color:#a8c8e8;'
+                f'<div style="background:#F8FAFC;border:1px solid #BFDBFE;'
+                f'border-radius:12px;padding:16px 20px;color:#334155;'
                 f'font-size:.9rem;line-height:1.8;margin-top:10px;">'
                 f'{st.session_state["cfo_inv_yorum"].replace(chr(10),"<br>")}'
                 f'</div>', unsafe_allow_html=True)
@@ -269,28 +269,28 @@ def show_cfo_tab(
         bgr_renk  = C_GREEN if bgr < 2 else C_RED
         with c2:
             st.markdown(
-                f'<div style="background:linear-gradient(135deg,#111827,#1a2540);'
-                f'border:1px solid #1e3a5f;border-radius:14px;padding:16px 18px;'
+                f'<div style="background:var(--bg-surface);'
+                f'border:1px solid #E2E8F0;border-radius:14px;padding:16px 18px;'
                 f'position:relative;overflow:hidden;margin-bottom:8px;">'
-                f'<div style="position:absolute;top:0;left:0;right:0;height:3px;'
-                f'background:linear-gradient(90deg,#00d4ff,#0066ff);"></div>'
-                f'<div style="font-size:.7rem;color:#4a6fa5;letter-spacing:1.5px;'
+                f'<div style="position:absolute;left:0;top:0;bottom:0;width:3px;border-radius:4px 0 0 4px;'
+                f'background:linear-gradient(90deg,#0EA5E9,#1D4ED8);"></div>'
+                f'<div style="font-size:.7rem;color:#64748B;letter-spacing:1.5px;'
                 f'text-transform:uppercase;margin-bottom:5px;">ORT. FAİZ</div>'
-                f'<div style="font-family:Syne,sans-serif;font-size:1.5rem;'
+                f'<div style="font-family:Inter,-apple-system,sans-serif;font-size:1.5rem;'
                 f'font-weight:700;color:{faiz_renk};">%{faiz_pct:.1f}</div></div>',
                 unsafe_allow_html=True)
         with c3:
             st.markdown(
-                f'<div style="background:linear-gradient(135deg,#111827,#1a2540);'
-                f'border:1px solid #1e3a5f;border-radius:14px;padding:16px 18px;'
+                f'<div style="background:var(--bg-surface);'
+                f'border:1px solid #E2E8F0;border-radius:14px;padding:16px 18px;'
                 f'position:relative;overflow:hidden;margin-bottom:8px;">'
-                f'<div style="position:absolute;top:0;left:0;right:0;height:3px;'
-                f'background:linear-gradient(90deg,#00d4ff,#0066ff);"></div>'
-                f'<div style="font-size:.7rem;color:#4a6fa5;letter-spacing:1.5px;'
+                f'<div style="position:absolute;left:0;top:0;bottom:0;width:3px;border-radius:4px 0 0 4px;'
+                f'background:linear-gradient(90deg,#0EA5E9,#1D4ED8);"></div>'
+                f'<div style="font-size:.7rem;color:#64748B;letter-spacing:1.5px;'
                 f'text-transform:uppercase;margin-bottom:5px;">B/G ORANI</div>'
-                f'<div style="font-family:Syne,sans-serif;font-size:1.5rem;'
+                f'<div style="font-family:Inter,-apple-system,sans-serif;font-size:1.5rem;'
                 f'font-weight:700;color:{bgr_renk};">{bgr:.2f}</div>'
-                f'<div style="font-size:.75rem;color:#4a6fa5;margin-top:3px;">'
+                f'<div style="font-size:.75rem;color:#64748B;margin-top:3px;">'
                 f'Hedef: &lt; 2</div></div>',
                 unsafe_allow_html=True)
 
@@ -298,11 +298,11 @@ def show_cfo_tab(
         if debt["oneriler"]:
             for oneri in debt["oneriler"]:
                 st.markdown(
-                    f'<div style="background:#111827;border:1px solid #1e3a5f;'
+                    f'<div style="background:#FFFFFF;border:1px solid #E2E8F0;'
                     f'border-radius:12px;padding:14px 18px;margin-bottom:8px;">'
-                    f'<div style="font-weight:700;color:#e8eaf0;margin-bottom:6px;">'
+                    f'<div style="font-weight:700;color:#0F172A;margin-bottom:6px;">'
                     f'🏦 {oneri["tip"]}</div>'
-                    f'<div style="color:#8aabcc;font-size:.85rem;margin-bottom:4px;">'
+                    f'<div style="color:#4B5563;font-size:.85rem;margin-bottom:4px;">'
                     f'{oneri["aciklama"]}</div>'
                     f'<div style="color:{C_CYAN};font-size:.84rem;">'
                     f'➡️ {oneri["eylem"]}</div>'
@@ -323,8 +323,8 @@ def show_cfo_tab(
 
         if "cfo_debt_yorum" in st.session_state:
             st.markdown(
-                f'<div style="background:#0d1520;border:1px solid #0066ff44;'
-                f'border-radius:12px;padding:16px 20px;color:#a8c8e8;'
+                f'<div style="background:#F8FAFC;border:1px solid #BFDBFE;'
+                f'border-radius:12px;padding:16px 20px;color:#334155;'
                 f'font-size:.9rem;line-height:1.8;margin-top:10px;">'
                 f'{st.session_state["cfo_debt_yorum"].replace(chr(10),"<br>")}'
                 f'</div>', unsafe_allow_html=True)
@@ -350,8 +350,8 @@ def show_cfo_tab(
         if "cfo_rapor_md" in st.session_state:
             rapor_md = st.session_state["cfo_rapor_md"]
             st.markdown(
-                f'<div style="background:#0d1520;border:1px solid #1e3a5f;'
-                f'border-radius:14px;padding:20px 24px;color:#a8c8e8;'
+                f'<div style="background:#F8FAFC;border:1px solid #E2E8F0;'
+                f'border-radius:14px;padding:20px 24px;color:#334155;'
                 f'font-size:.88rem;line-height:1.8;white-space:pre-wrap;">'
                 f'{rapor_md}</div>', unsafe_allow_html=True)
 
@@ -378,8 +378,8 @@ def show_cfo_tab(
                 st.markdown("---")
                 sec("🤖 AI Tarafından Zenginleştirilmiş Rapor")
                 st.markdown(
-                    f'<div style="background:#0d1520;border:1px solid #0066ff44;'
-                    f'border-radius:14px;padding:20px 24px;color:#a8c8e8;'
+                    f'<div style="background:#F8FAFC;border:1px solid #BFDBFE;'
+                    f'border-radius:14px;padding:20px 24px;color:#334155;'
                     f'font-size:.88rem;line-height:1.8;">'
                     f'{st.session_state["cfo_rapor_zengin"].replace(chr(10),"<br>")}'
                     f'</div>', unsafe_allow_html=True)
@@ -388,7 +388,7 @@ def show_cfo_tab(
     with s5:
         sec("💬 CFO ile Sohbet")
         st.markdown(
-            '<div style="color:#4a6fa5;font-size:.82rem;margin-bottom:16px;">'
+            '<div style="color:#64748B;font-size:.82rem;margin-bottom:16px;">'
             'Şirket verilerinizi bilen CFO AI Agent ile finansal kararlarınız '
             'hakkında konuşun.</div>', unsafe_allow_html=True)
 
@@ -423,7 +423,7 @@ def show_cfo_tab(
                     unsafe_allow_html=True)
             else:
                 st.markdown(
-                    f'<div style="background:#111827;border:1px solid #1e3a5f;'
+                    f'<div style="background:#FFFFFF;border:1px solid #E2E8F0;'
                     f'border-radius:12px 12px 12px 4px;'
                     f'padding:10px 14px;margin:6px 60px 6px 0;'
                     f'font-size:.9rem;color:#a8c0e0;">🧠 {msg["content"]}</div>',
