@@ -24,6 +24,17 @@ import plotly.express as px
 # ── Core motor (zorunlu) ──
 from financial_engine import FinancialEngine
 from design_system import *
+from ui_components import (
+    render_topbar, render_page_header, render_exec_summary,
+    render_kpi_row, render_section, render_alerts,
+    render_health_bars, render_stat_strip, render_insight_card,
+    render_divider, badge_html, fmt as ufmt, T,
+)
+from html_components import (
+    render_page_header, render_exec_summary, render_kpi_row,
+    render_alert, render_section, render_health_bars,
+    badge_html, SIDEBAR_LOGO_HTML, NAV_GROUP_HTML,
+)
 
 # ── Opsiyonel modüller ──
 try:
@@ -150,6 +161,84 @@ GROQ_API_KEY_ENV     = get_secret("GROQ_API_KEY")
 # ─────────────────────────────────────────────
 
 inject_css()
+
+# Streamlit'in beyaz tema ile çakışmasını önle
+st.markdown("""
+<style>
+.stApp { background-color: #F7F8FA !important; }
+[data-testid="stSidebar"] {
+    background: #FFFFFF !important;
+    border-right: 0.5px solid #E2E5EB !important;
+}
+[data-testid="stSidebar"] * { color: #4B5563 !important; }
+.stTabs [data-baseweb="tab-list"] {
+    background: #F3F4F6 !important;
+    border: 0.5px solid #E2E5EB !important;
+    border-radius: 8px !important;
+    padding: 3px !important;
+}
+.stTabs [data-baseweb="tab"] {
+    color: #9CA3AF !important;
+    font-size: 12px !important;
+    font-weight: 500 !important;
+    border-radius: 6px !important;
+}
+.stTabs [aria-selected="true"] {
+    color: #1B3A6B !important;
+    background: #FFFFFF !important;
+    font-weight: 600 !important;
+    box-shadow: 0 0 0 0.5px #E2E5EB !important;
+}
+.stButton > button {
+    background: #1B3A6B !important;
+    color: #fff !important;
+    border: none !important;
+    border-radius: 8px !important;
+    font-size: 13px !important;
+    font-weight: 500 !important;
+    padding: 8px 18px !important;
+}
+.stButton > button:hover { background: #2B4F8C !important; }
+.stDownloadButton > button {
+    background: #F3F4F6 !important;
+    color: #4B5563 !important;
+    border: 0.5px solid #E2E5EB !important;
+    border-radius: 8px !important;
+}
+[data-testid="stMetric"] {
+    background: #FFFFFF !important;
+    border: 0.5px solid #E2E5EB !important;
+    border-radius: 8px !important;
+}
+[data-testid="stMetricLabel"] {
+    font-size: 9px !important;
+    font-weight: 600 !important;
+    letter-spacing: .1em !important;
+    text-transform: uppercase !important;
+    color: #9CA3AF !important;
+}
+[data-testid="stMetricValue"] {
+    font-size: 22px !important;
+    font-weight: 600 !important;
+    letter-spacing: -.03em !important;
+    color: #1A1A2E !important;
+}
+.dataframe { font-size: 12px !important; }
+.dataframe th {
+    background: #F3F4F6 !important;
+    color: #9CA3AF !important;
+    font-size: 9px !important;
+    font-weight: 600 !important;
+    letter-spacing: .08em !important;
+    text-transform: uppercase !important;
+    border-bottom: 0.5px solid #E2E5EB !important;
+}
+.dataframe td { border-bottom: 0.5px solid #F3F4F6 !important; }
+hr { border-color: #E2E5EB !important; }
+::-webkit-scrollbar { width: 4px; }
+::-webkit-scrollbar-thumb { background: #D1D5DB; border-radius: 2px; }
+</style>
+""", unsafe_allow_html=True)
 
 # ─────────────────────────────────────────────
 # SESSION STATE
@@ -321,21 +410,7 @@ def sec(text, small=False):
 
 with st.sidebar:
 
-    # ══ LOGO — Premium Koyu Sidebar ══
-    st.markdown(
-        '<div style="padding:20px 16px 16px;border-bottom:1px solid #1A2E4A;">'
-        '<div style="display:flex;align-items:center;gap:10px;">'
-        '<div style="width:34px;height:34px;background:#2563EB;border-radius:8px;'
-        'display:flex;align-items:center;justify-content:center;'
-        'font-size:15px;font-weight:700;color:#fff;flex-shrink:0;">K</div>'
-        '<div>'
-        f'<div style="font-size:14px;font-weight:600;letter-spacing:-.01em;color:#DDE4F0;">'
-        f'KazKaz <span style="color:#3B82F6;">AI</span></div>'
-        f'<div style="font-size:9px;letter-spacing:.12em;text-transform:uppercase;'
-        f'color:#3D5275;margin-top:1px;">Finansal Karar Platformu</div>'
-        '</div></div></div>',
-        unsafe_allow_html=True
-    )
+    st.markdown(SIDEBAR_LOGO_HTML, unsafe_allow_html=True)
 
     if FIREBASE_OK:
         show_user_badge()
@@ -546,165 +621,157 @@ df     = st.session_state.df
 
 # ══ GENEL DASHBOARD ══
 with tab_genel:
-    g, e, k, s = rapor["gelir"], rapor["gider"], rapor["karlilik"], rapor["saglik_skoru"]
+    g  = rapor["gelir"]
+    e  = rapor["gider"]
+    k  = rapor["karlilik"]
+    s  = rapor["saglik_skoru"]
 
-    buyume_val = float(g.get("ortalama_buyume_orani", 0) or 0)
-    kar_val    = float(k.get("toplam_net_kar", 0) or 0)
-    skor_val   = int(s.get("skor", 0) or 0)
-    skor_kat   = s.get("kategori", "")
-    skor_renk  = score_color(skor_kat)
-    sirket     = st.session_state.get("sirket_adi", "Şirket")
-    gider_oran = round(e["toplam_gider"]/g["toplam_gelir"]*100,1) if g.get("toplam_gelir") else 0
+    _buyume  = float(g.get("ortalama_buyume_orani", 0) or 0)
+    _kar     = float(k.get("toplam_net_kar", 0) or 0)
+    _skor    = int(s.get("skor", 0) or 0)
+    _skat    = s.get("kategori", "")
+    _marj    = float(k.get("kar_marji", 0) or 0)
+    _gider_o = round(e["toplam_gider"]/g["toplam_gelir"]*100,1) if g.get("toplam_gelir") else 0
+    _sirket  = st.session_state.get("sirket_adi", "Şirket")
+    _s_level = "success" if _skor >= 65 else "warning" if _skor >= 40 else "danger"
 
-    # ── Page header (İlke 5) ──
-    bdg_lvl = "success" if skor_val >= 65 else "warning" if skor_val >= 40 else "critical"
-    bdg_clr = DS.GREEN if skor_val >= 65 else DS.AMBER if skor_val >= 40 else DS.RED
-    bdg_bg  = DS.GREEN_BG if skor_val >= 65 else DS.AMBER_BG if skor_val >= 40 else DS.RED_BG
-    bdg_bdr = DS.GREEN_BDR if skor_val >= 65 else DS.AMBER_BDR if skor_val >= 40 else DS.RED_BDR
-
-    st.markdown(
-        f'<div style="padding:4px 0 20px;border-bottom:1px solid {DS.BORDER};margin-bottom:20px;">'
-        f'<div style="font-size:18px;font-weight:600;letter-spacing:-0.01em;'
-        f'color:{DS.TEXT_PRI};">{sirket} — Finansal Genel Bakış</div>'
-        f'<div style="font-size:12px;color:{DS.TEXT_TER};margin-top:5px;display:flex;'
-        f'align-items:center;gap:10px;">'
-        f'<span>{g.get("ay_sayisi",0)} aylık veri</span>'
-        f'<span style="opacity:.4">·</span>'
-        f'<span>{g.get("donem_baslangic","—")} – {g.get("donem_bitis","—")}</span>'
-        f'<span style="opacity:.4">·</span>'
-        f'<span style="background:{bdg_bg};color:{bdg_clr};border:1px solid {bdg_bdr};'
-        f'padding:2px 8px;border-radius:4px;font-size:10px;font-weight:600;'
-        f'letter-spacing:.05em;text-transform:uppercase;">{skor_kat}</span>'
-        f'</div></div>',
-        unsafe_allow_html=True
+    # ── Topbar ──
+    render_topbar(
+        sirket_adi    = _sirket,
+        donem         = f'{g.get("donem_baslangic","—")} – {g.get("donem_bitis","—")}',
+        saglik_badge  = f'{_skat} · {_skor}/100',
     )
 
-    # ── İlke 5: Yönetici Özeti ──
-    marj = k.get("kar_marji", 0)
-    buyume_yorum = "güçlü büyüme sürdürüyor" if buyume_val >= 10 else "ılımlı büyüme kaydediyor" if buyume_val >= 0 else "gelir gerileme yaşıyor"
-    marj_yorum = "sağlıklı" if marj >= 20 else "baskı altında" if marj >= 10 else "kritik seviyede"
-    exec_summary(
-        f"{sirket} {g.get('ay_sayisi',0)} aylık dönemde {buyume_yorum}. "
-        f"Toplam gelir <strong>{fmt(g['toplam_gelir'])}</strong> ile gerçekleşti; "
-        f"net kar marjı <strong>%{marj}</strong> — {marj_yorum}. "
-        f"Gider/gelir oranı %{gider_oran}. "
-        f"Finansal sağlık skoru: <strong>{skor_val}/100 ({skor_kat})</strong>."
+    # ── Page Header ──
+    render_page_header(
+        title    = f"{_sirket} — Finansal Genel Bakış",
+        subtitle = f'{g.get("ay_sayisi",0)} aylık dönem · {g.get("donem_baslangic","—")} – {g.get("donem_bitis","—")}',
+        badge_text  = _skat,
+        badge_level = _s_level,
     )
 
-    # ── KPI Satırı 1: Ana metrikler (İlke 4) ──
-    c1, c2, c3, c4 = st.columns(4)
-    with c1:
-        kpi("Toplam Gelir", fmt(g["toplam_gelir"]),
-            f'Ort. {fmt(g["ortalama_aylik_gelir"])}/ay', True)
-    with c2:
-        kpi("Net Kar", fmt(kar_val),
-            f'Marj %{marj}', bool(kar_val >= 0))
-    with c3:
-        kpi("Büyüme Oranı", f'%{buyume_val}',
-            "Aylık ortalama", bool(buyume_val >= 0))
-    with c4:
-        st.markdown(
-            f'<div style="background:{DS.BG_SURFACE};border:1px solid {DS.BORDER};'
-            f'border-radius:{DS.R_LG};padding:18px 20px 16px 22px;'
-            f'position:relative;overflow:hidden;margin-bottom:8px;'
-            f'box-shadow:{DS.SHADOW};">'
-            f'<div style="position:absolute;left:0;top:0;bottom:0;width:3px;'
-            f'border-radius:4px 0 0 4px;background:{skor_renk};"></div>'
-            f'<div style="font-size:10px;font-weight:600;letter-spacing:.1em;'
-            f'text-transform:uppercase;color:{DS.TEXT_TER};margin-bottom:8px;">'
-            f'Finansal Sağlık</div>'
-            f'<div style="font-size:26px;font-weight:600;letter-spacing:-.025em;'
-            f'line-height:1.1;color:{skor_renk};">{skor_val}'
-            f'<span style="font-size:14px;color:{DS.TEXT_TER};font-weight:400;"> /100</span></div>'
-            f'<div style="display:inline-flex;align-items:center;padding:2px 7px;'
-            f'border-radius:4px;font-size:10px;font-weight:600;letter-spacing:.05em;'
-            f'text-transform:uppercase;margin-top:7px;'
-            f'background:{bdg_bg};color:{bdg_clr};border:1px solid {bdg_bdr};">'
-            f'{skor_kat}</div></div>',
-            unsafe_allow_html=True
-        )
+    # ── İlke 5: Exec Summary ──
+    _by = "güçlü büyüme" if _buyume >= 10 else "ılımlı büyüme" if _buyume >= 0 else "gerileme"
+    _mj = "sağlıklı" if _marj >= 20 else "baskı altında" if _marj >= 10 else "kritik"
+    render_exec_summary(
+        f"{_sirket} {g.get('ay_sayisi',0)} aylık dönemde <strong>{_by}</strong> kaydetti. "
+        f"Toplam gelir <strong>{fmt(g['toplam_gelir'])}</strong>; "
+        f"net kar marjı <strong>%{_marj}</strong> — {_mj}. "
+        f"Gider/gelir oranı %{_gider_o}. "
+        f"Finansal sağlık: <strong>{_skor}/100 ({_skat})</strong>."
+    )
 
-    # ── KPI Satırı 2: İkincil metrikler ──
-    c1, c2, c3, c4 = st.columns(4)
-    with c1:
-        kpi("Toplam Gider", fmt(e["toplam_gider"]),
-            f'Sabit %{e["sabit_gider_orani"]}',
-            bool(e["sabit_gider_orani"] < 60))
-    with c2:
-        kpi("Kar Marjı", f'%{marj}',
-            "Hedef > %15", bool(marj >= 15))
-    with c3:
-        kpi("Gider / Gelir", f'%{gider_oran}',
-            "Hedef < %80", bool(gider_oran < 80))
-    with c4:
-        kpi("Analiz Dönemi", f'{g.get("ay_sayisi",0)} Ay',
-            f'{g.get("donem_baslangic","—")} – {g.get("donem_bitis","—")}', True)
+    # ── KPI Satırı 1 ──
+    render_kpi_row([
+        {"label":"Toplam Gelir",  "value":fmt(g["toplam_gelir"]),
+         "delta":f'Ort. {fmt(g["ortalama_aylik_gelir"])}/ay', "positive":True},
+        {"label":"Net Kar",       "value":fmt(_kar),
+         "delta":f'Marj %{_marj}', "positive":_kar>=0},
+        {"label":"Büyüme Oranı", "value":f'%{_buyume}',
+         "delta":"Aylık ortalama", "positive":_buyume>=0},
+        {"label":"Sağlık Skoru", "value":f'{_skor}/100',
+         "delta":_skat, "positive":_skor>=60,
+         "accent_color": "#059669" if _skor>=65 else "#D97706" if _skor>=40 else "#DC2626",
+         "color": "#059669" if _skor>=65 else "#D97706" if _skor>=40 else "#DC2626"},
+    ], height=105)
 
-    # ── Ayırıcı ──
-    st.markdown(f'<hr style="border:none;border-top:1px solid {DS.BORDER};margin:20px 0;">',
-                unsafe_allow_html=True)
+    # ── KPI Satırı 2 ──
+    render_kpi_row([
+        {"label":"Toplam Gider",  "value":fmt(e["toplam_gider"]),
+         "delta":f'Sabit %{e["sabit_gider_orani"]}',
+         "positive":e["sabit_gider_orani"]<60,
+         "accent_color":"#D97706"},
+        {"label":"Kar Marjı",     "value":f'%{_marj}',
+         "delta":"Hedef >%15", "positive":_marj>=15},
+        {"label":"Gider / Gelir", "value":f'%{_gider_o}',
+         "delta":"Hedef <%80", "positive":_gider_o<80},
+        {"label":"Dönem",         "value":f'{g.get("ay_sayisi",0)} Ay',
+         "delta":f'{g.get("donem_baslangic","—")} – {g.get("donem_bitis","—")}',
+         "positive":True, "accent_color":"#1B3A6B"},
+    ], height=105)
 
-    # ── Ana Grafik + Sağlık Paneli ──
-    col_main, col_side = st.columns([2, 1])
+    # ── Ana Grafik + Sağlık ──
+    col_main, col_side = st.columns([2, 1], gap="medium")
 
     with col_main:
-        sec("Aylık Finansal Performans")
+        render_section("Aylık Finansal Performans")
         mp = engine.profit.monthly_profit()
         if not mp.empty:
             fig = go.Figure()
-            fig.add_bar(
-                x=mp["Dönem"], y=mp["Gelir"], name="Gelir",
-                marker_color=DS.C1, opacity=0.85,
-            )
-            fig.add_bar(
-                x=mp["Dönem"], y=mp["Gider"], name="Gider",
-                marker_color=DS.C3, opacity=0.7,
-            )
+            fig.add_bar(x=mp["Dönem"], y=mp["Gelir"],
+                        name="Gelir", marker_color="#1B3A6B", opacity=0.85)
+            fig.add_bar(x=mp["Dönem"], y=mp["Gider"],
+                        name="Gider", marker_color="#E5E7EB", opacity=0.9)
             fig.add_scatter(
                 x=mp["Dönem"], y=mp["NetKar"], name="Net Kar",
                 mode="lines+markers",
-                line=dict(color=DS.GREEN, width=2.5),
-                marker=dict(size=6, color=DS.GREEN,
-                            line=dict(color=DS.BG_BASE, width=1.5)),
+                line=dict(color="#059669", width=2.5),
+                marker=dict(size=6, color="#059669",
+                            line=dict(color="#fff", width=1.5)),
             )
             fig.update_layout(**chart_layout(
-                height=300,
+                height=280,
                 barmode="group",
+                paper_bgcolor="rgba(0,0,0,0)",
+                plot_bgcolor="#FAFBFC",
+                font=dict(color="#9CA3AF", family="-apple-system,Arial,sans-serif", size=11),
+                xaxis=dict(gridcolor="#F3F4F6", showgrid=True, zeroline=False,
+                           tickfont=dict(size=10, color="#9CA3AF"), linecolor="#E2E5EB"),
+                yaxis=dict(gridcolor="#F3F4F6", showgrid=True, zeroline=False,
+                           tickfont=dict(size=10, color="#9CA3AF"), linecolor="#E2E5EB"),
                 legend=dict(orientation="h", y=1.06, x=0,
-                            font=dict(size=11, color=DS.TEXT_SEC),
-                            bgcolor="rgba(0,0,0,0)"),
+                            bgcolor="rgba(0,0,0,0)",
+                            font=dict(size=11, color="#4B5563")),
             ))
             st.plotly_chart(fig, use_container_width=True)
 
     with col_side:
-        sec("Finansal Sağlık Skoru")
-        alt = s["alt_skorlar"]
-        for key, lbl in [
-            ("karlilik","Karlılık"),
-            ("buyume","Büyüme"),
-            ("gider_kontrolu","Gider Kontrolü"),
-            ("nakit","Nakit"),
-        ]:
-            val  = int(alt.get(key, 0) or 0)
-            renk = DS.GREEN if val >= 70 else DS.AMBER if val >= 40 else DS.RED
-            pct  = min(val, 100)
-            st.markdown(
-                f'<div style="margin-bottom:16px;">'
-                f'<div style="display:flex;justify-content:space-between;margin-bottom:6px;">'
-                f'<span style="font-size:11px;font-weight:500;color:{DS.TEXT_SEC};'
-                f'letter-spacing:.04em;">{lbl}</span>'
-                f'<span style="font-size:12px;font-weight:600;color:{renk};">{val}</span>'
-                f'</div>'
-                f'<div style="background:{DS.BG_ELEVATED};border-radius:3px;'
-                f'height:6px;overflow:hidden;">'
-                f'<div style="background:{renk};width:{pct}%;height:100%;'
-                f'border-radius:3px;"></div>'
-                f'</div></div>',
-                unsafe_allow_html=True
-            )
+        render_section("Finansal Sağlık Alt Skorları")
+        alt = s.get("alt_skorlar", {})
+        render_health_bars({
+            "Karlılık":       alt.get("karlilik", 0),
+            "Büyüme":         alt.get("buyume", 0),
+            "Gider Kontrolü": alt.get("gider_kontrolu", 0),
+            "Nakit":          alt.get("nakit", 0),
+        })
 
-        # İlke 8: Alert
-        alert("Sistem Değerlendirmesi", s.get("aciklama",""), "info")
+        # Sistem değerlendirmesi
+        render_alerts([{
+            "title": "Sistem Değerlendirmesi",
+            "body":  s.get("aciklama", ""),
+            "level": _s_level if _s_level != "brand" else "info",
+        }])
+
+    # ── Risk & Fırsat Alertleri ──
+    render_section("Önemli Tespitler & Aksiyonlar", top_margin=8)
+
+    _alerts = []
+    if _gider_o > 80:
+        _alerts.append({"title":"Gider oranı kritik seviyede",
+            "body":f"Gider/gelir oranı %{_gider_o} — hedef %80'in üzerinde. Acil inceleme önerilir.",
+            "level":"danger"})
+    elif _gider_o > 70:
+        _alerts.append({"title":"Gider oranı yükseliyor",
+            "body":f"Gider/gelir oranı %{_gider_o}. Personel ve sabit gider kalemleri gözden geçirilmeli.",
+            "level":"warning"})
+    if _buyume >= 10:
+        _alerts.append({"title":"Güçlü büyüme momentumu",
+            "body":f"Aylık ortalama %{_buyume} büyüme. Kapasite planlaması gündeme alınabilir.",
+            "level":"success"})
+    if _skor >= 65:
+        _alerts.append({"title":"Finansal sağlık iyi seviyede",
+            "body":f"Skor {_skor}/100 — tüm ana göstergeler pozitif bölgede.",
+            "level":"success"})
+    elif _skor < 40:
+        _alerts.append({"title":"Finansal sağlık kritik",
+            "body":f"Skor {_skor}/100 — acil aksiyonlar gerekiyor.",
+            "level":"danger"})
+
+    if not _alerts:
+        _alerts.append({"title":"Sistem normal seyrediyor",
+            "body":"Kritik uyarı bulunmuyor.", "level":"info"})
+
+    render_alerts(_alerts)
 
 # ══ GELİR ══
 with tab_gelir:
@@ -784,7 +851,7 @@ with tab_gider:
     page_header("Gider Analizi",
         f'{e.get("ay_sayisi", g.get("ay_sayisi",0))} aylık dönem')
     _sv = float(e.get("sabit_gider_orani", 0) or 0)
-    exec_summary(
+    render_exec_summary(
         f"Toplam gider <strong>{fmt(e['toplam_gider'])}</strong>. "
         f"Sabit gider oranı <strong>%{_sv}</strong> — "
         f"{'kontrol altında' if _sv < 60 else 'yüksek, optimizasyon önerilir'}. "
@@ -824,7 +891,7 @@ with tab_kar:
     page_header("Karlılık Analizi",
         f'Net kar marjı %{k.get("kar_marji",0)}')
     _km = float(k.get("kar_marji", 0) or 0)
-    exec_summary(
+    render_exec_summary(
         f"Net kar <strong>{fmt(k['toplam_net_kar'])}</strong>, "
         f"marj <strong>%{_km}</strong> — "
         f"{'güçlü' if _km >= 20 else 'orta' if _km >= 10 else 'düşük, iyileştirme gerekli'}. "
