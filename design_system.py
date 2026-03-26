@@ -24,61 +24,61 @@ import streamlit as st
 # ─────────────────────────────────────────────
 
 class DS:
-    # Backgrounds
-    BG_BASE     = "#080D1A"   # Ana zemin
-    BG_SURFACE  = "#0D1424"   # Kart yüzeyi
-    BG_ELEVATED = "#111D30"   # Hover / seçili
-    BG_OVERLAY  = "#162038"   # Modal / tooltip
+    # ── Açık Tema (McKinsey/BCG premium) ──
+    BG_BASE     = "#F7F8FA"   # Ana zemin
+    BG_SURFACE  = "#FFFFFF"   # Kart yüzeyi
+    BG_ELEVATED = "#F3F4F6"   # Hover / seçili
+    BG_OVERLAY  = "#F9FAFB"   # Modal overlay
 
     # Borders
-    BORDER      = "#1A2E4A"   # Standart kenarlık
-    BORDER_STR  = "#243D5E"   # Vurgulu kenarlık
-    BORDER_FOCUS= "#2563EB"   # Fokus
+    BORDER      = "#E2E5EB"   # Standart kenarlık
+    BORDER_STR  = "#C9CDD6"   # Vurgulu kenarlık
+    BORDER_FOCUS= "#1B3A6B"   # Fokus
 
     # Typography
-    TEXT_PRI    = "#DDE4F0"   # Ana metin
-    TEXT_SEC    = "#7A90B5"   # İkincil
-    TEXT_TER    = "#3D5275"   # Üçüncül / label
-    TEXT_DIS    = "#1E3050"   # Pasif
+    TEXT_PRI    = "#1A1A2E"   # Ana metin
+    TEXT_SEC    = "#4B5563"   # İkincil
+    TEXT_TER    = "#9CA3AF"   # Üçüncül / label
+    TEXT_DIS    = "#D1D5DB"   # Pasif
 
-    # İlke 1: Tek vurgu
-    ACCENT      = "#2563EB"
-    ACCENT_HOV  = "#3B82F6"
-    ACCENT_MUT  = "rgba(37,99,235,0.12)"
-    ACCENT_BDR  = "rgba(37,99,235,0.30)"
+    # İlke 1: Tek vurgu — koyu lacivert
+    ACCENT      = "#1B3A6B"
+    ACCENT_HOV  = "#2B4F8C"
+    ACCENT_MUT  = "#EEF2FF"
+    ACCENT_BDR  = "#C7D2FE"
 
     # İlke 6: 4 renk paleti
-    C1 = "#2563EB"   # Primary mavi
-    C2 = "#0D9488"   # Teal
-    C3 = "#475569"   # Slate
-    C4 = "#64748B"   # Muted slate
+    C1 = "#1B3A6B"   # Primary lacivert
+    C2 = "#0F766E"   # Teal
+    C3 = "#6B7280"   # Slate
+    C4 = "#D1D5DB"   # Light gray
 
-    # Semantik renkler — kurumsal, neon değil
-    GREEN       = "#10B981"
-    GREEN_BG    = "rgba(16,185,129,0.10)"
-    GREEN_BDR   = "rgba(16,185,129,0.25)"
+    # Semantik renkler — kurumsal
+    GREEN       = "#059669"
+    GREEN_BG    = "#ECFDF5"
+    GREEN_BDR   = "#A7F3D0"
 
-    RED         = "#EF4444"
-    RED_BG      = "rgba(239,68,68,0.10)"
-    RED_BDR     = "rgba(239,68,68,0.25)"
+    RED         = "#DC2626"
+    RED_BG      = "#FEF2F2"
+    RED_BDR     = "#FECACA"
 
-    AMBER       = "#F59E0B"
-    AMBER_BG    = "rgba(245,158,11,0.10)"
-    AMBER_BDR   = "rgba(245,158,11,0.25)"
+    AMBER       = "#D97706"
+    AMBER_BG    = "#FFFBEB"
+    AMBER_BDR   = "#FDE68A"
 
-    BLUE_INFO   = "#3B82F6"
-    BLUE_BG     = "rgba(59,130,246,0.10)"
-    BLUE_BDR    = "rgba(59,130,246,0.25)"
+    BLUE_INFO   = "#2563EB"
+    BLUE_BG     = "#EFF6FF"
+    BLUE_BDR    = "#BFDBFE"
 
     # Radius
     R_SM = "6px"
-    R_MD = "10px"
-    R_LG = "14px"
+    R_MD = "8px"
+    R_LG = "10px"
 
-    # Shadow
-    SHADOW = "0 1px 3px rgba(0,0,0,0.4), 0 4px 16px rgba(0,0,0,0.25)"
+    # Shadow — açık temada hafif
+    SHADOW = "0 1px 2px rgba(0,0,0,0.06), 0 2px 8px rgba(0,0,0,0.04)"
 
-    FONT = "Inter, -apple-system, BlinkMacSystemFont, sans-serif"
+    FONT = "-apple-system,'Helvetica Neue',Arial,sans-serif"
 
 
 # ─────────────────────────────────────────────

@@ -406,7 +406,20 @@ def sec(text, small=False):
 
 with st.sidebar:
 
-    st.markdown(SIDEBAR_LOGO_HTML, unsafe_allow_html=True)
+    st.markdown(
+        '<div style="padding:18px 16px 14px;border-bottom:0.5px solid #E2E5EB;">'
+        '<div style="display:flex;align-items:center;gap:10px;">'
+        '<div style="width:32px;height:32px;background:#1B3A6B;border-radius:7px;'
+        'display:flex;align-items:center;justify-content:center;'
+        'font-size:14px;font-weight:700;color:#fff;flex-shrink:0;">K</div>'
+        '<div>'
+        '<div style="font-size:13px;font-weight:600;color:#1A1A2E;letter-spacing:-.01em;">'
+        'KazKaz <span style="color:#2563EB;">AI</span></div>'
+        '<div style="font-size:9px;text-transform:uppercase;letter-spacing:.1em;'
+        'color:#9CA3AF;margin-top:1px;">Finansal Platform</div>'
+        '</div></div></div>',
+        unsafe_allow_html=True
+    )
 
     if FIREBASE_OK:
         show_user_badge()
