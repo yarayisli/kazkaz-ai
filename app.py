@@ -720,11 +720,13 @@ with tab_gelir:
             marker_color=DS.C1, opacity=0.9,
             hovertemplate="%{x}<br>%{y:,.0f} ₺<extra></extra>",
         ))
-        fig.update_layout(**chart_layout(height=260, xaxis=dict(gridcolor=DS.BORDER, showgrid=False, zeroline=False,
-                       tickfont=dict(size=10, color=DS.TEXT_TER))),
+        fig.update_layout(**chart_layout(
+            height=260,
+            xaxis=dict(gridcolor=DS.BORDER, showgrid=False, zeroline=False,
+                       tickfont=dict(size=10, color=DS.TEXT_TER)),
             yaxis=dict(gridcolor=DS.BORDER, showgrid=True, zeroline=False,
                        tickfont=dict(size=10, color=DS.TEXT_TER)),
-        )
+        ))
         st.plotly_chart(fig, use_container_width=True)
     with col2:
         sec("Kategori Dağılımı")
