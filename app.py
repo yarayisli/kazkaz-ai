@@ -30,11 +30,7 @@ from ui_components import (
     render_health_bars, render_stat_strip, render_insight_card,
     render_divider, badge_html, fmt as ufmt, T,
 )
-from html_components import (
-    render_page_header, render_exec_summary, render_kpi_row,
-    render_alert, render_section, render_health_bars,
-    badge_html, SIDEBAR_LOGO_HTML, NAV_GROUP_HTML,
-)
+
 
 # ── Opsiyonel modüller ──
 try:
