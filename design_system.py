@@ -506,9 +506,9 @@ def inject_css():
 def chart_layout(height=300, **extra):
     """
     Plotly update_layout için standart koyu tema parametreleri.
-    Tüm grafiklerde bu fonksiyonu kullan — çakışma olmaz.
+    extra ile gelen anahtarlar default değerleri override eder — çakışma olmaz.
     """
-    return dict(
+    base = dict(
         paper_bgcolor="rgba(0,0,0,0)",
         plot_bgcolor="rgba(0,0,0,0)",
         font=dict(color=DS.TEXT_SEC, family=DS.FONT, size=11),
@@ -524,5 +524,7 @@ def chart_layout(height=300, **extra):
                     borderwidth=0, font=dict(size=11, color=DS.TEXT_SEC)),
         hoverlabel=dict(bgcolor=DS.BG_ELEVATED, bordercolor=DS.BORDER_STR,
                         font=dict(size=11, color=DS.TEXT_PRI)),
-        **extra,
     )
+    # extra, base'deki anahtarları override eder
+    base.update(extra)
+    return base

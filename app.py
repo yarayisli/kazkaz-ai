@@ -23,12 +23,7 @@ import plotly.express as px
 
 # ── Core motor (zorunlu) ──
 from financial_engine import FinancialEngine
-from design_system import (
-    DS, fmt, kpi, sec, exec_summary, alert, page_header,
-    badge, inject_css, PLOTLY_THEME, chart_layout,
-    C_BLUE, C_GREEN, C_RED, C_AMBER, C_SLATE, C_CYAN,
-    C_YELLOW, C_PURPLE, CHART_COLORS, score_color
-)
+from design_system import *
 
 # ── Opsiyonel modüller ──
 try:
