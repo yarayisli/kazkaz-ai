@@ -771,7 +771,15 @@ with tab_gelir:
 # ══ GİDER ══
 with tab_gider:
     e = rapor["gider"]
-    sec("📉 Gider Analizi")
+    page_header("Gider Analizi",
+        f'{e.get("ay_sayisi", g.get("ay_sayisi",0))} aylık dönem')
+    _sv = float(e.get("sabit_gider_orani", 0) or 0)
+    exec_summary(
+        f"Toplam gider <strong>{fmt(e['toplam_gider'])}</strong>. "
+        f"Sabit gider oranı <strong>%{_sv}</strong> — "
+        f"{'kontrol altında' if _sv < 60 else 'yüksek, optimizasyon önerilir'}. "
+        f"Değişken gider oranı %{round(100-_sv,1)}."
+    )
     c1, c2, c3 = st.columns(3)
     with c1: kpi("Toplam Gider",   fmt(e["toplam_gider"]))
     with c2: kpi("Sabit Gider",    fmt(e["sabit_gider"]))
@@ -803,7 +811,15 @@ with tab_gider:
 # ══ KARLILIK ══
 with tab_kar:
     k = rapor["karlilik"]
-    sec("📈 Karlılık Analizi")
+    page_header("Karlılık Analizi",
+        f'Net kar marjı %{k.get("kar_marji",0)}')
+    _km = float(k.get("kar_marji", 0) or 0)
+    exec_summary(
+        f"Net kar <strong>{fmt(k['toplam_net_kar'])}</strong>, "
+        f"marj <strong>%{_km}</strong> — "
+        f"{'güçlü' if _km >= 20 else 'orta' if _km >= 10 else 'düşük, iyileştirme gerekli'}. "
+        f"Brüt kar marjı %{k.get('brut_kar_marji', 0)}."
+    )
     c1, c2, c3 = st.columns(3)
     with c1: kpi("Net Kar",   fmt(k["toplam_net_kar"]), positive=k["toplam_net_kar"] >= 0)
     with c2: kpi("Kar Marjı", f'%{k["kar_marji"]}',    positive=k["kar_marji"] >= 0)

@@ -232,8 +232,7 @@ def _single_investment_ui():
                 angularaxis=dict(gridcolor="#E2E8F0",
                                  tickfont=dict(color="#94A3B8", size=9)),
             ),
-            height=300, **PLOTLY_THEME,
-        )
+            height=300, )
         st.plotly_chart(fig, use_container_width=True)
 
     # Detay tablosu

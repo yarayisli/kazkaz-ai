@@ -146,8 +146,7 @@ def show_customer_tab(df: pd.DataFrame):
                                 range=[0,110], ticksuffix="%",
                                 gridcolor="#E2E8F0"),
                     legend=dict(orientation="h", y=1.1, x=0),
-                    **PLOTLY_THEME,
-                )
+                    )
                 st.plotly_chart(fig2, use_container_width=True)
 
             # Tablo

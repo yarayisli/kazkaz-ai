@@ -245,7 +245,7 @@ def show_cashflow_tab(fin_engine=None, fin_rapor=None):
                         angularaxis=dict(gridcolor="#E2E8F0",
                                          tickfont=dict(color="#94A3B8",size=9)),
                     ),
-                    height=280, **PLOTLY_THEME)
+                    height=280)
                 st.plotly_chart(fig, use_container_width=True)
             else:
                 st.info("Dönen varlık ve KVB bilgisi girilirse likidite oranları hesaplanır.")
@@ -550,7 +550,7 @@ def show_debt_tab(fin_rapor=None):
             barmode="stack", height=290,
             yaxis2=dict(overlaying="y", side="right",
                         gridcolor="#E2E8F0"),
-            legend=dict(orientation="h",y=1.1,x=0), **PLOTLY_THEME)
+            legend=dict(orientation="h",y=1.1,x=0))
         st.plotly_chart(fig, use_container_width=True)
 
         st.dataframe(

@@ -244,8 +244,7 @@ def show_budget_tab(df: pd.DataFrame, fin_rapor: dict = None):
                 yaxis2=dict(overlaying="y", side="right",
                             gridcolor="#E2E8F0"),
                 legend=dict(orientation="h", y=1.1, x=0),
-                **PLOTLY_THEME,
-            )
+                )
             st.plotly_chart(fig, use_container_width=True)
 
         # Net karşılaştırma
@@ -292,8 +291,7 @@ def show_budget_tab(df: pd.DataFrame, fin_rapor: dict = None):
                           line_color="#64748B", opacity=.6)
             fig.update_layout(
                 title="Aylık Gelir Sapması (Gerçekleşen - Bütçe)",
-                height=280, **PLOTLY_THEME,
-            )
+                height=280, )
             st.plotly_chart(fig, use_container_width=True)
 
             # Başarı oranı çizgisi
