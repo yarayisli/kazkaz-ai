@@ -758,12 +758,14 @@ with tab_gelir:
                         line=dict(color=DS.BG_BASE, width=1.5)),
         )
         fig.add_hline(y=0, line_dash="dash", line_color=DS.RED, opacity=0.4)
-        fig.update_layout(**chart_layout(height=220, xaxis=dict(gridcolor=DS.BORDER, showgrid=True, zeroline=False,
-                       tickfont=dict(size=10, color=DS.TEXT_TER))),
+        fig.update_layout(**chart_layout(
+            height=220,
+            xaxis=dict(gridcolor=DS.BORDER, showgrid=True, zeroline=False,
+                       tickfont=dict(size=10, color=DS.TEXT_TER)),
             yaxis=dict(gridcolor=DS.BORDER, showgrid=True, zeroline=False,
                        tickfont=dict(size=10, color=DS.TEXT_TER),
                        ticksuffix="%"),
-        )
+        ))
         st.plotly_chart(fig, use_container_width=True)
 
 # ══ GİDER ══
