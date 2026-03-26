@@ -320,24 +320,22 @@ def sec(text, small=False):
 # ─────────────────────────────────────────────
 
 with st.sidebar:
-    # ── LOGO ──
-    st.markdown('''
-    <div style="padding: 20px 4px 16px; border-bottom: 1px solid #E2E8F0; margin-bottom: 16px;">
-        <div style="display:flex; align-items:center; gap:10px;">
-            <div style="width:32px;height:32px;background:#1D4ED8;
-                        border-radius:8px;display:flex;align-items:center;
-                        justify-content:center;font-size:16px;flex-shrink:0;">K</div>
-            <div>
-                <div style="font-family:Inter,sans-serif;font-size:1rem;
-                            font-weight:600;letter-spacing:-0.01em;
-                            color:#0F172A;">KazKaz <span style="color:#3B82F6;">AI</span></div>
-                <div style="font-size:0.58rem;letter-spacing:0.12em;
-                            text-transform:uppercase;color:#94A3B8;
-                            margin-top:1px;">Finansal Karar Platformu</div>
-            </div>
-        </div>
-    </div>
-    ''', unsafe_allow_html=True)
+
+    # ══ LOGO — Premium Koyu Sidebar ══
+    st.markdown(
+        '<div style="padding:20px 16px 16px;border-bottom:1px solid #1A2E4A;">'
+        '<div style="display:flex;align-items:center;gap:10px;">'
+        '<div style="width:34px;height:34px;background:#2563EB;border-radius:8px;'
+        'display:flex;align-items:center;justify-content:center;'
+        'font-size:15px;font-weight:700;color:#fff;flex-shrink:0;">K</div>'
+        '<div>'
+        f'<div style="font-size:14px;font-weight:600;letter-spacing:-.01em;color:#DDE4F0;">'
+        f'KazKaz <span style="color:#3B82F6;">AI</span></div>'
+        f'<div style="font-size:9px;letter-spacing:.12em;text-transform:uppercase;'
+        f'color:#3D5275;margin-top:1px;">Finansal Karar Platformu</div>'
+        '</div></div></div>',
+        unsafe_allow_html=True
+    )
 
     if FIREBASE_OK:
         show_user_badge()
@@ -347,18 +345,19 @@ with st.sidebar:
                 st.session_state["page"] = "plans"
                 st.rerun()
 
-    st.markdown("---")
-
-    # Şirket adı
+    # ══ Grup 1: Şirket & Veri ══
+    st.markdown(
+        f'<div style="font-size:9px;font-weight:600;letter-spacing:.12em;'
+        f'text-transform:uppercase;color:#3D5275;padding:16px 4px 8px;">'
+        f'ŞİRKET &amp; VERİ</div>',
+        unsafe_allow_html=True
+    )
     st.session_state["sirket_adi"] = st.text_input(
-        "Şirket / Proje Adı",
+        "Şirket Adı",
         value=st.session_state["sirket_adi"],
         placeholder="Örn: Acme A.Ş."
     )
-
-    # Veri yükleme
-    sec("📂 Veri Yükle")
-    kaynak = st.radio("Kaynak:", ["CSV / Excel", "Google Sheets"], horizontal=True)
+    kaynak = st.radio("Veri kaynağı:", ["CSV / Excel", "Google Sheets"], horizontal=True)
 
     max_rows = 50000
     if FIREBASE_OK:
@@ -398,10 +397,15 @@ with st.sidebar:
                 except Exception as e:
                     st.error(f"Hata: {e}")
 
-    st.markdown("---")
 
-    # AI aktivasyonu
-    sec("🤖 Yapay Zeka")
+
+    # ══ Grup 2: Yapay Zeka ══
+    st.markdown(
+        f'<div style="font-size:9px;font-weight:600;letter-spacing:.12em;'
+        f'text-transform:uppercase;color:#3D5275;'
+        f'padding:16px 4px 8px;border-top:1px solid #1A2E4A;">YAPAY ZEKA</div>',
+        unsafe_allow_html=True
+    )
     if not GEMINI_OK:
         st.caption("AI motoru yüklenemedi.")
     elif not can("ai_yorum"):
@@ -414,7 +418,7 @@ with st.sidebar:
         ai_toggle = st.toggle("AI Aktif Et", value=st.session_state.ai_active)
         if ai_toggle and not st.session_state.ai_active:
             if "Groq" in provider:
-                st.markdown('<div class="ai-badge">Groq — Llama 3.3</div>',
+                st.markdown('<div style="display:inline-flex;padding:2px 8px;border-radius:4px;font-size:9px;font-weight:600;letter-spacing:.08em;text-transform:uppercase;background:rgba(59,130,246,0.10);color:#3B82F6;border:1px solid rgba(59,130,246,0.25);">GROQ — LLAMA 3.3</div>',
                             unsafe_allow_html=True)
                 api_key = GROQ_API_KEY_ENV or st.text_input(
                     "Groq API Key", type="password",
@@ -422,7 +426,7 @@ with st.sidebar:
                 )
                 chosen_provider = "groq"
             else:
-                st.markdown('<div class="ai-badge">Gemini 2.0 Flash</div>',
+                st.markdown('<div style="display:inline-flex;padding:2px 8px;border-radius:4px;font-size:9px;font-weight:600;letter-spacing:.08em;text-transform:uppercase;background:rgba(59,130,246,0.10);color:#3B82F6;border:1px solid rgba(59,130,246,0.25);">GEMINI 2.0 FLASH</div>',
                             unsafe_allow_html=True)
                 api_key = GEMINI_API_KEY_ENV or st.text_input(
                     "Gemini API Key", type="password",
@@ -444,9 +448,15 @@ with st.sidebar:
         if st.session_state.ai_active:
             st.success("🟢 AI Aktif")
 
-    st.markdown("---")
 
-    # PDF indirme
+
+    # ══ Grup 3: Raporlama ══
+    st.markdown(
+        f'<div style="font-size:9px;font-weight:600;letter-spacing:.12em;'
+        f'text-transform:uppercase;color:#3D5275;'
+        f'padding:16px 4px 8px;border-top:1px solid #1A2E4A;">RAPORLAMA</div>',
+        unsafe_allow_html=True
+    )
     if PDF_OK and st.session_state.rapor:
         sec("📄 Rapor")
         if can("pdf_rapor"):
@@ -461,7 +471,7 @@ with st.sidebar:
             )
         else:
             st.caption("🔒 PDF Uzman paket gerekli.")
-        st.markdown("---")
+    
 
     # Örnek veri
     with st.expander("📋 Örnek Veri"):
@@ -794,7 +804,7 @@ with tab_gider:
             fig.update_layout(title="Kategoriye Göre Gider", height=280,
                               yaxis=dict(autorange="reversed", gridcolor="#1e2d4a", showgrid=True, zeroline=False),
                               paper_bgcolor="rgba(0,0,0,0)", plot_bgcolor="rgba(0,0,0,0)",
-                              font=dict(color="#8899bb", family="DM Sans"),
+                              font=dict(color="#8899bb", family="Inter"),
                               xaxis=dict(gridcolor="#1e2d4a", showgrid=True, zeroline=False),
                               margin=dict(l=10, r=10, t=30, b=10))
             st.plotly_chart(fig, use_container_width=True)
@@ -1077,7 +1087,7 @@ with tab_sohbet:
                         cevap = st.session_state.gemini.chat(soru, rapor)
                     st.session_state.chat_history.append({"role":"ai","content":cevap})
                     st.rerun()
-        st.markdown("---")
+    
         for msg in st.session_state.chat_history:
             cls  = "chat-user" if msg["role"] == "user" else "chat-ai"
             ikon = "👤" if msg["role"] == "user" else "🤖"
