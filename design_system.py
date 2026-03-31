@@ -24,36 +24,31 @@ import streamlit as st
 # ─────────────────────────────────────────────
 
 class DS:
-    # ── Açık Tema (McKinsey/BCG premium) ──
-    BG_BASE     = "#F7F8FA"   # Ana zemin
-    BG_SURFACE  = "#FFFFFF"   # Kart yüzeyi
-    BG_ELEVATED = "#F3F4F6"   # Hover / seçili
-    BG_OVERLAY  = "#F9FAFB"   # Modal overlay
+    # ── Açık Tema — Navy/Corporate Premium ──
+    BG_BASE     = "#F7F8FC"
+    BG_SURFACE  = "#FFFFFF"
+    BG_ELEVATED = "#F3F5F9"
+    BG_OVERLAY  = "#F9FAFB"
 
-    # Borders
-    BORDER      = "#E2E5EB"   # Standart kenarlık
-    BORDER_STR  = "#C9CDD6"   # Vurgulu kenarlık
-    BORDER_FOCUS= "#1B3A6B"   # Fokus
+    BORDER      = "#E8EAEF"
+    BORDER_STR  = "#D1D5DB"
+    BORDER_FOCUS= "#0F2252"
 
-    # Typography
-    TEXT_PRI    = "#1A1A2E"   # Ana metin
-    TEXT_SEC    = "#4B5563"   # İkincil
-    TEXT_TER    = "#9CA3AF"   # Üçüncül / label
-    TEXT_DIS    = "#D1D5DB"   # Pasif
+    TEXT_PRI    = "#1A1F36"
+    TEXT_SEC    = "#4B5563"
+    TEXT_TER    = "#9CA3AF"
+    TEXT_DIS    = "#D1D5DB"
 
-    # İlke 1: Tek vurgu — koyu lacivert
-    ACCENT      = "#1B3A6B"
-    ACCENT_HOV  = "#2B4F8C"
+    ACCENT      = "#0F2252"
+    ACCENT_HOV  = "#1B3A6B"
     ACCENT_MUT  = "#EEF2FF"
     ACCENT_BDR  = "#C7D2FE"
 
-    # İlke 6: 4 renk paleti
-    C1 = "#1B3A6B"   # Primary lacivert
-    C2 = "#0F766E"   # Teal
-    C3 = "#6B7280"   # Slate
-    C4 = "#D1D5DB"   # Light gray
+    C1 = "#0F2252"
+    C2 = "#0F766E"
+    C3 = "#6B7280"
+    C4 = "#D1D5DB"
 
-    # Semantik renkler — kurumsal
     GREEN       = "#059669"
     GREEN_BG    = "#ECFDF5"
     GREEN_BDR   = "#A7F3D0"
@@ -70,15 +65,13 @@ class DS:
     BLUE_BG     = "#EFF6FF"
     BLUE_BDR    = "#BFDBFE"
 
-    # Radius
-    R_SM = "6px"
+    R_SM = "5px"
     R_MD = "8px"
     R_LG = "10px"
 
-    # Shadow — açık temada hafif
-    SHADOW = "0 1px 2px rgba(0,0,0,0.06), 0 2px 8px rgba(0,0,0,0.04)"
+    SHADOW = "0 1px 2px rgba(0,0,0,.05), 0 2px 6px rgba(0,0,0,.04)"
 
-    FONT = "-apple-system,'Helvetica Neue',Arial,sans-serif"
+    FONT = "-apple-system,'Segoe UI','Helvetica Neue',Arial,sans-serif"
 
 
 # ─────────────────────────────────────────────
@@ -342,159 +335,32 @@ def page_header(title: str, subtitle: str = "", badges: list = None):
 
 GLOBAL_CSS = f"""
 <style>
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
-
-html, body, [class*="css"], .stApp {{
-    font-family: {DS.FONT} !important;
-    -webkit-font-smoothing: antialiased;
-}}
-
-/* Sidebar */
-[data-testid="stSidebar"] {{
-    background: {DS.BG_BASE} !important;
-    border-right: 1px solid {DS.BORDER} !important;
-}}
-
-/* Tabs */
-.stTabs [data-baseweb="tab-list"] {{
-    background: {DS.BG_SURFACE} !important;
-    border: 1px solid {DS.BORDER} !important;
-    border-radius: {DS.R_MD} !important;
-    padding: 3px !important;
-    gap: 2px !important;
-}}
-.stTabs [data-baseweb="tab"] {{
-    color: {DS.TEXT_TER} !important;
-    font-size: 12px !important;
-    font-weight: 500 !important;
-    border-radius: 7px !important;
-    padding: 6px 14px !important;
-    font-family: {DS.FONT} !important;
-}}
-.stTabs [data-baseweb="tab"]:hover {{
-    color: {DS.TEXT_SEC} !important;
-    background: {DS.BG_ELEVATED} !important;
-}}
-.stTabs [aria-selected="true"] {{
-    color: {DS.TEXT_PRI} !important;
-    background: {DS.BG_ELEVATED} !important;
-    border: 1px solid {DS.BORDER_STR} !important;
-    font-weight: 600 !important;
-}}
-
-/* Buttons */
-.stButton > button {{
-    background: {DS.ACCENT} !important;
-    color: #fff !important;
-    border: none !important;
-    border-radius: {DS.R_MD} !important;
-    font-family: {DS.FONT} !important;
-    font-size: 13px !important;
-    font-weight: 500 !important;
-    padding: 8px 18px !important;
-    transition: background 0.15s !important;
-}}
-.stButton > button:hover {{
-    background: {DS.ACCENT_HOV} !important;
-}}
-.stDownloadButton > button {{
-    background: {DS.BG_ELEVATED} !important;
-    color: {DS.TEXT_SEC} !important;
-    border: 1px solid {DS.BORDER} !important;
-    border-radius: {DS.R_MD} !important;
-    font-size: 12px !important;
-    transition: border-color 0.15s !important;
-}}
-.stDownloadButton > button:hover {{
-    border-color: {DS.ACCENT} !important;
-    color: {DS.TEXT_PRI} !important;
-}}
-
-/* Inputs */
-.stTextInput > div > div > input,
-.stNumberInput > div > div > input,
-.stTextArea textarea,
-.stSelectbox > div > div {{
-    background: {DS.BG_ELEVATED} !important;
-    border: 1px solid {DS.BORDER} !important;
-    border-radius: {DS.R_MD} !important;
-    color: {DS.TEXT_PRI} !important;
-    font-family: {DS.FONT} !important;
-    font-size: 13px !important;
-}}
-.stTextInput > div > div > input:focus {{
-    border-color: {DS.ACCENT} !important;
-    box-shadow: 0 0 0 3px {DS.ACCENT_MUT} !important;
-}}
-
-/* Metrics */
-[data-testid="stMetric"] {{
-    background: {DS.BG_SURFACE} !important;
-    border: 1px solid {DS.BORDER} !important;
-    border-radius: {DS.R_LG} !important;
-    padding: 16px 18px !important;
-}}
-[data-testid="stMetricLabel"] {{
-    font-size: 10px !important;
-    font-weight: 600 !important;
-    letter-spacing: 0.1em !important;
-    text-transform: uppercase !important;
-    color: {DS.TEXT_TER} !important;
-}}
-[data-testid="stMetricValue"] {{
-    font-size: 22px !important;
-    font-weight: 600 !important;
-    letter-spacing: -0.025em !important;
-    color: {DS.TEXT_PRI} !important;
-}}
-
-/* File uploader */
-[data-testid="stFileUploader"] {{
-    background: {DS.BG_ELEVATED} !important;
-    border: 1.5px dashed {DS.BORDER_STR} !important;
-    border-radius: {DS.R_LG} !important;
-}}
-
-/* Dataframe */
-.dataframe {{
-    background: {DS.BG_SURFACE} !important;
-    color: {DS.TEXT_PRI} !important;
-    border: 1px solid {DS.BORDER} !important;
-    border-radius: {DS.R_MD} !important;
-    font-size: 12px !important;
-    font-family: {DS.FONT} !important;
-}}
-.dataframe th {{
-    background: {DS.BG_ELEVATED} !important;
-    color: {DS.TEXT_TER} !important;
-    font-size: 10px !important;
-    font-weight: 600 !important;
-    letter-spacing: 0.08em !important;
-    text-transform: uppercase !important;
-    border-bottom: 1px solid {DS.BORDER} !important;
-    padding: 10px 14px !important;
-}}
-.dataframe td {{
-    border-bottom: 1px solid {DS.BG_ELEVATED} !important;
-    padding: 8px 14px !important;
-    color: {DS.TEXT_SEC} !important;
-}}
-.dataframe tr:hover td {{
-    background: {DS.BG_ELEVATED} !important;
-    color: {DS.TEXT_PRI} !important;
-}}
-
-/* Scrollbar */
-::-webkit-scrollbar {{ width: 5px; height: 5px; }}
-::-webkit-scrollbar-track {{ background: {DS.BG_BASE}; }}
-::-webkit-scrollbar-thumb {{ background: {DS.BORDER_STR}; border-radius: 3px; }}
-
-/* Misc */
-hr {{ border-color: {DS.BORDER} !important; margin: 24px 0 !important; }}
-.stSpinner > div {{ border-top-color: {DS.ACCENT} !important; }}
-.stProgress > div > div > div > div {{ background: {DS.ACCENT} !important; }}
-small, .stCaption {{ color: {DS.TEXT_TER} !important; font-size: 11px !important; }}
-.stRadio label, .stCheckbox label {{ color: {DS.TEXT_SEC} !important; font-size: 13px !important; }}
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+html,body,[class*="css"]{{font-family:{DS.FONT}!important;-webkit-font-smoothing:antialiased}}
+.stApp{{background:{DS.BG_BASE}!important}}
+[data-testid="stSidebar"]{{background:{DS.BG_SURFACE}!important;border-right:1px solid {DS.BORDER}!important}}
+[data-testid="stSidebar"] *{{color:{DS.TEXT_SEC}!important}}
+.stTabs [data-baseweb="tab-list"]{{background:{DS.BG_ELEVATED}!important;border:1px solid {DS.BORDER}!important;border-radius:{DS.R_MD}!important;padding:3px!important}}
+.stTabs [data-baseweb="tab"]{{color:{DS.TEXT_TER}!important;font-size:12px!important;font-weight:500!important;border-radius:6px!important}}
+.stTabs [aria-selected="true"]{{color:{DS.ACCENT}!important;background:{DS.BG_SURFACE}!important;font-weight:600!important;box-shadow:0 0 0 0.5px {DS.BORDER}!important}}
+.stButton>button{{background:{DS.ACCENT}!important;color:#fff!important;border:none!important;border-radius:{DS.R_MD}!important;font-size:13px!important;font-weight:500!important;padding:8px 18px!important}}
+.stButton>button:hover{{background:{DS.ACCENT_HOV}!important}}
+.stDownloadButton>button{{background:{DS.BG_ELEVATED}!important;color:{DS.TEXT_SEC}!important;border:1px solid {DS.BORDER}!important;border-radius:{DS.R_MD}!important}}
+[data-testid="stMetric"]{{background:{DS.BG_SURFACE}!important;border:1px solid {DS.BORDER}!important;border-radius:{DS.R_LG}!important}}
+[data-testid="stMetricLabel"]{{font-size:9px!important;font-weight:700!important;letter-spacing:.1em!important;text-transform:uppercase!important;color:{DS.TEXT_TER}!important}}
+[data-testid="stMetricValue"]{{font-size:22px!important;font-weight:600!important;letter-spacing:-.03em!important;color:{DS.TEXT_PRI}!important}}
+.dataframe{{font-size:12px!important;border:1px solid {DS.BORDER}!important;border-radius:{DS.R_MD}!important}}
+.dataframe th{{background:{DS.BG_ELEVATED}!important;color:{DS.TEXT_TER}!important;font-size:9px!important;font-weight:700!important;letter-spacing:.08em!important;text-transform:uppercase!important;border-bottom:1px solid {DS.BORDER}!important}}
+.dataframe td{{border-bottom:1px solid {DS.BG_ELEVATED}!important;color:{DS.TEXT_SEC}!important}}
+.dataframe tr:hover td{{background:{DS.BG_ELEVATED}!important;color:{DS.TEXT_PRI}!important}}
+hr{{border-color:{DS.BORDER}!important;margin:20px 0!important}}
+::-webkit-scrollbar{{width:4px;height:4px}}
+::-webkit-scrollbar-thumb{{background:{DS.BORDER_STR};border-radius:2px}}
+.stTextInput>div>div>input,.stNumberInput>div>div>input,.stTextArea textarea{{background:{DS.BG_ELEVATED}!important;border:1px solid {DS.BORDER}!important;border-radius:{DS.R_MD}!important;color:{DS.TEXT_PRI}!important;font-size:13px!important}}
+[data-testid="stFileUploader"]{{background:{DS.BG_ELEVATED}!important;border:1.5px dashed {DS.BORDER_STR}!important;border-radius:{DS.R_LG}!important}}
+.stSpinner>div{{border-top-color:{DS.ACCENT}!important}}
+.stProgress>div>div>div>div{{background:{DS.ACCENT}!important}}
+small,.stCaption{{color:{DS.TEXT_TER}!important;font-size:11px!important}}
 </style>
 """
 
