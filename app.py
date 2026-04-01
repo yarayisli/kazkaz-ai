@@ -297,6 +297,7 @@ DEFAULTS = {
     # Faz 1: Sol menü navigasyonu
     "nav_modul": "dashboard",   # aktif modül
     "nav_sayfa": "genel",       # aktif alt sayfa
+    "rol": "cfo",                 # "cfo" | "ceo"
 }
 for k, v in DEFAULTS.items():
     if k not in st.session_state:
@@ -478,6 +479,33 @@ with st.sidebar:
             if st.button("⚡ Paketi Yükselt", use_container_width=True):
                 st.session_state["page"] = "plans"
                 st.rerun()
+
+    # ── Rol Seçici ──
+    st.markdown(
+        f'<div style="padding:10px 0 6px;">',
+        unsafe_allow_html=True
+    )
+    _rol = st.session_state.get("rol", "cfo")
+    col_r1, col_r2 = st.columns(2)
+    with col_r1:
+        if st.button(
+            "CFO Görünümü" if _rol != "cfo" else "✓ CFO",
+            use_container_width=True,
+            type="primary" if _rol == "cfo" else "secondary",
+            key="btn_rol_cfo"
+        ):
+            st.session_state["rol"] = "cfo"
+            st.rerun()
+    with col_r2:
+        if st.button(
+            "CEO Görünümü" if _rol != "ceo" else "✓ CEO",
+            use_container_width=True,
+            type="primary" if _rol == "ceo" else "secondary",
+            key="btn_rol_ceo"
+        ):
+            st.session_state["rol"] = "ceo"
+            st.rerun()
+    st.markdown('</div>', unsafe_allow_html=True)
 
     # ══ Şirket adı ══
     st.session_state["sirket_adi"] = st.text_input(
@@ -820,144 +848,243 @@ if tab_genel.active:
     _gider_o = round(e["toplam_gider"]/g["toplam_gelir"]*100,1) if g.get("toplam_gelir") else 0
     _sirket  = st.session_state.get("sirket_adi", "Şirket")
     _s_level = "success" if _skor >= 65 else "warning" if _skor >= 40 else "danger"
+    _rol     = st.session_state.get("rol", "cfo")
+    alt      = s.get("alt_skorlar", {})
 
     # ── Topbar ──
     render_topbar(
-        sirket_adi    = _sirket,
-        donem         = f'{g.get("donem_baslangic","—")} – {g.get("donem_bitis","—")}',
-        saglik_badge  = f'{_skat} · {_skor}/100',
+        sirket_adi   = _sirket,
+        donem        = f'{g.get("donem_baslangic","—")} – {g.get("donem_bitis","—")}',
+        saglik_badge = f'{_skat} · {_skor}/100',
+        saglik_level = _s_level,
     )
 
     # ── Page Header ──
+    _rol_label = "CFO Görünümü — Detaylı Analiz" if _rol == "cfo" else "CEO Görünümü — Yönetici Özeti"
     render_page_header(
         title    = f"{_sirket} — Finansal Genel Bakış",
-        subtitle = f'{g.get("ay_sayisi",0)} aylık dönem · {g.get("donem_baslangic","—")} – {g.get("donem_bitis","—")}',
+        subtitle = f'{g.get("ay_sayisi",0)} aylık dönem · {_rol_label}',
         badge_text  = _skat,
         badge_level = _s_level,
     )
 
-    # ── İlke 5: Exec Summary ──
+    # ── Exec Summary ──
     _by = "güçlü büyüme" if _buyume >= 10 else "ılımlı büyüme" if _buyume >= 0 else "gerileme"
     _mj = "sağlıklı" if _marj >= 20 else "baskı altında" if _marj >= 10 else "kritik"
     render_exec_summary(
         f"{_sirket} {g.get('ay_sayisi',0)} aylık dönemde <strong>{_by}</strong> kaydetti. "
         f"Toplam gelir <strong>{fmt(g['toplam_gelir'])}</strong>; "
         f"net kar marjı <strong>%{_marj}</strong> — {_mj}. "
-        f"Gider/gelir oranı %{_gider_o}. "
-        f"Finansal sağlık: <strong>{_skor}/100 ({_skat})</strong>."
+        f"Finansal sağlık skoru: <strong>{_skor}/100 ({_skat})</strong>."
     )
 
-    # ── KPI Satırı 1 ──
-    render_kpi_row([
-        {"label":"Toplam Gelir",  "value":fmt(g["toplam_gelir"]),
-         "delta":f'Ort. {fmt(g["ortalama_aylik_gelir"])}/ay', "positive":True},
-        {"label":"Net Kar",       "value":fmt(_kar),
-         "delta":f'Marj %{_marj}', "positive":_kar>=0},
-        {"label":"Büyüme Oranı", "value":f'%{_buyume}',
-         "delta":"Aylık ortalama", "positive":_buyume>=0},
-        {"label":"Sağlık Skoru", "value":f'{_skor}/100',
-         "delta":_skat, "positive":_skor>=60,
-         "accent_color": "#059669" if _skor>=65 else "#D97706" if _skor>=40 else "#DC2626",
-         "color": "#059669" if _skor>=65 else "#D97706" if _skor>=40 else "#DC2626"},
-    ], height=105)
+    # ════════════════════════════════════
+    # CEO GÖRÜNÜMÜ — Büyük resim, stratejik
+    # ════════════════════════════════════
+    if _rol == "ceo":
+        # 3 büyük KPI — CEO'nun ihtiyacı olan tek sayılar
+        render_kpi_row([
+            {"label":"Toplam Gelir",   "value":fmt(g["toplam_gelir"]),
+             "delta":f'+%{_buyume} büyüme', "positive":_buyume>=0},
+            {"label":"Net Kar",        "value":fmt(_kar),
+             "delta":f'Marj %{_marj}', "positive":_kar>=0},
+            {"label":"Finansal Sağlık","value":f'{_skor}/100',
+             "delta":_skat, "positive":_skor>=60,
+             "accent_color":"#059669" if _skor>=65 else "#D97706" if _skor>=40 else "#DC2626",
+             "color":"#059669" if _skor>=65 else "#D97706" if _skor>=40 else "#DC2626"},
+        ], height=105)
 
-    # ── KPI Satırı 2 ──
-    render_kpi_row([
-        {"label":"Toplam Gider",  "value":fmt(e["toplam_gider"]),
-         "delta":f'Sabit %{e["sabit_gider_orani"]}',
-         "positive":e["sabit_gider_orani"]<60,
-         "accent_color":"#D97706"},
-        {"label":"Kar Marjı",     "value":f'%{_marj}',
-         "delta":"Hedef >%15", "positive":_marj>=15},
-        {"label":"Gider / Gelir", "value":f'%{_gider_o}',
-         "delta":"Hedef <%80", "positive":_gider_o<80},
-        {"label":"Dönem",         "value":f'{g.get("ay_sayisi",0)} Ay',
-         "delta":f'{g.get("donem_baslangic","—")} – {g.get("donem_bitis","—")}',
-         "positive":True, "accent_color":"#1B3A6B"},
-    ], height=105)
+        # Sağlık alt skorları — görsel, hızlı okunur
+        st.markdown("<br>", unsafe_allow_html=True)
+        col1, col2 = st.columns([1, 1])
+        with col1:
+            render_section("Finansal Sağlık")
+            render_health_bars({
+                "Karlılık":       alt.get("karlilik", 0),
+                "Büyüme":         alt.get("buyume", 0),
+                "Gider Kontrolü": alt.get("gider_kontrolu", 0),
+                "Nakit":          alt.get("nakit", 0),
+            })
+        with col2:
+            render_section("Stratejik Özet")
+            # CEO için insight kartı
+            _insights = []
+            if _buyume >= 5:
+                _insights.append(f"Büyüme hedefte — aylık ort. %{_buyume}")
+            elif _buyume < 0:
+                _insights.append(f"Gelir gerileme yaşıyor — %{abs(_buyume)} düşüş")
+            if _marj >= 15:
+                _insights.append(f"Kar marjı güçlü — %{_marj}")
+            elif _marj < 10:
+                _insights.append(f"Kar marjı baskı altında — %{_marj}")
+            if _gider_o < 75:
+                _insights.append(f"Gider kontrolü iyi — oran %{_gider_o}")
+            else:
+                _insights.append(f"Gider/gelir oranı yüksek — %{_gider_o}")
+            _insights.append(f"{g.get('ay_sayisi',0)} aylık dönem analizi tamamlandı")
+            render_insight_card("Stratejik Değerlendirme", _insights, "◈")
 
-    # ── Ana Grafik + Sağlık ──
-    col_main, col_side = st.columns([2, 1], gap="medium")
-
-    with col_main:
-        render_section("Aylık Finansal Performans")
+        # Aylık trend — CEO için sadece net kar çizgisi
+        render_section("Büyüme Trendi", top_margin=16)
         mp = engine.profit.monthly_profit()
         if not mp.empty:
             fig = go.Figure()
-            fig.add_bar(x=mp["Dönem"], y=mp["Gelir"],
-                        name="Gelir", marker_color="#1B3A6B", opacity=0.85)
-            fig.add_bar(x=mp["Dönem"], y=mp["Gider"],
-                        name="Gider", marker_color="#E5E7EB", opacity=0.9)
+            fig.add_scatter(
+                x=mp["Dönem"], y=mp["Gelir"], name="Gelir",
+                mode="lines+markers",
+                line=dict(color="#0F2252", width=3),
+                marker=dict(size=7, color="#0F2252",
+                            line=dict(color="#fff", width=2)),
+                fill="tozeroy", fillcolor="rgba(15,34,82,0.05)",
+            )
             fig.add_scatter(
                 x=mp["Dönem"], y=mp["NetKar"], name="Net Kar",
                 mode="lines+markers",
-                line=dict(color="#059669", width=2.5),
-                marker=dict(size=6, color="#059669",
-                            line=dict(color="#fff", width=1.5)),
+                line=dict(color="#059669", width=2.5, dash="dot"),
+                marker=dict(size=6, color="#059669"),
             )
             fig.update_layout(**chart_layout(
-                height=280,
-                barmode="group",
+                height=240,
                 paper_bgcolor="rgba(0,0,0,0)",
                 plot_bgcolor="#FAFBFC",
-                font=dict(color="#9CA3AF", family="-apple-system,Arial,sans-serif", size=11),
+                font=dict(color="#9CA3AF", size=11),
                 xaxis=dict(gridcolor="#F3F4F6", showgrid=True, zeroline=False,
-                           tickfont=dict(size=10, color="#9CA3AF"), linecolor="#E2E5EB"),
+                           tickfont=dict(size=10, color="#9CA3AF")),
                 yaxis=dict(gridcolor="#F3F4F6", showgrid=True, zeroline=False,
-                           tickfont=dict(size=10, color="#9CA3AF"), linecolor="#E2E5EB"),
+                           tickfont=dict(size=10, color="#9CA3AF")),
                 legend=dict(orientation="h", y=1.06, x=0,
                             bgcolor="rgba(0,0,0,0)",
                             font=dict(size=11, color="#4B5563")),
             ))
             st.plotly_chart(fig, use_container_width=True)
 
-    with col_side:
-        render_section("Finansal Sağlık Alt Skorları")
-        alt = s.get("alt_skorlar", {})
-        render_health_bars({
-            "Karlılık":       alt.get("karlilik", 0),
-            "Büyüme":         alt.get("buyume", 0),
-            "Gider Kontrolü": alt.get("gider_kontrolu", 0),
-            "Nakit":          alt.get("nakit", 0),
-        })
+        # CEO için kritik alert'ler — sadece en önemli
+        _ceo_alerts = []
+        if _gider_o > 75:
+            _ceo_alerts.append({"title":"Gider oranı dikkat gerektiriyor",
+                "body":f"Gider/gelir %{_gider_o} — yönetim incelemesi önerilir.",
+                "level":"warning" if _gider_o <= 80 else "danger"})
+        if _buyume < 0:
+            _ceo_alerts.append({"title":"Büyüme negatif",
+                "body":f"Aylık ortalama %{_buyume} — strateji gözden geçirilmeli.",
+                "level":"warning"})
+        if _skor >= 65:
+            _ceo_alerts.append({"title":"Şirket sağlıklı seyrediyor",
+                "body":f"Tüm ana göstergeler hedef dahilinde.", "level":"success"})
+        if _ceo_alerts:
+            render_section("Yönetim Uyarıları", top_margin=16)
+            render_alerts(_ceo_alerts)
 
-        # Sistem değerlendirmesi
-        render_alerts([{
-            "title": "Sistem Değerlendirmesi",
-            "body":  s.get("aciklama", ""),
-            "level": _s_level if _s_level != "brand" else "info",
-        }])
+    # ════════════════════════════════════
+    # CFO GÖRÜNÜMÜ — Detaylı, tablo, kırılım
+    # ════════════════════════════════════
+    else:
+        # 4+4 KPI — CFO'nun ihtiyacı olan tüm metrikler
+        render_kpi_row([
+            {"label":"Toplam Gelir",  "value":fmt(g["toplam_gelir"]),
+             "delta":f'Ort. {fmt(g["ortalama_aylik_gelir"])}/ay', "positive":True},
+            {"label":"Net Kar",       "value":fmt(_kar),
+             "delta":f'Marj %{_marj}', "positive":_kar>=0},
+            {"label":"Büyüme Oranı", "value":f'%{_buyume}',
+             "delta":"Aylık ortalama", "positive":_buyume>=0},
+            {"label":"Sağlık Skoru", "value":f'{_skor}/100',
+             "delta":_skat, "positive":_skor>=60,
+             "accent_color":"#059669" if _skor>=65 else "#D97706" if _skor>=40 else "#DC2626",
+             "color":"#059669" if _skor>=65 else "#D97706" if _skor>=40 else "#DC2626"},
+        ], height=105)
 
-    # ── Risk & Fırsat Alertleri ──
-    render_section("Önemli Tespitler & Aksiyonlar", top_margin=8)
+        render_kpi_row([
+            {"label":"Toplam Gider",  "value":fmt(e["toplam_gider"]),
+             "delta":f'Sabit %{e["sabit_gider_orani"]}',
+             "positive":e["sabit_gider_orani"]<60, "accent_color":"#D97706"},
+            {"label":"Kar Marjı",     "value":f'%{_marj}',
+             "delta":"Hedef >%15", "positive":_marj>=15},
+            {"label":"Gider / Gelir", "value":f'%{_gider_o}',
+             "delta":"Hedef <%80",  "positive":_gider_o<80},
+            {"label":"Analiz Dönemi", "value":f'{g.get("ay_sayisi",0)} Ay',
+             "delta":f'{g.get("donem_baslangic","—")} – {g.get("donem_bitis","—")}',
+             "positive":True, "accent_color":"#1B3A6B"},
+        ], height=105)
 
-    _alerts = []
-    if _gider_o > 80:
-        _alerts.append({"title":"Gider oranı kritik seviyede",
-            "body":f"Gider/gelir oranı %{_gider_o} — hedef %80'in üzerinde. Acil inceleme önerilir.",
-            "level":"danger"})
-    elif _gider_o > 70:
-        _alerts.append({"title":"Gider oranı yükseliyor",
-            "body":f"Gider/gelir oranı %{_gider_o}. Personel ve sabit gider kalemleri gözden geçirilmeli.",
-            "level":"warning"})
-    if _buyume >= 10:
-        _alerts.append({"title":"Güçlü büyüme momentumu",
-            "body":f"Aylık ortalama %{_buyume} büyüme. Kapasite planlaması gündeme alınabilir.",
-            "level":"success"})
-    if _skor >= 65:
-        _alerts.append({"title":"Finansal sağlık iyi seviyede",
-            "body":f"Skor {_skor}/100 — tüm ana göstergeler pozitif bölgede.",
-            "level":"success"})
-    elif _skor < 40:
-        _alerts.append({"title":"Finansal sağlık kritik",
-            "body":f"Skor {_skor}/100 — acil aksiyonlar gerekiyor.",
-            "level":"danger"})
+        # Grafik + Sağlık
+        col_main, col_side = st.columns([2, 1], gap="medium")
+        with col_main:
+            render_section("Aylık Finansal Performans")
+            mp = engine.profit.monthly_profit()
+            if not mp.empty:
+                fig = go.Figure()
+                fig.add_bar(x=mp["Dönem"], y=mp["Gelir"],
+                            name="Gelir", marker_color="#1B3A6B", opacity=0.85)
+                fig.add_bar(x=mp["Dönem"], y=mp["Gider"],
+                            name="Gider", marker_color="#E5E7EB", opacity=0.9)
+                fig.add_scatter(
+                    x=mp["Dönem"], y=mp["NetKar"], name="Net Kar",
+                    mode="lines+markers",
+                    line=dict(color="#059669", width=2.5),
+                    marker=dict(size=6, color="#059669",
+                                line=dict(color="#fff", width=1.5)),
+                )
+                fig.update_layout(**chart_layout(
+                    height=280, barmode="group",
+                    paper_bgcolor="rgba(0,0,0,0)",
+                    plot_bgcolor="#FAFBFC",
+                    font=dict(color="#9CA3AF", size=11),
+                    xaxis=dict(gridcolor="#F3F4F6", showgrid=True, zeroline=False,
+                               tickfont=dict(size=10, color="#9CA3AF")),
+                    yaxis=dict(gridcolor="#F3F4F6", showgrid=True, zeroline=False,
+                               tickfont=dict(size=10, color="#9CA3AF")),
+                    legend=dict(orientation="h", y=1.06, x=0,
+                                bgcolor="rgba(0,0,0,0)",
+                                font=dict(size=11, color="#4B5563")),
+                ))
+                st.plotly_chart(fig, use_container_width=True)
 
-    if not _alerts:
-        _alerts.append({"title":"Sistem normal seyrediyor",
-            "body":"Kritik uyarı bulunmuyor.", "level":"info"})
+        with col_side:
+            render_section("Finansal Sağlık")
+            render_health_bars({
+                "Karlılık":       alt.get("karlilik", 0),
+                "Büyüme":         alt.get("buyume", 0),
+                "Gider Kontrolü": alt.get("gider_kontrolu", 0),
+                "Nakit":          alt.get("nakit", 0),
+            })
+            render_alerts([{
+                "title": "Sistem Değerlendirmesi",
+                "body":  s.get("aciklama", ""),
+                "level": _s_level if _s_level != "brand" else "info",
+            }])
 
-    render_alerts(_alerts)
+        # CFO için alert + istatistik şeridi
+        render_section("Tespitler & Aksiyonlar", top_margin=8)
+        render_stat_strip([
+            {"label":"Aylık Ort. Gelir",  "value":fmt(g["ortalama_aylik_gelir"])},
+            {"label":"Sabit Gider Oranı", "value":f'%{e["sabit_gider_orani"]}'},
+            {"label":"Brüt Kar Marjı",    "value":f'%{k.get("brut_kar_marji",0)}'},
+            {"label":"Net Kar Marjı",      "value":f'%{_marj}'},
+        ])
+        st.markdown("<div style='height:8px'></div>", unsafe_allow_html=True)
+
+        _alerts = []
+        if _gider_o > 80:
+            _alerts.append({"title":"Gider oranı kritik",
+                "body":f"Gider/gelir %{_gider_o} — acil inceleme.", "level":"danger"})
+        elif _gider_o > 70:
+            _alerts.append({"title":"Gider oranı yükseliyor",
+                "body":f"Oran %{_gider_o} — personel ve sabit giderler takip edilmeli.",
+                "level":"warning"})
+        if _buyume >= 10:
+            _alerts.append({"title":"Güçlü büyüme",
+                "body":f"Aylık ort. %{_buyume} — kapasite planlaması gündeme alınabilir.",
+                "level":"success"})
+        if _skor >= 65:
+            _alerts.append({"title":"Finansal sağlık iyi",
+                "body":f"Skor {_skor}/100 — ana göstergeler pozitif.", "level":"success"})
+        elif _skor < 40:
+            _alerts.append({"title":"Finansal sağlık kritik",
+                "body":f"Skor {_skor}/100 — acil aksiyon gerekli.", "level":"danger"})
+        if not _alerts:
+            _alerts.append({"title":"Sistem normal",
+                "body":"Kritik uyarı yok.", "level":"info"})
+        render_alerts(_alerts)
 
 # ══ RİSK & ALARM MERKEZİ ══
 if tab_risk.active:
