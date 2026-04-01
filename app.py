@@ -161,20 +161,50 @@ inject_css()
 # Streamlit'in beyaz tema ile çakışmasını önle
 st.markdown("""
 <style>
-/* Sol menü nav butonlarını gizle — sadece markdown label görünsün */
+/* Sol menü nav butonları — premium sidebar stili */
 [data-testid="stSidebar"] .stButton > button {
-    position: absolute !important;
-    opacity: 0 !important;
-    height: 32px !important;
-    margin-top: -34px !important;
-    width: 100% !important;
-    cursor: pointer !important;
     background: transparent !important;
-    border: none !important;
+    border: 1px solid transparent !important;
+    border-radius: 7px !important;
+    color: #4B5563 !important;
+    font-size: 12px !important;
+    font-weight: 400 !important;
+    padding: 6px 10px !important;
+    text-align: left !important;
     box-shadow: none !important;
+    transition: background 0.15s, color 0.15s !important;
+    justify-content: flex-start !important;
+}
+[data-testid="stSidebar"] .stButton > button:hover {
+    background: #F7F8FC !important;
+    border-color: #E8EAEF !important;
+    color: #1A1F36 !important;
+}
+[data-testid="stSidebar"] .stButton > button[kind="primary"] {
+    background: #EEF2FF !important;
+    border-color: #C7D2FE !important;
+    color: #0F2252 !important;
+    font-weight: 600 !important;
+}
+[data-testid="stSidebar"] .stButton > button[kind="secondary"] {
+    background: transparent !important;
+    border-color: transparent !important;
+    color: #4B5563 !important;
 }
 [data-testid="stSidebar"] .stButton {
-    margin-bottom: -2px !important;
+    margin-bottom: 1px !important;
+}
+/* Ana içerik butonları — ayrı stil */
+.main .stButton > button {
+    background: #0F2252 !important;
+    color: #fff !important;
+    border: none !important;
+    border-radius: 8px !important;
+    font-size: 13px !important;
+    font-weight: 500 !important;
+}
+.main .stButton > button:hover {
+    background: #1B3A6B !important;
 }
 </style>
 <style>
@@ -527,6 +557,9 @@ with st.sidebar:
     if nav_item("AI Sohbet",         "sohbet",   "◈"):
         st.session_state["nav_sayfa"] = "sohbet"; st.rerun()
 
+    if nav_item("Risk & Alarm",      "risk",     "◈"):
+        st.session_state["nav_sayfa"] = "risk"; st.rerun()
+
     # AYARLAR GRUBU
     nav_group("Ayarlar & Veri")
     if nav_item("Veri Girişi",       "veri",     "○"):
@@ -638,7 +671,7 @@ with st.sidebar:
         unsafe_allow_html=True
     )
     if PDF_OK and st.session_state.rapor:
-        sec("📄 Rapor")
+        render_section("📄 Rapor")
         if can("pdf_rapor"):
             show_pdf_download_button(
                 rapor      = st.session_state.rapor,
@@ -770,6 +803,7 @@ tab_veri    = _FakePage(_sayfa == "veri")
 tab_cfo     = _FakePage(_sayfa == "cfo")
 tab_ai      = _FakePage(_sayfa == "ai")
 tab_sohbet  = _FakePage(_sayfa == "sohbet")
+tab_risk    = _FakePage(_sayfa == "risk")
 
 # ══ GENEL DASHBOARD ══
 if tab_genel.active:
@@ -925,13 +959,135 @@ if tab_genel.active:
 
     render_alerts(_alerts)
 
+# ══ RİSK & ALARM MERKEZİ ══
+if tab_risk.active:
+    g  = rapor["gelir"]
+    e  = rapor["gider"]
+    k  = rapor["karlilik"]
+    s  = rapor["saglik_skoru"]
+    _skor   = int(s.get("skor", 0) or 0)
+    _skat   = s.get("kategori", "")
+    _marj   = float(k.get("kar_marji", 0) or 0)
+    _buyume = float(g.get("ortalama_buyume_orani", 0) or 0)
+    _gider_o= round(e["toplam_gider"]/g["toplam_gelir"]*100,1) if g.get("toplam_gelir") else 0
+    _s_level= "success" if _skor >= 65 else "warning" if _skor >= 40 else "danger"
+
+    render_page_header(
+        "Risk & Alarm Merkezi",
+        "Otomatik risk tespiti · Öncelik sıralaması · Aksiyon önerileri",
+        badge_text="Canlı İzleme", badge_level="brand"
+    )
+
+    # ── Risk skoru özeti ──
+    render_kpi_row([
+        {"label":"Finansal Sağlık",  "value":f"{_skor}/100",
+         "delta":_skat, "positive":_skor>=60,
+         "accent_color":"#059669" if _skor>=65 else "#D97706" if _skor>=40 else "#DC2626",
+         "color":"#059669" if _skor>=65 else "#D97706" if _skor>=40 else "#DC2626"},
+        {"label":"Aktif Uyarı",
+         "value": str(sum([
+             1 if _gider_o>80 else 0,
+             1 if _marj<10 else 0,
+             1 if _buyume<0 else 0,
+             1 if _skor<40 else 0,
+         ])),
+         "delta":"Risk sayısı", "positive":False,
+         "accent_color":"#DC2626"},
+        {"label":"Kar Marjı",  "value":f"%{_marj}",
+         "delta":"Hedef >%15", "positive":_marj>=15},
+        {"label":"Gider Oranı","value":f"%{_gider_o}",
+         "delta":"Hedef <%80", "positive":_gider_o<80},
+    ], height=105)
+
+    # ── Kritik riskler ──
+    render_section("Kritik Riskler", top_margin=16)
+    _kritik = []
+    if _skor < 40:
+        _kritik.append({"title":"⚠ Finansal Sağlık Kritik",
+            "body":f"Skor {_skor}/100. Nakit akışı, karlılık ve büyüme göstergelerinin tamamı acil müdahale gerektiriyor.",
+            "level":"danger"})
+    if _gider_o > 80:
+        _kritik.append({"title":"⚠ Gider/Gelir Oranı Kritik",
+            "body":f"Oran %{_gider_o} — %80 eşiğini aştı. Sabit giderler incelenmeli, değişken giderlerde kısıntıya gidilmeli.",
+            "level":"danger"})
+    if _marj < 5:
+        _kritik.append({"title":"⚠ Kar Marjı Çok Düşük",
+            "body":f"Net kar marjı %{_marj}. Fiyatlandırma stratejisi ve maliyet yapısı gözden geçirilmeli.",
+            "level":"danger"})
+    if not _kritik:
+        render_alerts([{"title":"Kritik risk bulunmuyor",
+            "body":"Tüm ana göstergeler kabul edilebilir sınırlar içinde.", "level":"success"}])
+    else:
+        render_alerts(_kritik)
+
+    # ── Orta seviye uyarılar ──
+    render_section("Orta Seviye Uyarılar", top_margin=16)
+    _orta = []
+    if 70 < _gider_o <= 80:
+        _orta.append({"title":"Gider oranı yükseliyor",
+            "body":f"Oran %{_gider_o} — henüz kritik değil ama trend takip edilmeli.",
+            "level":"warning"})
+    if 5 <= _marj < 15:
+        _orta.append({"title":"Kar marjı baskı altında",
+            "body":f"Marj %{_marj} — hedef %15'in altında. Fiyat revizyonu değerlendirilebilir.",
+            "level":"warning"})
+    if 40 <= _skor < 65:
+        _orta.append({"title":"Finansal sağlık orta seviye",
+            "body":f"Skor {_skor}/100. Belirli alanlarda iyileştirme fırsatı var.",
+            "level":"warning"})
+    if _buyume < 0:
+        _orta.append({"title":"Negatif büyüme trendi",
+            "body":f"Aylık ortalama büyüme %{_buyume}. Gelir kaynaklarının gözden geçirilmesi önerilir.",
+            "level":"warning"})
+    if not _orta:
+        render_alerts([{"title":"Orta seviye uyarı yok",
+            "body":"Dikkat gerektiren gösterge bulunmuyor.", "level":"info"}])
+    else:
+        render_alerts(_orta)
+
+    # ── Fırsatlar ──
+    render_section("Fırsatlar & Güçlü Yönler", top_margin=16)
+    _firsatlar = []
+    if _buyume >= 10:
+        _firsatlar.append({"title":"Güçlü büyüme momentumu",
+            "body":f"Aylık %{_buyume} büyüme — kapasite planlaması ve yatırım için uygun zaman.",
+            "level":"success"})
+    if _marj >= 20:
+        _firsatlar.append({"title":"Yüksek kar marjı",
+            "body":f"Marj %{_marj} — sektör ortalamasının üzerinde. Büyüme yatırımları finanse edilebilir.",
+            "level":"success"})
+    if _skor >= 65:
+        _firsatlar.append({"title":"Sağlıklı finansal yapı",
+            "body":f"Skor {_skor}/100 — tüm ana göstergeler pozitif bölgede.",
+            "level":"success"})
+    if not _firsatlar:
+        render_alerts([{"title":"Öne çıkan fırsat yok",
+            "body":"Mevcut verilerle güçlü yön tespit edilemedi.", "level":"info"}])
+    else:
+        render_alerts(_firsatlar)
+
+    # ── Alt skorlar ──
+    render_section("Finansal Sağlık Alt Skorları", top_margin=16)
+    col_l, col_r = st.columns(2)
+    alt = s.get("alt_skorlar", {})
+    with col_l:
+        render_health_bars({
+            "Karlılık":       alt.get("karlilik", 0),
+            "Büyüme":         alt.get("buyume", 0),
+        })
+    with col_r:
+        render_health_bars({
+            "Gider Kontrolü": alt.get("gider_kontrolu", 0),
+            "Nakit":          alt.get("nakit", 0),
+        })
+
 # ══ GELİR ══
 if tab_gelir.active:
     g = rapor["gelir"]
     _bv = float(g.get("ortalama_buyume_orani", 0) or 0)
 
     # Page header
-    page_header("Gelir Analizi", f'{g.get("ay_sayisi",0)} aylık dönem')
+    render_page_header("Gelir Analizi", f'{g.get("ay_sayisi",0)} aylık dönem')
 
     # KPI
     c1, c2, c3 = st.columns(3)
@@ -942,7 +1098,7 @@ if tab_gelir.active:
     # Grafikler
     col1, col2 = st.columns(2)
     with col1:
-        sec("Aylık Gelir Trendi")
+        render_section("Aylık Gelir Trendi")
         mr = engine.revenue.monthly_revenue()
         fig = go.Figure(go.Bar(
             x=mr["Dönem"], y=mr["Toplam Gelir"],
@@ -958,7 +1114,7 @@ if tab_gelir.active:
         ))
         st.plotly_chart(fig, use_container_width=True)
     with col2:
-        sec("Kategori Dağılımı")
+        render_section("Kategori Dağılımı")
         cr = engine.revenue.revenue_by_category()
         cr = cr[cr["Toplam Gelir"] > 0]
         if not cr.empty:
@@ -973,7 +1129,7 @@ if tab_gelir.active:
                 font=dict(size=11, color=DS.TEXT_SEC), bgcolor="rgba(0,0,0,0)")))
             st.plotly_chart(fig, use_container_width=True)
 
-    sec("Büyüme Oranı Trendi")
+    render_section("Büyüme Oranı Trendi")
     gr = engine.revenue.revenue_growth_rate().dropna()
     if not gr.empty:
         renkler = [DS.GREEN if v >= 0 else DS.RED for v in gr["Büyüme Oranı (%)"]]
@@ -1000,8 +1156,7 @@ if tab_gelir.active:
 # ══ GİDER ══
 if tab_gider.active:
     e = rapor["gider"]
-    page_header("Gider Analizi",
-        f'{e.get("ay_sayisi", g.get("ay_sayisi",0))} aylık dönem')
+    render_page_header("Gider Analizi", f'{e.get("ay_sayisi", g.get("ay_sayisi",0))} aylık dönem')
     _sv = float(e.get("sabit_gider_orani", 0) or 0)
     render_exec_summary(
         f"Toplam gider <strong>{fmt(e['toplam_gider'])}</strong>. "
@@ -1040,8 +1195,7 @@ if tab_gider.active:
 # ══ KARLILIK ══
 if tab_kar.active:
     k = rapor["karlilik"]
-    page_header("Karlılık Analizi",
-        f'Net kar marjı %{k.get("kar_marji",0)}')
+    render_page_header("Karlılık Analizi", f'Net kar marjı %{k.get("kar_marji",0)}')
     _km = float(k.get("kar_marji", 0) or 0)
     render_exec_summary(
         f"Net kar <strong>{fmt(k['toplam_net_kar'])}</strong>, "
@@ -1072,7 +1226,7 @@ if tab_kar.active:
 
 # ══ TAHMİN ══
 if tab_tahmin.active:
-    sec("🔮 Gelecek Gelir Tahmini")
+    render_page_header("Tahmin & Senaryo", "Prophet tabanlı gelir tahmini · 1-12 ay")
     if not gate("tahmin", "Gelecek Tahmini"):
         st.stop()
     if not FORECAST_OK:
@@ -1117,7 +1271,7 @@ if tab_tahmin.active:
                 legend=dict(orientation="h", y=1.1, x=0, bgcolor="rgba(0,0,0,0)"),
             ))
             st.plotly_chart(fig, use_container_width=True)
-            sec("📋 Tahmin Tablosu")
+            render_section("📋 Tahmin Tablosu")
             st.dataframe(t_df.style.format({
                 "Tahmin":    "{:,.0f} ₺",
                 "Alt Sınır": "{:,.0f} ₺",
@@ -1127,7 +1281,7 @@ if tab_tahmin.active:
 # ══ SENARYO ══
 # Not: Senaryo, Tahmin sayfasının alt bölümü olarak da kullanılabilir
 if tab_senaryo.active:
-    sec("🎯 Senaryo Analizi")
+    render_section("🎯 Senaryo Analizi")
     if not gate("senaryo_analiz", "Senaryo Analizi"):
         st.stop()
     c1, c2 = st.columns(2)
@@ -1244,7 +1398,7 @@ if tab_cfo.active:
 
 # ══ AI ANALİZ ══
 if tab_ai.active:
-    sec("🤖 AI Finansal Analiz")
+    render_section("🤖 AI Finansal Analiz")
     if not gate("ai_yorum", "AI Yorumları"):
         st.stop()
     if not GEMINI_OK:
@@ -1288,7 +1442,7 @@ if tab_ai.active:
 
 # ══ AI SOHBET ══
 if tab_sohbet.active:
-    sec("💬 AI Finansal Asistan")
+    render_section("💬 AI Finansal Asistan")
     if not gate("ai_sohbet", "AI Sohbet"):
         st.stop()
     if not GEMINI_OK:
