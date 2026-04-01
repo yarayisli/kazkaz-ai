@@ -478,21 +478,12 @@ with st.sidebar:
 
     def nav_item(label, key, icon="·"):
         aktif = st.session_state.get("nav_sayfa") == key
-        bg    = "#EEF2FF" if aktif else "transparent"
-        clr   = "#0F2252" if aktif else "#4B5563"
-        fw    = "600"     if aktif else "400"
-        bdr   = "1px solid #C7D2FE" if aktif else "1px solid transparent"
-        st.markdown(
-            f'<div style="background:{bg};border:{bdr};border-radius:7px;'
-            f'padding:7px 10px;margin-bottom:2px;cursor:pointer;'
-            f'display:flex;align-items:center;gap:8px;">'
-            f'<span style="font-size:10px;color:{clr};opacity:.6;">{icon}</span>'
-            f'<span style="font-size:12px;font-weight:{fw};color:{clr};">{label}</span>'
-            f'</div>',
-            unsafe_allow_html=True
+        return st.button(
+            f"{icon} {label}" if aktif else f"  {label}",
+            key=f"nav_{key}",
+            use_container_width=True,
+            type="primary" if aktif else "secondary",
         )
-        return st.button(label, key=f"nav_{key}", use_container_width=True,
-                         help=label, label_visibility="collapsed")
 
     # DASHBOARD GRUBU
     nav_group("Genel Bakış")
