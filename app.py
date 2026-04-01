@@ -161,6 +161,23 @@ inject_css()
 # Streamlit'in beyaz tema ile çakışmasını önle
 st.markdown("""
 <style>
+/* Sol menü nav butonlarını gizle — sadece markdown label görünsün */
+[data-testid="stSidebar"] .stButton > button {
+    position: absolute !important;
+    opacity: 0 !important;
+    height: 32px !important;
+    margin-top: -34px !important;
+    width: 100% !important;
+    cursor: pointer !important;
+    background: transparent !important;
+    border: none !important;
+    box-shadow: none !important;
+}
+[data-testid="stSidebar"] .stButton {
+    margin-bottom: -2px !important;
+}
+</style>
+<style>
 .stApp { background-color: #F7F8FA !important; }
 [data-testid="stSidebar"] {
     background: #FFFFFF !important;
@@ -247,6 +264,9 @@ DEFAULTS = {
     "ai_analiz": None, "ai_strateji": None,
     "senaryo_sonuc": None, "forecast": None,
     "inv_rapor": None, "mc_sonuc": None,
+    # Faz 1: Sol menü navigasyonu
+    "nav_modul": "dashboard",   # aktif modül
+    "nav_sayfa": "genel",       # aktif alt sayfa
 }
 for k, v in DEFAULTS.items():
     if k not in st.session_state:
@@ -429,19 +449,100 @@ with st.sidebar:
                 st.session_state["page"] = "plans"
                 st.rerun()
 
-    # ══ Grup 1: Şirket & Veri ══
+    # ══ Şirket adı ══
+    st.session_state["sirket_adi"] = st.text_input(
+        "Şirket / Proje",
+        value=st.session_state["sirket_adi"],
+        placeholder="Örn: Acme A.Ş.",
+        label_visibility="collapsed"
+    )
+
     st.markdown(
-        f'<div style="font-size:9px;font-weight:600;letter-spacing:.12em;'
-        f'text-transform:uppercase;color:#3D5275;padding:16px 4px 8px;">'
-        f'ŞİRKET &amp; VERİ</div>',
+        f'<div style="font-size:9px;font-weight:700;letter-spacing:.1em;'
+        f'text-transform:uppercase;color:#9CA3AF;padding:8px 4px 6px 0;'
+        f'border-bottom:1px solid #E8EAEF;margin-bottom:6px;">'
+        f'Şirket: {st.session_state["sirket_adi"]}</div>',
         unsafe_allow_html=True
     )
-    st.session_state["sirket_adi"] = st.text_input(
-        "Şirket Adı",
-        value=st.session_state["sirket_adi"],
-        placeholder="Örn: Acme A.Ş."
-    )
-    kaynak = st.radio("Veri kaynağı:", ["CSV / Excel", "Google Sheets"], horizontal=True)
+
+    # ══════════════════════════════════
+    # SOL MENÜ NAVİGASYON — Faz 1
+    # ══════════════════════════════════
+    def nav_group(label):
+        st.markdown(
+            f'<div style="font-size:9px;font-weight:700;letter-spacing:.1em;'
+            f'text-transform:uppercase;color:#9CA3AF;'
+            f'padding:14px 4px 5px;margin-top:2px;">{label}</div>',
+            unsafe_allow_html=True
+        )
+
+    def nav_item(label, key, icon="·"):
+        aktif = st.session_state.get("nav_sayfa") == key
+        bg    = "#EEF2FF" if aktif else "transparent"
+        clr   = "#0F2252" if aktif else "#4B5563"
+        fw    = "600"     if aktif else "400"
+        bdr   = "1px solid #C7D2FE" if aktif else "1px solid transparent"
+        st.markdown(
+            f'<div style="background:{bg};border:{bdr};border-radius:7px;'
+            f'padding:7px 10px;margin-bottom:2px;cursor:pointer;'
+            f'display:flex;align-items:center;gap:8px;">'
+            f'<span style="font-size:10px;color:{clr};opacity:.6;">{icon}</span>'
+            f'<span style="font-size:12px;font-weight:{fw};color:{clr};">{label}</span>'
+            f'</div>',
+            unsafe_allow_html=True
+        )
+        return st.button(label, key=f"nav_{key}", use_container_width=True,
+                         help=label, label_visibility="collapsed")
+
+    # DASHBOARD GRUBU
+    nav_group("Genel Bakış")
+    if nav_item("Dashboard",         "genel",    "◉"):
+        st.session_state["nav_sayfa"] = "genel"; st.rerun()
+    if nav_item("Şirket & Sektör",   "profil",   "○"):
+        st.session_state["nav_sayfa"] = "profil"; st.rerun()
+
+    # FİNANSAL ANALİZ GRUBU
+    nav_group("Finansal Analiz")
+    if nav_item("Gelir Analizi",     "gelir",    "○"):
+        st.session_state["nav_sayfa"] = "gelir"; st.rerun()
+    if nav_item("Gider Analizi",     "gider",    "○"):
+        st.session_state["nav_sayfa"] = "gider"; st.rerun()
+    if nav_item("Karlılık",          "kar",      "○"):
+        st.session_state["nav_sayfa"] = "kar"; st.rerun()
+    if nav_item("Nakit Akışı",       "nakit",    "○"):
+        st.session_state["nav_sayfa"] = "nakit"; st.rerun()
+    if nav_item("Borç & Finansman",  "borc",     "○"):
+        st.session_state["nav_sayfa"] = "borc"; st.rerun()
+    if nav_item("Bütçe & Gerçek",    "butce",    "○"):
+        st.session_state["nav_sayfa"] = "butce"; st.rerun()
+    if nav_item("Müşteri & Ürün",    "musteri",  "○"):
+        st.session_state["nav_sayfa"] = "musteri"; st.rerun()
+
+    # STRATEJİK KARAR GRUBU
+    nav_group("Stratejik Karar")
+    if nav_item("Tahmin & Senaryo",  "tahmin",   "○"):
+        st.session_state["nav_sayfa"] = "tahmin"; st.rerun()
+    if nav_item("Yatırım Merkezi",   "yatirim",  "○"):
+        st.session_state["nav_sayfa"] = "yatirim"; st.rerun()
+    if nav_item("Sektör Benchmark",  "sektor",   "○"):
+        st.session_state["nav_sayfa"] = "sektor"; st.rerun()
+
+    # AI & CFO GRUBU
+    nav_group("AI & CFO Agent")
+    if nav_item("CFO Agent",         "cfo",      "◈"):
+        st.session_state["nav_sayfa"] = "cfo"; st.rerun()
+    if nav_item("AI Analiz",         "ai",       "◈"):
+        st.session_state["nav_sayfa"] = "ai"; st.rerun()
+    if nav_item("AI Sohbet",         "sohbet",   "◈"):
+        st.session_state["nav_sayfa"] = "sohbet"; st.rerun()
+
+    # AYARLAR GRUBU
+    nav_group("Ayarlar & Veri")
+    if nav_item("Veri Girişi",       "veri",     "○"):
+        st.session_state["nav_sayfa"] = "veri"; st.rerun()
+
+    # Kaynak seçimi (veri sayfasında)
+    kaynak = "CSV / Excel"  # default
 
     max_rows = 50000
     if FIREBASE_OK:
@@ -449,9 +550,13 @@ with st.sidebar:
         if guard:
             max_rows = guard.max_rows()
 
-    if kaynak == "CSV / Excel":
-        uploaded = st.file_uploader("Dosya seç", type=["csv", "xlsx", "xls"])
-        if uploaded and st.button("▶ Analizi Başlat", use_container_width=True):
+    kaynak = "CSV / Excel"  # Varsayılan
+    uploaded = st.file_uploader(
+        "CSV / Excel yükle",
+        type=["csv", "xlsx", "xls"],
+        label_visibility="collapsed"
+    )
+    if uploaded and st.button("▶ Analizi Başlat", use_container_width=True):
             with st.spinner("İşleniyor..."):
                 try:
                     df = (pd.read_csv(uploaded)
@@ -467,9 +572,9 @@ with st.sidebar:
                     st.success("✅ Analiz tamamlandı!")
                 except Exception as e:
                     st.error(f"Hata: {e}")
-    else:
-        gs_url  = st.text_input("Google Sheets URL")
-        gs_cred = st.text_input("Credentials JSON yolu")
+    with st.expander("Google Sheets"):
+        gs_url  = st.text_input("Sheets URL")
+        gs_cred = st.text_input("Credentials JSON")
         if st.button("🔗 Bağlan", use_container_width=True):
             with st.spinner("Bağlanıyor..."):
                 try:
@@ -579,31 +684,57 @@ with st.sidebar:
 # ─────────────────────────────────────────────
 
 if st.session_state.rapor is None:
-    st.markdown("""
-    <div style="text-align:center;padding:60px 20px 30px;">
-        <div class="kazkaz-logo" style="font-size:3.4rem;">KazKaz AI</div>
-        <div style="color:#64748B;font-size:0.82rem;letter-spacing:3px;
-                    text-transform:uppercase;margin:10px 0 40px;">
-            Yapay Zeka Destekli Finansal Analiz Platformu
-        </div>
-    </div>""", unsafe_allow_html=True)
-    for col, (ico, title, desc) in zip(st.columns(4), [
-        ("💰", "Gelir Analizi",   "Trend, büyüme, kategori dağılımı"),
-        ("📉", "Gider Kontrolü",  "Sabit/değişken ayrım"),
-        ("🔮", "Gelecek Tahmini", "Prophet ile 3-12 ay tahmin"),
-        ("💼", "Yatırım Analizi", "ROI, NPV, IRR, Monte Carlo"),
-    ]):
-        with col:
-            st.markdown(f"""
-            <div style="background:#0D1424;border:1px solid #1A2E4A;border-radius:14px;padding:18px 20px 16px 22px;position:relative;overflow:hidden;margin-bottom:8px;" style="text-align:center;padding:24px 12px;">
-                <div style="font-size:2rem;margin-bottom:8px;">{ico}</div>
-                <div style="font-family:'Syne',sans-serif;font-weight:700;
-                            font-size:0.88rem;color:#0F172A;margin-bottom:5px;">{title}</div>
-                <div style="color:#64748B;font-size:0.74rem;line-height:1.5;">{desc}</div>
-            </div>""", unsafe_allow_html=True)
+    # Premium karşılama ekranı
     st.markdown(
-        "<div style='text-align:center;color:#2a3f6a;font-size:0.8rem;margin-top:20px;'>"
-        "← Sol panelden veri yükleyerek başlayın</div>",
+        f'<div style="padding:40px 0 20px;border-bottom:1px solid #E8EAEF;margin-bottom:32px;">'
+        f'<div style="font-size:28px;font-weight:700;color:#0F2252;'
+        f'letter-spacing:-.02em;margin-bottom:8px;">'
+        f'KazKaz AI</div>'
+        f'<div style="font-size:14px;color:#9CA3AF;letter-spacing:.04em;">'
+        f'Yapay Zeka Destekli Finansal Karar Platformu</div>'
+        f'</div>',
+        unsafe_allow_html=True
+    )
+
+    st.markdown(
+        f'<div style="font-size:9px;font-weight:700;letter-spacing:.1em;'
+        f'text-transform:uppercase;color:#9CA3AF;'
+        f'padding:0 0 10px;border-bottom:1px solid #E8EAEF;margin-bottom:20px;">'
+        f'Platform Özellikleri</div>',
+        unsafe_allow_html=True
+    )
+
+    modüller = [
+        ("Finansal Analiz",    "Gelir, gider, karlılık, nakit, borç — tam finansal görünürlük"),
+        ("Bütçe & Gerçek",     "Sapma analizi, projeksiyon, kategori bazlı takip"),
+        ("Tahmin & Senaryo",   "Prophet ile 12 aya kadar gelir tahmini, what-if analizi"),
+        ("Müşteri & Ürün",     "RFM segmentasyonu, churn riski, ürün karlılığı"),
+        ("Yatırım Merkezi",    "ROI, NPV, IRR, Monte Carlo simülasyonu"),
+        ("AI & CFO Agent",     "Groq/Gemini destekli stratejik öneri ve finansal sohbet"),
+    ]
+
+    c1, c2 = st.columns(2)
+    for i, (title, desc) in enumerate(modüller):
+        col = c1 if i % 2 == 0 else c2
+        with col:
+            st.markdown(
+                f'<div style="background:#FFFFFF;border:1px solid #E8EAEF;'
+                f'border-left:3px solid #0F2252;border-radius:0 8px 8px 0;'
+                f'padding:12px 14px;margin-bottom:8px;">'
+                f'<div style="font-size:12px;font-weight:600;color:#0F2252;'
+                f'margin-bottom:3px;">{title}</div>'
+                f'<div style="font-size:11px;color:#6B7280;line-height:1.5;">{desc}</div>'
+                f'</div>',
+                unsafe_allow_html=True
+            )
+
+    st.markdown(
+        f'<div style="margin-top:24px;padding:14px 16px;'
+        f'background:#EEF2FF;border:1px solid #C7D2FE;'
+        f'border-radius:8px;text-align:center;">'
+        f'<span style="font-size:12px;color:#0F2252;font-weight:500;">'
+        f'← Sol panelden CSV veya Excel dosyanızı yükleyerek başlayın</span>'
+        f'</div>',
         unsafe_allow_html=True
     )
     st.stop()
@@ -616,20 +747,41 @@ rapor  = st.session_state.rapor
 engine = st.session_state.engine
 df     = st.session_state.df
 
-(tab_genel, tab_gelir, tab_gider, tab_kar,
- tab_tahmin, tab_senaryo, tab_yatirim,
- tab_nakit, tab_borc, tab_sektor,
- tab_profil, tab_musteri, tab_butce,
- tab_veri, tab_cfo, tab_ai, tab_sohbet) = st.tabs([
-    "📊 Genel", "💰 Gelir", "📉 Gider", "📈 Karlılık",
-    "🔮 Tahmin", "🎯 Senaryo", "💼 Yatırım",
-    "💧 Nakit Akışı", "🏦 Borç Analizi",
-    "🏭 Sektör", "🏢 Şirket Profili", "👥 Müşteri & Ürün", "🎯 Bütçe",
-    "📥 Veri Girişi", "🧠 CFO Agent", "🤖 AI Analiz", "💬 AI Sohbet",
-])
+# ═══════════════════════════════════════════════════════
+# FAZ 1: SOL MENÜ SAYFA YÖNLENDİRME SİSTEMİ
+# st.tabs() tamamen kaldırıldı → nav_sayfa ile routing
+# ═══════════════════════════════════════════════════════
+
+_sayfa = st.session_state.get("nav_sayfa", "genel")
+
+# Sayfa isimlerini context manager'a dönüştür
+# Her "if tab_xxx.active:" → "if _sayfa == 'xxx':" olacak
+class _FakePage:
+    def __init__(self, active): self.active = active
+    def __enter__(self): return self
+    def __exit__(self, *a): pass
+    def __bool__(self): return self.active
+
+tab_genel   = _FakePage(_sayfa == "genel")
+tab_gelir   = _FakePage(_sayfa == "gelir")
+tab_gider   = _FakePage(_sayfa == "gider")
+tab_kar     = _FakePage(_sayfa == "kar")
+tab_tahmin  = _FakePage(_sayfa == "tahmin")
+tab_senaryo = _FakePage(_sayfa == "senaryo")
+tab_yatirim = _FakePage(_sayfa == "yatirim")
+tab_nakit   = _FakePage(_sayfa == "nakit")
+tab_borc    = _FakePage(_sayfa == "borc")
+tab_sektor  = _FakePage(_sayfa == "sektor")
+tab_profil  = _FakePage(_sayfa == "profil")
+tab_musteri = _FakePage(_sayfa == "musteri")
+tab_butce   = _FakePage(_sayfa == "butce")
+tab_veri    = _FakePage(_sayfa == "veri")
+tab_cfo     = _FakePage(_sayfa == "cfo")
+tab_ai      = _FakePage(_sayfa == "ai")
+tab_sohbet  = _FakePage(_sayfa == "sohbet")
 
 # ══ GENEL DASHBOARD ══
-with tab_genel:
+if tab_genel.active:
     g  = rapor["gelir"]
     e  = rapor["gider"]
     k  = rapor["karlilik"]
@@ -783,7 +935,7 @@ with tab_genel:
     render_alerts(_alerts)
 
 # ══ GELİR ══
-with tab_gelir:
+if tab_gelir.active:
     g = rapor["gelir"]
     _bv = float(g.get("ortalama_buyume_orani", 0) or 0)
 
@@ -855,7 +1007,7 @@ with tab_gelir:
         st.plotly_chart(fig, use_container_width=True)
 
 # ══ GİDER ══
-with tab_gider:
+if tab_gider.active:
     e = rapor["gider"]
     page_header("Gider Analizi",
         f'{e.get("ay_sayisi", g.get("ay_sayisi",0))} aylık dönem')
@@ -895,7 +1047,7 @@ with tab_gider:
         st.plotly_chart(fig, use_container_width=True)
 
 # ══ KARLILIK ══
-with tab_kar:
+if tab_kar.active:
     k = rapor["karlilik"]
     page_header("Karlılık Analizi",
         f'Net kar marjı %{k.get("kar_marji",0)}')
@@ -928,7 +1080,7 @@ with tab_kar:
         st.plotly_chart(fig, use_container_width=True)
 
 # ══ TAHMİN ══
-with tab_tahmin:
+if tab_tahmin.active:
     sec("🔮 Gelecek Gelir Tahmini")
     if not gate("tahmin", "Gelecek Tahmini"):
         st.stop()
@@ -982,7 +1134,8 @@ with tab_tahmin:
             }), use_container_width=True, hide_index=True)
 
 # ══ SENARYO ══
-with tab_senaryo:
+# Not: Senaryo, Tahmin sayfasının alt bölümü olarak da kullanılabilir
+if tab_senaryo.active:
     sec("🎯 Senaryo Analizi")
     if not gate("senaryo_analiz", "Senaryo Analizi"):
         st.stop()
@@ -1023,28 +1176,28 @@ with tab_senaryo:
             )
 
 # ══ YATIRIM ══
-with tab_yatirim:
+if tab_yatirim.active:
     if not INVESTMENT_OK:
         st.error("`investment_engine.py` bulunamadı. Tüm dosyaların aynı klasörde olduğundan emin olun.")
     else:
         show_investment_tab()
 
 # ══ NAKİT AKIŞI ══
-with tab_nakit:
+if tab_nakit.active:
     if not CASHFLOW_OK:
         st.error("`cashflow_engine.py` ve `cashflow_debt_ui.py` klasörde olmalı.")
     else:
         show_cashflow_tab(fin_engine=engine, fin_rapor=rapor)
 
 # ══ BORÇ ANALİZİ ══
-with tab_borc:
+if tab_borc.active:
     if not CASHFLOW_OK:
         st.error("`debt_engine.py` ve `cashflow_debt_ui.py` klasörde olmalı.")
     else:
         show_debt_tab(fin_rapor=rapor)
 
 # ══ SEKTÖR KARŞILAŞTIRMASI ══
-with tab_sektor:
+if tab_sektor.active:
     if not SECTOR_OK:
         st.error("`sector_engine.py` ve `sector_ui.py` dosyaları klasörde olmalı.")
     else:
@@ -1057,35 +1210,35 @@ with tab_sektor:
         )
 
 # ══ ŞİRKET PROFİLİ ══
-with tab_profil:
+if tab_profil.active:
     if not COMPANY_OK:
         st.error("`company_profile.py` ve `company_ui.py` dosyaları klasörde olmalı.")
     else:
         show_company_tab(fin_rapor=rapor)
 
 # ══ MÜŞTERİ & ÜRÜN ANALİZİ ══
-with tab_musteri:
+if tab_musteri.active:
     if not CUSTOMER_OK:
         st.error("`customer_engine.py` ve `customer_ui.py` dosyaları klasörde olmalı.")
     else:
         show_customer_tab(df=df)
 
 # ══ BÜTÇE VS GERÇEKLEŞen ══
-with tab_butce:
+if tab_butce.active:
     if not BUDGET_OK:
         st.error("`budget_engine.py` ve `budget_ui.py` dosyaları klasörde olmalı.")
     else:
         show_budget_tab(df=df, fin_rapor=rapor)
 
 # ══ VERİ GİRİŞ MERKEZİ ══
-with tab_veri:
+if tab_veri.active:
     if not DATA_ENTRY_OK:
         st.error("`data_importer.py` ve `data_entry_ui.py` dosyaları klasörde olmalı.")
     else:
         show_data_entry_tab()
 
 # ══ CFO AGENT ══
-with tab_cfo:
+if tab_cfo.active:
     if not CFO_OK:
         st.error("`cfo_agent.py` ve `cfo_ui.py` dosyaları klasörde olmalı.")
     else:
@@ -1099,7 +1252,7 @@ with tab_cfo:
         )
 
 # ══ AI ANALİZ ══
-with tab_ai:
+if tab_ai.active:
     sec("🤖 AI Finansal Analiz")
     if not gate("ai_yorum", "AI Yorumları"):
         st.stop()
@@ -1143,7 +1296,7 @@ with tab_ai:
                 )
 
 # ══ AI SOHBET ══
-with tab_sohbet:
+if tab_sohbet.active:
     sec("💬 AI Finansal Asistan")
     if not gate("ai_sohbet", "AI Sohbet"):
         st.stop()
