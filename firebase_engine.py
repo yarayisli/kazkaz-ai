@@ -229,6 +229,135 @@ class FirestoreUserManager:
         except Exception:
             pass
 
+    # ── Analiz Snapshot ───────────────────────────────────────────────────────
+
+    def save_analysis_snapshot(
+        self,
+        uid:       str,
+        rapor:     Dict[str, Any],
+        sirket_adi: str = "Şirketim",
+        max_snapshots: int = 5,
+    ) -> Optional[str]:
+        """
+        Son analizi Firestore'a kaydeder.
+        Kullanıcı başına max 5 snapshot saklanır (eskiler silinir).
+
+        Returns: snapshot_id veya None (hata durumunda)
+        """
+        try:
+            col = self.db.collection("users").document(uid).collection("snapshots")
+
+            # Güvenli serileştirme: DataFrame ve numpy tipler JSON'a çevrilemiyor
+            temiz_rapor = _serialize_rapor(rapor)
+
+            snapshot = {
+                "sirket_adi":  sirket_adi,
+                "tarih":       datetime.utcnow().isoformat(),
+                "ay_sayisi":   rapor.get("gelir", {}).get("ay_sayisi", 0),
+                "saglik_skor": rapor.get("saglik_skoru", {}).get("skor", 0),
+                "toplam_gelir":rapor.get("gelir", {}).get("toplam_gelir", 0),
+                "net_kar":     rapor.get("karlilik", {}).get("toplam_net_kar", 0),
+                "rapor":       temiz_rapor,
+            }
+
+            # Kaydet
+            ref = col.add(snapshot)
+            snapshot_id = ref[1].id
+
+            # Limit kontrolü: 5'ten fazlaysa en eskiyi sil
+            mevcut = list(col.order_by("tarih", direction="ASCENDING").stream())
+            if len(mevcut) > max_snapshots:
+                for eski in mevcut[:len(mevcut) - max_snapshots]:
+                    eski.reference.delete()
+
+            return snapshot_id
+
+        except Exception:
+            return None
+
+    def get_snapshots(self, uid: str, limit: int = 5) -> list:
+        """
+        Kullanıcının son analizlerini listeler.
+        Her kayıt: sirket_adi, tarih, saglik_skor, toplam_gelir, net_kar, id
+        """
+        try:
+            col  = self.db.collection("users").document(uid).collection("snapshots")
+            docs = col.order_by("tarih", direction="DESCENDING").limit(limit).stream()
+            result = []
+            for doc in docs:
+                d = doc.to_dict()
+                result.append({
+                    "id":          doc.id,
+                    "sirket_adi":  d.get("sirket_adi", "—"),
+                    "tarih":       d.get("tarih", "")[:10],
+                    "ay_sayisi":   d.get("ay_sayisi", 0),
+                    "saglik_skor": d.get("saglik_skor", 0),
+                    "toplam_gelir":d.get("toplam_gelir", 0),
+                    "net_kar":     d.get("net_kar", 0),
+                })
+            return result
+        except Exception:
+            return []
+
+    def get_snapshot_rapor(self, uid: str, snapshot_id: str) -> Optional[Dict[str, Any]]:
+        """Belirli bir snapshot'ın tam raporunu getirir."""
+        try:
+            doc = (self.db.collection("users")
+                          .document(uid)
+                          .collection("snapshots")
+                          .document(snapshot_id)
+                          .get())
+            if doc.exists:
+                return doc.to_dict().get("rapor")
+            return None
+        except Exception:
+            return None
+
+    def delete_snapshot(self, uid: str, snapshot_id: str) -> bool:
+        """Snapshot siler."""
+        try:
+            (self.db.collection("users")
+                    .document(uid)
+                    .collection("snapshots")
+                    .document(snapshot_id)
+                    .delete())
+            return True
+        except Exception:
+            return False
+
+
+# ── Yardımcı: Raporu Firestore-safe formata çevir ─────────────────────────────
+
+def _serialize_rapor(obj, depth: int = 0) -> Any:
+    """
+    DataFrame, numpy tipleri ve diğer serialize edilemeyen nesneleri
+    Firestore'a yazılabilir forma çevirir.
+    Maksimum 4 seviye derinlikte çalışır (Firestore limiti).
+    """
+    import numpy as np
+    import pandas as pd
+
+    if depth > 4:
+        return str(obj)
+
+    if isinstance(obj, dict):
+        return {str(k): _serialize_rapor(v, depth+1) for k, v in obj.items()}
+    if isinstance(obj, list):
+        return [_serialize_rapor(i, depth+1) for i in obj]
+    if isinstance(obj, pd.DataFrame):
+        return obj.head(50).to_dict(orient="records")  # max 50 satır
+    if isinstance(obj, pd.Series):
+        return obj.to_dict()
+    if isinstance(obj, (np.integer,)):
+        return int(obj)
+    if isinstance(obj, (np.floating,)):
+        return float(obj)
+    if isinstance(obj, (np.ndarray,)):
+        return obj.tolist()
+    if isinstance(obj, float) and (obj != obj):  # NaN kontrolü
+        return None
+    return obj
+
 
 # ─────────────────────────────────────────────
 # PAKET KONTROL SERVİSİ
@@ -340,3 +469,48 @@ class SessionManager:
     def get_profile() -> Optional[Dict[str, Any]]:
         import streamlit as st
         return st.session_state.get("user_profile")
+
+    @staticmethod
+    def save_snapshot(rapor: Dict[str, Any], sirket_adi: str = "Şirketim") -> Optional[str]:
+        """
+        Giriş yapılmışsa analizi Firestore'a kaydeder.
+        Sessizce başarısız olur — kullanıcı deneyimini bozmaz.
+        """
+        import streamlit as st
+        try:
+            profile = st.session_state.get("user_profile")
+            db_mgr  = st.session_state.get("_firestore_mgr")
+            if not profile or not db_mgr:
+                return None
+            uid = profile.get("uid", "")
+            if not uid or uid == "demo":
+                return None
+            return db_mgr.save_analysis_snapshot(uid, rapor, sirket_adi)
+        except Exception:
+            return None
+
+    @staticmethod
+    def list_snapshots() -> list:
+        """Kullanıcının kayıtlı analizlerini listeler."""
+        import streamlit as st
+        try:
+            profile = st.session_state.get("user_profile")
+            db_mgr  = st.session_state.get("_firestore_mgr")
+            if not profile or not db_mgr:
+                return []
+            return db_mgr.get_snapshots(profile.get("uid", ""))
+        except Exception:
+            return []
+
+    @staticmethod
+    def load_snapshot(snapshot_id: str) -> Optional[Dict[str, Any]]:
+        """Kaydedilmiş bir analizi yükler."""
+        import streamlit as st
+        try:
+            profile = st.session_state.get("user_profile")
+            db_mgr  = st.session_state.get("_firestore_mgr")
+            if not profile or not db_mgr:
+                return None
+            return db_mgr.get_snapshot_rapor(profile.get("uid", ""), snapshot_id)
+        except Exception:
+            return None

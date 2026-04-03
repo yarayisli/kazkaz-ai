@@ -638,12 +638,18 @@ if _sayfa == "veri":
                                 st.warning(f"İlk {max_rows:,} satır işlendi.")
                                 df = df.head(max_rows)
                             engine = FinancialEngine.from_dataframe(df)
+                            rapor_ = engine.full_report()
                             st.session_state.update(
                                 engine=engine,
-                                rapor=engine.full_report(),
+                                rapor=rapor_,
                                 df=engine.df,
                                 nav_sayfa="genel",
                             )
+                            if FIREBASE_OK:
+                                SessionManager.save_snapshot(
+                                    rapor_,
+                                    st.session_state.get("sirket_adi", "Şirketim")
+                                )
                             st.success("✅ Analiz tamamlandı! Dashboard'a yönlendiriliyor...")
                             st.rerun()
                         except Exception as ex:
@@ -666,12 +672,18 @@ if _sayfa == "veri":
             with st.spinner("Bağlanıyor..."):
                 try:
                     engine = FinancialEngine.from_google_sheets(gs_url, gs_cred)
+                    rapor_ = engine.full_report()
                     st.session_state.update(
                         engine=engine,
-                        rapor=engine.full_report(),
+                        rapor=rapor_,
                         df=engine.df,
                         nav_sayfa="genel",
                     )
+                    if FIREBASE_OK:
+                        SessionManager.save_snapshot(
+                            rapor_,
+                            st.session_state.get("sirket_adi", "Şirketim")
+                        )
                     st.success("✅ Bağlandı!")
                     st.rerun()
                 except Exception as ex:
