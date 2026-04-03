@@ -457,7 +457,7 @@ def show_budget_tab(df: pd.DataFrame, fin_rapor: dict = None):
 
             st.dataframe(
                 display.style
-                .applymap(color_sapma,
+                .map(color_sapma,
                           subset=[c for c in display.columns
                                   if "Sapma" in c])
                 .format({c: "{:,.0f} ₺" for c in display.columns

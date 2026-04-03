@@ -240,7 +240,7 @@ def show_customer_tab(df: pd.DataFrame):
                         "Tahmini Gider (₺)":  "{:,.0f} ₺",
                         "Net Kar (₺)":        "{:,.0f} ₺",
                         "Kar Marjı (%)":      "{:.1f}%",
-                    }).applymap(
+                    }).map(
                         lambda v: "color:#059669" if isinstance(v,(int,float)) and v>0
                                   else "color:#DC2626" if isinstance(v,(int,float)) and v<0
                                   else "",
@@ -416,7 +416,7 @@ def show_customer_tab(df: pd.DataFrame):
             st.dataframe(
                 churn_df.style.format({
                     "Toplam Gelir (₺)": "{:,.0f} ₺",
-                }).applymap(
+                }).map(
                     lambda v: "color:#DC2626;font-weight:600"
                     if v == "🔴 Yüksek" else
                     "color:#D97706" if v == "🟡 Orta" else
