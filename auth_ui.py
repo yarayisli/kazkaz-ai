@@ -252,72 +252,298 @@ def show_auth_page(web_api_key: str, firestore_cred: str, project_id: str):
 # 2. PAKET SEÇİM EKRANI
 # ─────────────────────────────────────────────
 
+
+# ─────────────────────────────────────────────────────────────────────────────
+# 2. FİYATLANDIRMA & PAKET SEÇİM EKRANI
+# ─────────────────────────────────────────────────────────────────────────────
+
+import streamlit.components.v1 as components
+
+# Paket tanımları — görsel katman için genişletilmiş
+_PAKETLER = [
+    {
+        "key":     "free",
+        "ad":      "Free",
+        "fiyat":   "Ücretsiz",
+        "fiyat_alt": "sonsuza kadar",
+        "renk":    "#6B7280",
+        "populer": False,
+        "ozellikler": [
+            ("✓", "Temel gelir/gider analizi"),
+            ("✓", "Aylık grafikler"),
+            ("✓", "Finansal sağlık skoru"),
+            ("✓", "500 satır veri limiti"),
+            ("✗", "AI yorumları"),
+            ("✗", "AI sohbet"),
+            ("✗", "Senaryo analizi"),
+            ("✗", "Gelecek tahmini"),
+            ("✗", "PDF rapor"),
+            ("✗", "Gelişmiş analiz"),
+        ],
+        "cta": "Mevcut Plan",
+        "cta_disabled": True,
+        "limit_notu": "500 satır / ay",
+    },
+    {
+        "key":     "pro",
+        "ad":      "Pro",
+        "fiyat":   "₺499",
+        "fiyat_alt": "/ ay · KDV dahil",
+        "renk":    "#1B3A6B",
+        "populer": True,
+        "ozellikler": [
+            ("✓", "Her şey Free'de olanlar"),
+            ("✓", "50.000 satır veri limiti"),
+            ("✓", "AI finansal yorumlar"),
+            ("✓", "AI sohbet (aylık 100 mesaj)"),
+            ("✓", "Senaryo analizi"),
+            ("✓", "Gelecek tahmini (Prophet)"),
+            ("✓", "PDF rapor indirme"),
+            ("✓", "Gelişmiş analiz modülleri"),
+            ("✗", "CFO Agent (5 araçlı)"),
+            ("✗", "Sınırsız AI mesaj"),
+        ],
+        "cta": "Pro'ya Geç →",
+        "cta_disabled": False,
+        "limit_notu": "50.000 satır / ay",
+        "iyzico_link": "",   # TODO: iyzico ödeme linki buraya
+    },
+    {
+        "key":     "uzman",
+        "ad":      "Uzman",
+        "fiyat":   "₺999",
+        "fiyat_alt": "/ ay · KDV dahil",
+        "renk":    "#0F2252",
+        "populer": False,
+        "ozellikler": [
+            ("✓", "Her şey Pro'da olanlar"),
+            ("✓", "Sınırsız satır"),
+            ("✓", "CFO Agent (5 araçlı ajan)"),
+            ("✓", "Sınırsız AI mesaj"),
+            ("✓", "Öncelikli destek"),
+            ("✓", "Erken özellik erişimi"),
+            ("✓", "SMMM çoklu müşteri (yakında)"),
+            ("✓", "API erişimi (yakında)"),
+            ("✓", "White-label (yakında)"),
+            ("✓", "Özel onboarding"),
+        ],
+        "cta": "Uzman'a Geç →",
+        "cta_disabled": False,
+        "limit_notu": "Sınırsız",
+        "iyzico_link": "",   # TODO: iyzico ödeme linki buraya
+    },
+]
+
+_KARSILASTIRMA = [
+    ("Veri limiti",           "500 satır",  "50.000 satır",  "Sınırsız"),
+    ("Temel analiz",          "✓",          "✓",             "✓"),
+    ("Grafikler",             "✓",          "✓",             "✓"),
+    ("Sağlık skoru",          "✓",          "✓",             "✓"),
+    ("AI yorum",              "✗",          "✓",             "✓"),
+    ("AI sohbet",             "✗",          "100/ay",        "Sınırsız"),
+    ("Senaryo analizi",       "✗",          "✓",             "✓"),
+    ("Gelecek tahmini",       "✗",          "✓",             "✓"),
+    ("PDF rapor",             "✗",          "✓",             "✓"),
+    ("CFO Agent",             "✗",          "✗",             "✓"),
+    ("SMMM çoklu müşteri",    "✗",          "✗",             "Yakında"),
+    ("API erişimi",           "✗",          "✗",             "Yakında"),
+]
+
+
 def show_plan_page():
-    """Paket seçim/yükseltme ekranı."""
-    st.markdown(AUTH_CSS, unsafe_allow_html=True)
-    st.markdown('<div style="font-family:Syne,sans-serif; font-size:1.6rem; font-weight:800; '
-                'color:#e8eaf0; margin-bottom:4px;">Paket Seçin</div>', unsafe_allow_html=True)
-    st.markdown('<div style="color:#4a6fa5; font-size:0.8rem; margin-bottom:24px;">'
-                'İhtiyacınıza uygun paketi seçin.</div>', unsafe_allow_html=True)
+    """
+    Tam fiyatlandırma & paket yükseltme ekranı.
+    app.py'de session_state['page'] == 'plans' olduğunda çağrılır.
+    """
+    guard   = SessionManager.get_guard()
+    mevcut  = guard.plan if guard else Plan.FREE
 
-    guard    = SessionManager.get_guard()
-    mevcut   = guard.plan if guard else Plan.FREE
+    # ── Başlık ────────────────────────────────────────────────────────────────
+    components.html(f"""
+    <style>
+      * {{ box-sizing:border-box; margin:0; padding:0; }}
+      body {{ font-family:-apple-system,'Segoe UI',Arial,sans-serif; background:transparent; }}
+    </style>
+    <div style="text-align:center; padding:32px 0 8px;">
+      <div style="font-size:11px; font-weight:600; letter-spacing:.12em; text-transform:uppercase;
+                  color:#6B7280; margin-bottom:10px;">FİYATLANDIRMA</div>
+      <div style="font-size:28px; font-weight:700; color:#1A1F36; margin-bottom:8px;">
+        Her şirketin bir CFO'ya ihtiyacı var
+      </div>
+      <div style="font-size:14px; color:#6B7280; max-width:480px; margin:0 auto;">
+        Kurumsal düzeyde finansal analiz ve AI karar desteğini KOBİ'lere erişilebilir kılıyoruz.
+      </div>
+    </div>
+    """, height=130)
 
-    col1, col2, col3 = st.columns(3)
-    plan_cols = [(col1, Plan.FREE), (col2, Plan.PRO), (col3, Plan.UZMAN)]
+    # ── 3 Paket Kartı ─────────────────────────────────────────────────────────
+    col1, col2, col3 = st.columns(3, gap="medium")
+    paket_cols = [col1, col2, col3]
 
-    for col, plan_key in plan_cols:
-        p = PLAN_FEATURES[plan_key]
-        popular_class = "popular" if plan_key == Plan.PRO else ""
-        popular_badge = '<div style="color:#0066ff;font-size:0.7rem;margin-bottom:4px;">★ EN POPÜLER</div>' \
-                        if plan_key == Plan.PRO else ""
-        active_badge  = '<div style="color:#10d994;font-size:0.7rem;margin-top:4px;">✓ Mevcut Paketiniz</div>' \
-                        if plan_key == mevcut else ""
-
-        features_html = ""
-        feature_labels = {
-            "temel_analiz":    "Temel Analiz",
-            "grafikler":       "Grafikler",
-            "saglik_skoru":    "Sağlık Skoru",
-            "ai_yorum":        "AI Yorumları",
-            "ai_sohbet":       "AI Sohbet",
-            "senaryo_analiz":  "Senaryo Analizi",
-            "tahmin":          "Gelecek Tahmini",
-            "pdf_rapor":       "PDF Rapor",
-            "gelismis_analiz": "Gelişmiş Analiz",
-        }
-        for fk, flabel in feature_labels.items():
-            has = p.get(fk, False)
-            cls = "yes" if has else "no"
-            ico = "✓" if has else "✗"
-            features_html += f'<div class="plan-feature {cls}">{ico} {flabel}</div>'
+    for i, (col, paket) in enumerate(zip(paket_cols, _PAKETLER)):
+        is_mevcut = (paket["key"] == mevcut)
+        is_populer = paket["populer"]
 
         with col:
-            st.markdown(f"""
-            <div class="plan-card {popular_class}">
-                {popular_badge}
-                <div style="font-size:2rem;">{p['emoji']}</div>
-                <div class="plan-name">{p['ad']}</div>
-                <div class="plan-price">{p['fiyat']}</div>
-                {features_html}
-                {active_badge}
+            # Popüler badge
+            if is_populer:
+                st.markdown(
+                    '<div style="text-align:center; margin-bottom:-8px;">'
+                    '<span style="background:#1B3A6B; color:#fff; font-size:10px; '
+                    'font-weight:700; letter-spacing:.1em; text-transform:uppercase; '
+                    'padding:4px 14px; border-radius:20px;">⭐ EN POPÜLER</span></div>',
+                    unsafe_allow_html=True
+                )
+            else:
+                st.markdown('<div style="height:22px;"></div>', unsafe_allow_html=True)
+
+            # Kart HTML
+            border = f"2px solid {paket['renk']}" if is_populer else "1px solid #E8EAEF"
+            ozellik_html = ""
+            for ico, metin in paket["ozellikler"]:
+                renk = "#059669" if ico == "✓" else "#D1D5DB"
+                metin_renk = "#374151" if ico == "✓" else "#9CA3AF"
+                ozellik_html += (
+                    f'<div style="display:flex;align-items:center;gap:8px;'
+                    f'padding:5px 0;border-bottom:1px solid #F3F4F6;">'
+                    f'<span style="color:{renk};font-weight:700;font-size:13px;'
+                    f'flex-shrink:0;">{ico}</span>'
+                    f'<span style="color:{metin_renk};font-size:13px;">{metin}</span>'
+                    f'</div>'
+                )
+
+            mevcut_badge = (
+                '<div style="background:#ECFDF5;color:#059669;font-size:11px;'
+                'font-weight:600;padding:3px 10px;border-radius:20px;'
+                'display:inline-block;margin-top:8px;">✓ Mevcut Paketiniz</div>'
+                if is_mevcut else ""
+            )
+
+            components.html(f"""
+            <style>* {{box-sizing:border-box;margin:0;padding:0;font-family:-apple-system,'Segoe UI',Arial,sans-serif;}}</style>
+            <div style="background:#fff;border:{border};border-radius:16px;
+                        padding:24px 20px;min-height:480px;">
+              <div style="font-size:22px;font-weight:700;color:#1A1F36;">{paket['ad']}</div>
+              <div style="margin:12px 0 4px;">
+                <span style="font-size:32px;font-weight:800;color:{paket['renk']};">{paket['fiyat']}</span>
+              </div>
+              <div style="font-size:12px;color:#9CA3AF;margin-bottom:16px;">{paket['fiyat_alt']}</div>
+              <div style="font-size:11px;background:#F9FAFB;color:#6B7280;
+                          padding:4px 10px;border-radius:6px;margin-bottom:16px;
+                          display:inline-block;">{paket['limit_notu']}</div>
+              <div style="margin-top:4px;">{ozellik_html}</div>
+              {mevcut_badge}
             </div>
-            """, unsafe_allow_html=True)
+            """, height=520)
 
-            st.markdown("<div style='height:12px;'></div>", unsafe_allow_html=True)
-            if plan_key != mevcut:
-                if st.button(
-                    f"{'Yükselt →' if plan_key != Plan.FREE else 'Düşür'} {p['ad']}",
-                    key=f"plan_{plan_key}",
-                    use_container_width=True
-                ):
-                    # Gerçek ödeme sistemi entegrasyonu buraya
-                    st.info(f"'{p['ad']}' paketi için ödeme sistemi yakında aktif olacak.")
+            st.markdown("<div style='height:8px;'></div>", unsafe_allow_html=True)
 
+            # CTA butonu
+            if is_mevcut:
+                st.button(
+                    "✓ Mevcut Plan",
+                    key=f"plan_btn_{paket['key']}",
+                    use_container_width=True,
+                    disabled=True,
+                )
+            elif paket["key"] == "free":
+                if st.button("Ücretsiz Kullan", key=f"plan_btn_{paket['key']}",
+                             use_container_width=True):
+                    st.session_state["page"] = "main"
+                    st.rerun()
+            else:
+                iyzico_link = paket.get("iyzico_link", "")
+                if iyzico_link:
+                    st.markdown(
+                        f'<a href="{iyzico_link}" target="_blank" style="display:block;'
+                        f'text-align:center;background:#1B3A6B;color:#fff;font-weight:600;'
+                        f'font-size:14px;padding:10px;border-radius:8px;text-decoration:none;'
+                        f'margin-top:4px;">{paket["cta"]}</a>',
+                        unsafe_allow_html=True
+                    )
+                else:
+                    if st.button(paket["cta"], key=f"plan_btn_{paket['key']}",
+                                 use_container_width=True):
+                        st.info(
+                            f"**{paket['ad']} paketi** için ödeme sistemi çok yakında aktif olacak.\n\n"
+                            f"Erken erişim için: **destek@kazkaz.ai**",
+                            icon="💳"
+                        )
 
-# ─────────────────────────────────────────────
-# 3. SİDEBAR KULLANICI BADGE
-# ─────────────────────────────────────────────
+    # ── Karşılaştırma Tablosu ─────────────────────────────────────────────────
+    st.markdown("<div style='height:32px;'></div>", unsafe_allow_html=True)
+
+    tablo_html = """
+    <style>
+      * {box-sizing:border-box;margin:0;padding:0;font-family:-apple-system,'Segoe UI',Arial,sans-serif;}
+      .ct {width:100%;border-collapse:collapse;}
+      .ct th {background:#F9FAFB;color:#6B7280;font-size:11px;font-weight:700;
+              letter-spacing:.08em;text-transform:uppercase;padding:10px 16px;
+              border-bottom:2px solid #E8EAEF;text-align:left;}
+      .ct th:not(:first-child) {text-align:center;}
+      .ct td {padding:10px 16px;font-size:13px;color:#374151;border-bottom:1px solid #F3F4F6;}
+      .ct td:not(:first-child) {text-align:center;font-weight:500;}
+      .ct tr:hover td {background:#F9FAFB;}
+      .yes {color:#059669;} .no {color:#D1D5DB;}
+      .pro-col {background:#EFF6FF;}
+    </style>
+    <div style="font-size:16px;font-weight:700;color:#1A1F36;margin-bottom:12px;">
+      Detaylı Özellik Karşılaştırması
+    </div>
+    <table class="ct">
+      <thead>
+        <tr>
+          <th>Özellik</th>
+          <th>Free</th>
+          <th style="background:#EFF6FF;color:#1B3A6B;">Pro</th>
+          <th>Uzman</th>
+        </tr>
+      </thead>
+      <tbody>
+    """
+    for satir in _KARSILASTIRMA:
+        ozellik, free_v, pro_v, uzman_v = satir
+        def stil(v):
+            if v == "✓": return f'<span class="yes">✓</span>'
+            if v == "✗": return f'<span class="no">✗</span>'
+            return v
+        tablo_html += (
+            f"<tr><td>{ozellik}</td>"
+            f"<td>{stil(free_v)}</td>"
+            f'<td class="pro-col">{stil(pro_v)}</td>'
+            f"<td>{stil(uzman_v)}</td></tr>"
+        )
+    tablo_html += "</tbody></table>"
+
+    components.html(tablo_html, height=len(_KARSILASTIRMA) * 42 + 90)
+
+    # ── SSS ───────────────────────────────────────────────────────────────────
+    st.markdown("<div style='height:24px;'></div>", unsafe_allow_html=True)
+    with st.expander("❓ Sık Sorulan Sorular"):
+        st.markdown("""
+**Kredi kartı bilgimi kaydetmeniz gerekiyor mu?**
+Ödeme işlemleri iyzico altyapısı üzerinden güvenle gerçekleştirilir.
+KazKaz AI kredi kartı bilgilerinizi saklamaz.
+
+**İstediğim zaman iptal edebilir miyim?**
+Evet. Aboneliğinizi istediğiniz zaman, herhangi bir ceza ödemeksizin iptal edebilirsiniz.
+İptal ettiğinizde mevcut dönem sonuna kadar erişiminiz devam eder.
+
+**Free'den Pro'ya geçince verilerim korunur mu?**
+Evet. Hesabınızdaki tüm analizler ve veriler paket geçişinden etkilenmez.
+
+**Fatura kesiliyor mu?**
+Evet. Her ödeme döneminde e-fatura otomatik olarak kayıtlı e-posta adresinize gönderilir.
+
+**SMMM olarak birden fazla müşteri için kullanabilir miyim?**
+Uzman paketi için SMMM çoklu müşteri modülü geliştiriliyor. Erken erişim için destek@kazkaz.ai adresine yazın.
+        """)
+
+    # ── Geri butonu ───────────────────────────────────────────────────────────
+    st.markdown("<div style='height:16px;'></div>", unsafe_allow_html=True)
+    if st.button("← Ana Sayfaya Dön", key="plan_back"):
+        st.session_state["page"] = "main"
+        st.rerun()
 
 def show_user_badge():
     """Sidebar'da kullanıcı bilgisi ve çıkış butonu gösterir."""
