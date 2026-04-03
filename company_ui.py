@@ -429,7 +429,7 @@ def show_company_tab(fin_rapor: dict):
             return f"color:{c};font-weight:600" if c else ""
 
         st.dataframe(
-            kpi_df.style.applymap(color_d, subset=["Durum"])
+            kpi_df.style.map(color_d, subset=["Durum"])
                         .format({"Perf. %": "{:.0f}%"}),
             use_container_width=True, hide_index=True)
 
