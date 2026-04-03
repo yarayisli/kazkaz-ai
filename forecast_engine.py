@@ -1,162 +1,248 @@
 """
-KazKaz AI - Gelecek Tahmin Motoru (Prophet)
-=============================================
-Özellikler:
-  - Gelecek 3/6/12 ay gelir tahmini
-  - Trend + seasonality ayrıştırma
-  - Confidence interval (güven aralığı)
-  - Anomali tespiti
-  - Tahmin özet raporu
+KazKaz AI - Gelecek Tahmin Motoru
+====================================
+Backend öncelik sırası:
+  1. Prophet (cmdstanpy backend) — en güvenilir, mevsimsellik destekli
+  2. statsmodels ExponentialSmoothing — Prophet kurulamadığında devreye girer
+  3. Lineer trend — hiçbiri yoksa basit projeksiyon
 
-Kurulum: pip install prophet
+Streamlit Cloud notu:
+  - pystan KULLANILMIYOR (build timeout riski)
+  - PROPHET_USE_CMDSTAN=1 env variable Streamlit Secrets'a eklenmelidir
+  - Prophet yüklenemezse uygulama sessizce statsmodels'e geçer
 """
 
+import os
 import pandas as pd
 import numpy as np
 from typing import Dict, Any, Optional
 import warnings
 warnings.filterwarnings("ignore")
 
+# ─── Backend tespiti ───────────────────────────────────────────────────────────
+
+PROPHET_AVAILABLE = False
+STATSMODELS_AVAILABLE = False
+ACTIVE_BACKEND = "linear"   # fallback
+
 try:
+    # cmdstanpy backend zorla — pystan'ı bypass eder
+    os.environ.setdefault("PROPHET_USE_CMDSTAN", "1")
     from prophet import Prophet
     PROPHET_AVAILABLE = True
-except ImportError:
-    PROPHET_AVAILABLE = False
+    ACTIVE_BACKEND = "prophet"
+except Exception:
+    pass
+
+if not PROPHET_AVAILABLE:
+    try:
+        from statsmodels.tsa.holtwinters import ExponentialSmoothing
+        STATSMODELS_AVAILABLE = True
+        ACTIVE_BACKEND = "statsmodels"
+    except ImportError:
+        pass
 
 
-# ─────────────────────────────────────────────
-# TAHMİN MOTORU
-# ─────────────────────────────────────────────
+def get_backend_info() -> Dict[str, str]:
+    """UI'da hangi backend'in aktif olduğunu göstermek için."""
+    labels = {
+        "prophet":     "Prophet (tam model — mevsimsellik + güven aralığı)",
+        "statsmodels": "Holt-Winters (orta model — trend + mevsimsellik)",
+        "linear":      "Lineer Trend (basit projeksiyon)",
+    }
+    return {
+        "backend": ACTIVE_BACKEND,
+        "label":   labels[ACTIVE_BACKEND],
+        "tam_model": PROPHET_AVAILABLE,
+    }
+
+
+# ─── Ana Motor ────────────────────────────────────────────────────────────────
 
 class ForecastEngine:
     """
-    Prophet tabanlı gelir tahmin motoru.
+    Çok katmanlı gelir tahmin motoru.
+    Prophet → Holt-Winters → Lineer sırasıyla dener.
 
     Kullanım:
         fc = ForecastEngine(df)
-        sonuc = fc.forecast(ay=3)
+        sonuc = fc.forecast(ay=6)
     """
 
     def __init__(self, df: pd.DataFrame):
-        if not PROPHET_AVAILABLE:
-            raise ImportError("Prophet kurulu değil: pip install prophet")
-
         self.df = df
-        self._model: Optional[Prophet] = None
-        self._forecast_df: Optional[pd.DataFrame] = None
         self._trained = False
+        self._model = None
+        self._train_data: Optional[pd.DataFrame] = None
+        self._forecast_df: Optional[pd.DataFrame] = None
+        self.backend = ACTIVE_BACKEND
 
-    # ─────────────────────────────────────────
-    # MODEL EĞİTİMİ
-    # ─────────────────────────────────────────
+    # ── Veri Hazırlama ────────────────────────────────────────────────────────
 
     def _prepare_data(self) -> pd.DataFrame:
-        """Prophet formatına çevir: ds (tarih), y (değer)."""
+        """Aylık gelir serisini standart formata çevir."""
         monthly = (
             self.df.groupby("YilAy")["Gelir"]
             .sum()
             .reset_index()
         )
-        # YilAy → datetime
         monthly["ds"] = pd.to_datetime(monthly["YilAy"], format="%Y-%m")
-        monthly["y"]  = monthly["Gelir"].astype(float)
+        monthly["y"]  = monthly["Gelir"].clip(lower=0).astype(float)
         return monthly[["ds", "y"]].sort_values("ds").reset_index(drop=True)
+
+    # ── Eğitim ────────────────────────────────────────────────────────────────
 
     def train(
         self,
         yearly_seasonality: bool = True,
-        weekly_seasonality: bool = False,
-        daily_seasonality:  bool = False,
         changepoint_prior_scale: float = 0.05,
     ) -> "ForecastEngine":
-        """Modeli eğit."""
         data = self._prepare_data()
 
         if len(data) < 3:
             raise ValueError("Tahmin için en az 3 aylık veri gereklidir.")
 
-        self._model = Prophet(
-            yearly_seasonality=yearly_seasonality,
-            weekly_seasonality=weekly_seasonality,
-            daily_seasonality=daily_seasonality,
-            changepoint_prior_scale=changepoint_prior_scale,
-            interval_width=0.90,  # %90 güven aralığı
-        )
-        self._model.fit(data)
-        self._trained = True
         self._train_data = data
+
+        if PROPHET_AVAILABLE:
+            self._train_prophet(data, yearly_seasonality, changepoint_prior_scale)
+        elif STATSMODELS_AVAILABLE:
+            self._train_statsmodels(data)
+        else:
+            self._train_linear(data)
+
+        self._trained = True
         return self
 
-    # ─────────────────────────────────────────
-    # TAHMİN
-    # ─────────────────────────────────────────
+    def _train_prophet(self, data, yearly_seasonality, changepoint_prior_scale):
+        self._model = Prophet(
+            yearly_seasonality=yearly_seasonality,
+            weekly_seasonality=False,
+            daily_seasonality=False,
+            changepoint_prior_scale=changepoint_prior_scale,
+            interval_width=0.90,
+        )
+        self._model.fit(data)
+
+    def _train_statsmodels(self, data):
+        n = len(data)
+        # Yıllık mevsimsellik için en az 2 yıl gerekir
+        use_seasonal = n >= 24
+        self._model = ExponentialSmoothing(
+            data["y"].values,
+            trend="add",
+            seasonal="add" if use_seasonal else None,
+            seasonal_periods=12 if use_seasonal else None,
+            initialization_method="estimated",
+        ).fit(optimized=True)
+
+    def _train_linear(self, data):
+        """Son 6 aylık trendi baz alan basit lineer regresyon."""
+        tail = data.tail(min(6, len(data)))
+        x = np.arange(len(tail))
+        y = tail["y"].values
+        self._model = np.polyfit(x, y, deg=1)  # (slope, intercept)
+
+    # ── Tahmin ────────────────────────────────────────────────────────────────
 
     def forecast(self, ay: int = 3) -> Dict[str, Any]:
-        """
-        Gelecek `ay` adet aylık tahmin üretir.
-        Returns: tahmin sonuçları + özet istatistikler
-        """
         if not self._trained:
             self.train()
 
+        if PROPHET_AVAILABLE:
+            return self._forecast_prophet(ay)
+        elif STATSMODELS_AVAILABLE:
+            return self._forecast_statsmodels(ay)
+        else:
+            return self._forecast_linear(ay)
+
+    def _forecast_prophet(self, ay: int) -> Dict[str, Any]:
         future = self._model.make_future_dataframe(periods=ay, freq="MS")
         forecast = self._model.predict(future)
         self._forecast_df = forecast
 
-        # Geçmiş vs tahmin ayrımı
         train_len     = len(self._train_data)
-        gecmis        = forecast.iloc[:train_len]
         tahmin_donemi = forecast.iloc[train_len:]
 
-        # Tahmin özeti
-        tahmin_rows = []
+        rows = []
         for _, row in tahmin_donemi.iterrows():
-            tahmin_rows.append({
-                "Dönem":        row["ds"].strftime("%Y-%m"),
-                "Tahmin":       max(0, round(row["yhat"], 0)),
-                "Alt Sınır":    max(0, round(row["yhat_lower"], 0)),
-                "Üst Sınır":    max(0, round(row["yhat_upper"], 0)),
+            rows.append({
+                "Dönem":     row["ds"].strftime("%Y-%m"),
+                "Tahmin":    max(0, round(row["yhat"], 0)),
+                "Alt Sınır": max(0, round(row["yhat_lower"], 0)),
+                "Üst Sınır": max(0, round(row["yhat_upper"], 0)),
             })
-        tahmin_df = pd.DataFrame(tahmin_rows)
+        tahmin_df = pd.DataFrame(rows)
 
-        # Trend yönü
-        trend_yonu = self._trend_direction(tahmin_donemi)
+        return self._build_result(tahmin_df, tahmin_donemi["yhat"].values)
 
-        # Büyüme beklentisi
-        son_gercek   = float(self._train_data["y"].iloc[-1])
-        ilk_tahmin   = float(tahmin_donemi["yhat"].iloc[0]) if not tahmin_donemi.empty else son_gercek
-        son_tahmin   = float(tahmin_donemi["yhat"].iloc[-1]) if not tahmin_donemi.empty else son_gercek
-        buyume_oran  = ((son_tahmin - son_gercek) / son_gercek * 100) if son_gercek > 0 else 0
+    def _forecast_statsmodels(self, ay: int) -> Dict[str, Any]:
+        forecast_vals = self._model.forecast(ay)
+        forecast_vals = np.clip(forecast_vals, 0, None)
+
+        # Holt-Winters güven aralığı: ±%15 yorum aralığı
+        rows = []
+        last_ds = self._train_data["ds"].iloc[-1]
+        for i, val in enumerate(forecast_vals):
+            period = last_ds + pd.DateOffset(months=i + 1)
+            margin = val * 0.15
+            rows.append({
+                "Dönem":     period.strftime("%Y-%m"),
+                "Tahmin":    round(val, 0),
+                "Alt Sınır": round(max(0, val - margin), 0),
+                "Üst Sınır": round(val + margin, 0),
+            })
+        tahmin_df = pd.DataFrame(rows)
+
+        return self._build_result(tahmin_df, forecast_vals)
+
+    def _forecast_linear(self, ay: int) -> Dict[str, Any]:
+        slope, intercept = self._model
+        n = len(self._train_data)
+
+        rows = []
+        vals = []
+        last_ds = self._train_data["ds"].iloc[-1]
+        for i in range(ay):
+            val = max(0, slope * (n + i) + intercept)
+            vals.append(val)
+            period = last_ds + pd.DateOffset(months=i + 1)
+            margin = abs(val) * 0.20  # lineer'de belirsizlik daha yüksek
+            rows.append({
+                "Dönem":     period.strftime("%Y-%m"),
+                "Tahmin":    round(val, 0),
+                "Alt Sınır": round(max(0, val - margin), 0),
+                "Üst Sınır": round(val + margin, 0),
+            })
+        tahmin_df = pd.DataFrame(rows)
+
+        return self._build_result(tahmin_df, np.array(vals))
+
+    def _build_result(self, tahmin_df: pd.DataFrame, yhat_vals: np.ndarray) -> Dict[str, Any]:
+        son_gercek  = float(self._train_data["y"].iloc[-1])
+        son_tahmin  = float(yhat_vals[-1]) if len(yhat_vals) > 0 else son_gercek
+        buyume_oran = ((son_tahmin - son_gercek) / son_gercek * 100) if son_gercek > 0 else 0
 
         return {
-            "tahmin_tablosu":   tahmin_df,
-            "tam_forecast":     forecast[["ds", "yhat", "yhat_lower", "yhat_upper", "trend"]],
-            "gecmis_fit":       gecmis[["ds", "yhat"]],
-            "trend_yonu":       trend_yonu,
-            "toplam_tahmin":    float(tahmin_df["Tahmin"].sum()),
-            "ortalama_tahmin":  float(tahmin_df["Tahmin"].mean()),
+            "tahmin_tablosu":    tahmin_df,
+            "trend_yonu":        self._trend_direction(yhat_vals),
+            "toplam_tahmin":     float(tahmin_df["Tahmin"].sum()),
+            "ortalama_tahmin":   float(tahmin_df["Tahmin"].mean()),
             "buyume_beklentisi": round(buyume_oran, 2),
-            "ay_sayisi":        ay,
+            "ay_sayisi":         len(tahmin_df),
+            "backend":           ACTIVE_BACKEND,
+            "backend_label":     get_backend_info()["label"],
+            # Prophet'ta dolu gelir, diğerlerinde None
+            "tam_forecast":      self._forecast_df[["ds","yhat","yhat_lower","yhat_upper","trend"]]
+                                 if self._forecast_df is not None else None,
         }
 
-    # ─────────────────────────────────────────
-    # TREND ANALİZİ
-    # ─────────────────────────────────────────
+    # ── Trend ─────────────────────────────────────────────────────────────────
 
-    def trend_components(self) -> Optional[pd.DataFrame]:
-        """Trend ve mevsimsellik bileşenlerini döndürür."""
-        if self._forecast_df is None:
-            return None
-        cols = ["ds", "trend"]
-        if "yearly" in self._forecast_df.columns:
-            cols.append("yearly")
-        return self._forecast_df[cols]
-
-    def _trend_direction(self, tahmin_df: pd.DataFrame) -> str:
-        if tahmin_df.empty or len(tahmin_df) < 2:
+    def _trend_direction(self, yhat_vals: np.ndarray) -> str:
+        if len(yhat_vals) < 2:
             return "Belirsiz"
-        ilk = tahmin_df["yhat"].iloc[0]
-        son  = tahmin_df["yhat"].iloc[-1]
+        ilk, son = float(yhat_vals[0]), float(yhat_vals[-1])
         if ilk == 0:
             return "Belirsiz"
         degisim = (son - ilk) / abs(ilk) * 100
@@ -166,38 +252,54 @@ class ForecastEngine:
             return "Düşüş 📉"
         return "Stabil ➡️"
 
-    # ─────────────────────────────────────────
-    # ANOMALİ TESPİTİ
-    # ─────────────────────────────────────────
+    def trend_components(self) -> Optional[pd.DataFrame]:
+        """Sadece Prophet backend'inde dolu döner."""
+        if self._forecast_df is None:
+            return None
+        cols = ["ds", "trend"]
+        if "yearly" in self._forecast_df.columns:
+            cols.append("yearly")
+        return self._forecast_df[cols]
+
+    # ── Anomali ───────────────────────────────────────────────────────────────
 
     def detect_anomalies(self) -> pd.DataFrame:
         """
-        Gerçek değerlerin güven aralığı dışına çıktığı noktaları tespit eder.
+        Prophet: güven aralığı dışına çıkan noktalar.
+        Diğerleri: ±2 standart sapma kuralı.
         """
-        if self._forecast_df is None or not self._trained:
+        if not self._trained:
             self.train()
-            future = self._model.make_future_dataframe(periods=0, freq="MS")
-            self._forecast_df = self._model.predict(future)
 
-        merged = self._train_data.merge(
-            self._forecast_df[["ds", "yhat_lower", "yhat_upper"]],
-            on="ds", how="left"
-        )
-        merged["anomali"] = (
-            (merged["y"] < merged["yhat_lower"]) |
-            (merged["y"] > merged["yhat_upper"])
-        )
-        return merged[merged["anomali"] == True][["ds", "y", "yhat_lower", "yhat_upper"]]
+        data = self._train_data.copy()
 
-    # ─────────────────────────────────────────
-    # ÖZET RAPOR
-    # ─────────────────────────────────────────
+        if PROPHET_AVAILABLE and self._forecast_df is not None:
+            merged = data.merge(
+                self._forecast_df[["ds", "yhat_lower", "yhat_upper"]],
+                on="ds", how="left"
+            )
+            merged["anomali"] = (
+                (merged["y"] < merged["yhat_lower"]) |
+                (merged["y"] > merged["yhat_upper"])
+            )
+        else:
+            mu  = data["y"].mean()
+            std = data["y"].std()
+            merged = data.copy()
+            merged["yhat_lower"] = mu - 2 * std
+            merged["yhat_upper"] = mu + 2 * std
+            merged["anomali"] = (
+                (merged["y"] < merged["yhat_lower"]) |
+                (merged["y"] > merged["yhat_upper"])
+            )
+
+        return merged[merged["anomali"]][["ds", "y", "yhat_lower", "yhat_upper"]].reset_index(drop=True)
+
+    # ── Tam Özet ──────────────────────────────────────────────────────────────
 
     def summary_report(self, ay: int = 3) -> Dict[str, Any]:
-        """Tahmin + anomali + trend içeren tam özet."""
         fc = self.forecast(ay)
         anomaliler = self.detect_anomalies()
-
         return {
             **fc,
             "anomali_sayisi": len(anomaliler),

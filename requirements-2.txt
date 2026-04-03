@@ -1,0 +1,37 @@
+# ─── Core ─────────────────────────────────────────────────────────────────────
+streamlit>=1.32.0
+pandas>=2.0.0
+numpy>=1.24.0
+numpy-financial>=1.0.0
+plotly>=5.18.0
+openpyxl>=3.1.0
+
+# ─── AI Sağlayıcıları ──────────────────────────────────────────────────────────
+groq>=0.9.0
+google-generativeai>=0.5.0
+
+# ─── Firebase / Auth ───────────────────────────────────────────────────────────
+firebase-admin>=6.0.0
+requests>=2.31.0
+
+# ─── Veri Girişi & Export ──────────────────────────────────────────────────────
+reportlab>=4.0.0
+kaleido>=0.2.1
+gspread>=6.0.0
+google-auth>=2.0.0
+
+# ─── Tahmin Motoru ─────────────────────────────────────────────────────────────
+# Prophet: pystan KALDIRILDI — Streamlit Cloud'da build timeout'a yol açıyordu.
+# cmdstanpy backend kullanılır (PROPHET_USE_CMDSTAN=1 env variable ile).
+# Prophet yüklenemezse forecast_engine.py otomatik olarak
+# statsmodels ExponentialSmoothing fallback'e geçer.
+prophet>=1.1.5
+cmdstanpy>=1.0.0
+statsmodels>=0.14.0
+
+# ─── Yardımcı ──────────────────────────────────────────────────────────────────
+python-dateutil>=2.8.0
+scipy>=1.10.0
+
+# ─── Gelecek (şimdi yorum satırı) ─────────────────────────────────────────────
+# sendgrid>=6.0.0   # e-posta raporu — Faz 5'te aktive edilecek
