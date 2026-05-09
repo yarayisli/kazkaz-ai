@@ -1,11 +1,23 @@
 """
 KazKaz AI - AI Analiz Motoru (Groq + Gemini destekli)
 ======================================================
+v2.1 — Streaming desteği eklendi.
+
 Groq (ücretsiz, hızlı) veya Gemini ile çalışır.
 Groq modelleri: llama-3.3-70b-versatile, mixtral-8x7b-32768
+
+Kullanım:
+    ai = GeminiEngine(api_key="gsk_...", provider="groq")
+
+    # Bloke eden (eski davranış — geriye dönük uyumlu):
+    yorum = ai.analyze(rapor)
+
+    # Streaming (UI donmaz — önerilen):
+    placeholder = st.empty()
+    ai.analyze_stream(rapor, placeholder)
 """
 
-from typing import Dict, Any, List, Optional
+from typing import Dict, Any, List, Optional, Generator
 import json
 
 
@@ -30,17 +42,14 @@ class GeminiEngine:
     """
     KazKaz AI için AI motoru.
     Groq (varsayılan) veya Gemini ile çalışır.
-
-    Kullanım:
-        ai = GeminiEngine(api_key="gsk_...", provider="groq")
-        yorum = ai.analyze(rapor)
+    Her metod hem bloke hem streaming modunda çalışabilir.
     """
 
     def __init__(self, api_key: str, provider: str = "groq"):
-        self.api_key  = api_key
-        self.provider = provider.lower()
+        self.api_key      = api_key
+        self.provider     = provider.lower()
         self.chat_history: List[Dict[str, str]] = []
-        self._client = None
+        self._client      = None
         self._init_client()
 
     def _init_client(self):
@@ -75,17 +84,21 @@ class GeminiEngine:
         else:
             raise ValueError(f"Bilinmeyen provider: {self.provider}")
 
-    def _call(self, prompt: str) -> str:
-        """Provider'a göre API çağrısı yapar."""
+    # ─────────────────────────────────────────────────────────────────────────
+    # DÜŞÜK SEVİYE ÇAĞRI — Bloke eden (geriye dönük uyumlu)
+    # ─────────────────────────────────────────────────────────────────────────
+
+    def _call(self, prompt: str, max_tokens: int = 1500) -> str:
+        """Provider'a göre tam yanıt döner (bloke eder)."""
         try:
-            if self.provider == "groq":
+            if self.provider in ("groq", "openai"):
                 response = self._client.chat.completions.create(
                     model=self._model,
                     messages=[
                         {"role": "system", "content": SYSTEM_PROMPT},
                         {"role": "user",   "content": prompt},
                     ],
-                    max_tokens=1500,
+                    max_tokens=max_tokens,
                     temperature=0.7,
                 )
                 return response.choices[0].message.content
@@ -94,27 +107,123 @@ class GeminiEngine:
                 response = self._client.generate_content(prompt)
                 return response.text
 
-            elif self.provider == "openai":
-                response = self._client.chat.completions.create(
+        except Exception as e:
+            return f"⚠️ AI yanıt üretemedi: {str(e)}"
+
+    # ─────────────────────────────────────────────────────────────────────────
+    # DÜŞÜK SEVİYE ÇAĞRI — Streaming generator
+    # ─────────────────────────────────────────────────────────────────────────
+
+    def _stream(self, prompt: str, max_tokens: int = 1500) -> Generator[str, None, None]:
+        """
+        Token token metin üretir.
+        Her yield bir string chunk'tır.
+
+        Kullanım:
+            for chunk in ai._stream(prompt):
+                collected += chunk
+        """
+        try:
+            if self.provider == "groq":
+                stream = self._client.chat.completions.create(
                     model=self._model,
                     messages=[
                         {"role": "system", "content": SYSTEM_PROMPT},
                         {"role": "user",   "content": prompt},
                     ],
-                    max_tokens=1500,
+                    max_tokens=max_tokens,
+                    temperature=0.7,
+                    stream=True,
                 )
-                return response.choices[0].message.content
+                for chunk in stream:
+                    delta = chunk.choices[0].delta.content
+                    if delta:
+                        yield delta
+
+            elif self.provider == "gemini":
+                response = self._client.generate_content(prompt, stream=True)
+                for chunk in response:
+                    if chunk.text:
+                        yield chunk.text
+
+            elif self.provider == "openai":
+                stream = self._client.chat.completions.create(
+                    model=self._model,
+                    messages=[
+                        {"role": "system", "content": SYSTEM_PROMPT},
+                        {"role": "user",   "content": prompt},
+                    ],
+                    max_tokens=max_tokens,
+                    stream=True,
+                )
+                for chunk in stream:
+                    delta = chunk.choices[0].delta.content
+                    if delta:
+                        yield delta
 
         except Exception as e:
-            return f"⚠️ AI yanıt üretemedi: {str(e)}"
+            yield f"\n\n⚠️ Streaming hatası: {str(e)}"
 
-    # ─────────────────────────────────────────
+    # ─────────────────────────────────────────────────────────────────────────
+    # YÜKSEK SEVİYE YARDIMCI — st.empty() placeholder'a yaz
+    # ─────────────────────────────────────────────────────────────────────────
+
+    def _stream_to_placeholder(
+        self,
+        prompt:      str,
+        placeholder,               # st.empty() objesi
+        max_tokens:  int = 1500,
+        prefix:      str = "",     # Yanıtın başına eklenecek sabit metin
+    ) -> str:
+        """
+        Streaming çıktısını Streamlit placeholder'a token token yazar.
+        Tamamlandığında tam metni döner (kaydetmek için).
+
+        Örnek:
+            ph = st.empty()
+            tam_yorum = ai._stream_to_placeholder(prompt, ph)
+        """
+        toplam = prefix
+        for chunk in self._stream(prompt, max_tokens):
+            toplam += chunk
+            placeholder.markdown(
+                f'<div style="background:#F8FAFC;border:1px solid #E2E8F0;'
+                f'border-radius:12px;padding:16px 20px;color:#334155;'
+                f'font-size:0.88rem;line-height:1.8;white-space:pre-wrap;">'
+                f'{toplam}▌</div>',
+                unsafe_allow_html=True,
+            )
+        # İmleç kaldır, son hali yaz
+        placeholder.markdown(
+            f'<div style="background:#F8FAFC;border:1px solid #E2E8F0;'
+            f'border-radius:12px;padding:16px 20px;color:#334155;'
+            f'font-size:0.88rem;line-height:1.8;white-space:pre-wrap;">'
+            f'{toplam}</div>',
+            unsafe_allow_html=True,
+        )
+        return toplam
+
+    # ─────────────────────────────────────────────────────────────────────────
     # 1. FİNANSAL ANALİZ YORUMU
-    # ─────────────────────────────────────────
+    # ─────────────────────────────────────────────────────────────────────────
 
     def analyze(self, rapor: Dict[str, Any]) -> str:
-        prompt = self._build_analysis_prompt(rapor)
-        return self._call(prompt)
+        """Tam analiz — bloke eder, geriye dönük uyumlu."""
+        return self._call(self._build_analysis_prompt(rapor))
+
+    def analyze_stream(self, rapor: Dict[str, Any], placeholder) -> str:
+        """
+        Tam analiz — streaming, UI donmaz.
+
+        Kullanım:
+            ph = st.empty()
+            with st.spinner("Analiz yapılıyor..."):
+                yorum = ai.analyze_stream(rapor, ph)
+            st.session_state["ai_analiz"] = yorum
+        """
+        return self._stream_to_placeholder(
+            self._build_analysis_prompt(rapor), placeholder
+        )
 
     def _build_analysis_prompt(self, rapor: Dict[str, Any]) -> str:
         g = rapor.get("gelir", {})
@@ -122,7 +231,6 @@ class GeminiEngine:
         k = rapor.get("karlilik", {})
         s = rapor.get("saglik_skoru", {})
 
-        # Şirket profili varsa ekle
         profil = rapor.get("sirket_profili", {})
         profil_metni = ""
         if profil:
@@ -168,81 +276,165 @@ class GeminiEngine:
 4. 🎯 Stratejik Öneriler — en az 3 somut adım, bu şirkete özgü
 """
 
-    # ─────────────────────────────────────────
+    # ─────────────────────────────────────────────────────────────────────────
     # 2. STRATEJİK ÖNERİLER
-    # ─────────────────────────────────────────
+    # ─────────────────────────────────────────────────────────────────────────
 
     def strategic_recommendations(self, rapor: Dict[str, Any]) -> str:
+        """Bloke eden versiyon — geriye dönük uyumlu."""
+        return self._call(self._build_strategy_prompt(rapor))
+
+    def strategic_recommendations_stream(
+        self, rapor: Dict[str, Any], placeholder
+    ) -> str:
+        """Streaming versiyon."""
+        return self._stream_to_placeholder(
+            self._build_strategy_prompt(rapor), placeholder
+        )
+
+    def _build_strategy_prompt(self, rapor: Dict[str, Any]) -> str:
         k = rapor.get("karlilik", {})
         s = rapor.get("saglik_skoru", {})
-        prompt = f"""
+        g = rapor.get("gelir", {})
+        return f"""
 Şirketin finansal durumu:
 - Kar Marjı: %{k.get('kar_marji', 0)}
 - Sağlık Skoru: {s.get('skor', 50)}/100
 - Karlılık Trendi: {k.get('kar_trendi', 'Stabil')}
+- Aylık Büyüme: %{g.get('ortalama_buyume_orani', 0)}
+- Sabit Gider Oranı: %{rapor.get('gider', {}).get('sabit_gider_orani', 0)}
 
 Bu verilere göre yöneticiye 5 somut ve uygulanabilir stratejik öneri sun.
 Her öneri için: ne yapılmalı, neden yapılmalı, beklenen etki.
 """
-        return self._call(prompt)
 
-    # ─────────────────────────────────────────
+    # ─────────────────────────────────────────────────────────────────────────
     # 3. SOHBET ASİSTANI
-    # ─────────────────────────────────────────
+    # ─────────────────────────────────────────────────────────────────────────
 
     def chat(self, user_message: str, rapor: Dict[str, Any]) -> str:
+        """Sohbet — bloke eden, geriye dönük uyumlu."""
+        self._prepare_chat_context(rapor)
+        self.chat_history.append({"role": "user", "content": user_message})
+        try:
+            reply = self._chat_call()
+            self.chat_history.append({"role": "assistant", "content": reply})
+            return reply
+        except Exception as e:
+            return f"⚠️ Sohbet hatası: {str(e)}"
+
+    def chat_stream(
+        self,
+        user_message: str,
+        rapor:        Dict[str, Any],
+        placeholder,
+    ) -> str:
+        """
+        Sohbet — streaming versiyon, UI donmaz.
+
+        Kullanım:
+            ph = st.empty()
+            reply = ai.chat_stream(soru, rapor, ph)
+            st.session_state.chat_history.append({"role":"ai","content":reply})
+        """
+        self._prepare_chat_context(rapor)
+        self.chat_history.append({"role": "user", "content": user_message})
+
+        prompt = self._build_chat_prompt(user_message)
+        reply  = self._stream_to_placeholder(prompt, placeholder, max_tokens=1000)
+
+        self.chat_history.append({"role": "assistant", "content": reply})
+        return reply
+
+    def _prepare_chat_context(self, rapor: Dict[str, Any]):
+        """İlk mesajda finansal bağlamı history'e ekler."""
         if not self.chat_history:
+            try:
+                rapor_str = json.dumps(
+                    {k: v for k, v in rapor.items()
+                     if not hasattr(v, "to_dict")},   # DataFrame'leri atla
+                    ensure_ascii=False,
+                    indent=2,
+                    default=str,
+                )
+            except Exception:
+                rapor_str = str(rapor)[:3000]
+
             self.chat_history.append({
                 "role": "user",
-                "content": f"Şirket verim:\n{json.dumps(rapor, ensure_ascii=False, indent=2)}\n\nBu veriler üzerinden sorularıma cevap ver."
+                "content": (
+                    f"Şirket finansal verim:\n{rapor_str[:3000]}\n\n"
+                    "Bu veriler üzerinden sorularıma cevap ver."
+                ),
             })
             self.chat_history.append({
                 "role": "assistant",
-                "content": "Anladım! Şirketinizin finansal verilerini inceledim. Sorularınızı yanıtlamaya hazırım."
+                "content": (
+                    "Anladım! Şirketinizin finansal verilerini inceledim. "
+                    "Sorularınızı yanıtlamaya hazırım."
+                ),
             })
 
-        self.chat_history.append({"role": "user", "content": user_message})
+    def _build_chat_prompt(self, user_message: str) -> str:
+        """Tüm sohbet geçmişini tek prompt'a çevirir (streaming için)."""
+        gecmis = ""
+        for m in self.chat_history[:-1]:   # son mesaj (user) hariç
+            rol = "Kullanıcı" if m["role"] == "user" else "KazKaz"
+            gecmis += f"{rol}: {m['content']}\n\n"
+        return f"{SYSTEM_PROMPT}\n\n{gecmis}Kullanıcı: {user_message}\n\nKazKaz:"
 
-        try:
-            if self.provider in ["groq", "openai"]:
-                messages = [{"role": "system", "content": SYSTEM_PROMPT}] + [
-                    {"role": m["role"], "content": m["content"]}
-                    for m in self.chat_history
-                ]
-                response = self._client.chat.completions.create(
-                    model=self._model,
-                    messages=messages,
-                    max_tokens=1000,
-                )
-                reply = response.choices[0].message.content
+    def _chat_call(self) -> str:
+        """Sohbet — bloke eden tam çağrı."""
+        if self.provider in ("groq", "openai"):
+            messages = [{"role": "system", "content": SYSTEM_PROMPT}] + [
+                {"role": m["role"], "content": m["content"]}
+                for m in self.chat_history
+            ]
+            response = self._client.chat.completions.create(
+                model=self._model,
+                messages=messages,
+                max_tokens=1000,
+            )
+            return response.choices[0].message.content
 
-            elif self.provider == "gemini":
-                history = [
-                    {"role": m["role"], "parts": [m["content"]]}
-                    for m in self.chat_history[:-1]
-                ]
-                session = self._client.start_chat(history=history)
-                reply   = session.send_message(user_message).text
+        elif self.provider == "gemini":
+            history = [
+                {"role": m["role"], "parts": [m["content"]]}
+                for m in self.chat_history[:-1]
+            ]
+            session = self._client.start_chat(history=history)
+            return session.send_message(
+                self.chat_history[-1]["content"]
+            ).text
 
-            self.chat_history.append({"role": "assistant", "content": reply})
-            return reply
-
-        except Exception as e:
-            return f"⚠️ Sohbet hatası: {str(e)}"
+        return "⚠️ Provider desteklenmiyor."
 
     def reset_chat(self):
         self.chat_history = []
 
-    # ─────────────────────────────────────────
+    # ─────────────────────────────────────────────────────────────────────────
     # 4. SENARYO YORUMU
-    # ─────────────────────────────────────────
+    # ─────────────────────────────────────────────────────────────────────────
 
     def scenario_comment(self, mevcut: Dict, senaryo: Dict) -> str:
-        prompt = f"""
+        """Bloke eden — geriye dönük uyumlu."""
+        return self._call(self._build_scenario_prompt(mevcut, senaryo))
+
+    def scenario_comment_stream(
+        self, mevcut: Dict, senaryo: Dict, placeholder
+    ) -> str:
+        """Streaming versiyon."""
+        return self._stream_to_placeholder(
+            self._build_scenario_prompt(mevcut, senaryo),
+            placeholder,
+            max_tokens=600,
+        )
+
+    def _build_scenario_prompt(self, mevcut: Dict, senaryo: Dict) -> str:
+        return f"""
 Bir senaryo analizi yapıldı:
 Mevcut: Gelir {mevcut.get('gelir', 0):,.0f} ₺, Net Kar {mevcut.get('net_kar', 0):,.0f} ₺, Kar Marjı %{mevcut.get('kar_marji', 0)}
 Senaryo: Gelir {senaryo.get('gelir', 0):,.0f} ₺, Net Kar {senaryo.get('net_kar', 0):,.0f} ₺, Kar Marjı %{senaryo.get('kar_marji', 0)}
 
 Bu senaryonun gerçekçiliği ve uygulanabilirliği hakkında 3-4 cümle yorum yaz.
 """
-        return self._call(prompt)
