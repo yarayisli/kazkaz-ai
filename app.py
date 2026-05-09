@@ -1265,25 +1265,29 @@ if tab_ai.active:
         c1, c2 = st.columns(2)
         with c1:
             if st.button("📊 Tam Analiz Üret", use_container_width=True):
-                with st.spinner("Analiz yapılıyor..."):
-                    rp = dict(rapor)
-                    if "cp_profile" in st.session_state:
-                        rp["sirket_profili"] = st.session_state["cp_profile"].to_dict()
-                    st.session_state["ai_analiz"] = st.session_state.gemini.analyze(rp)
+                rp = dict(rapor)
+                if "cp_profile" in st.session_state:
+                    rp["sirket_profili"] = st.session_state["cp_profile"].to_dict()
+                render_section("Analiz Raporu")
+                ph = st.empty()
+                st.session_state["ai_analiz"] = \
+                    st.session_state.gemini.analyze_stream(rp, ph)
         with c2:
             if st.button("🎯 Stratejik Öneriler", use_container_width=True):
-                with st.spinner("Üretiliyor..."):
-                    rp = dict(rapor)
-                    st.session_state["ai_strateji"] = \
-                        st.session_state.gemini.strategic_recommendations(rp)
+                render_section("Stratejik Öneriler")
+                ph2 = st.empty()
+                st.session_state["ai_strateji"] = \
+                    st.session_state.gemini.strategic_recommendations_stream(rapor, ph2)
+
+        # Önceki oturumdan kalan sonuçları göster
         for key, title in [("ai_analiz","Analiz Raporu"), ("ai_strateji","Stratejik Öneriler")]:
             if st.session_state.get(key):
                 render_section(title)
                 st.markdown(
                     f'<div style="background:#F8FAFC;border:1px solid #E2E8F0;'
                     f'border-radius:12px;padding:16px 20px;color:#334155;'
-                    f'font-size:0.88rem;line-height:1.8;">'
-                    f'{st.session_state[key].replace(chr(10),"<br>")}</div>',
+                    f'font-size:0.88rem;line-height:1.8;white-space:pre-wrap;">'
+                    f'{st.session_state[key]}</div>',
                     unsafe_allow_html=True
                 )
 
@@ -1311,8 +1315,8 @@ if tab_sohbet.active:
             with col:
                 if st.button(soru, key=f"qs_{soru}", use_container_width=True):
                     st.session_state.chat_history.append({"role":"user","content":soru})
-                    with st.spinner("..."):
-                        cevap = st.session_state.gemini.chat(soru, rapor)
+                    ph = st.empty()
+                    cevap = st.session_state.gemini.chat_stream(soru, rapor, ph)
                     st.session_state.chat_history.append({"role":"ai","content":cevap})
                     st.rerun()
 
@@ -1340,8 +1344,8 @@ if tab_sohbet.active:
         with cs:
             if st.button("➤", use_container_width=True) and user_input:
                 st.session_state.chat_history.append({"role":"user","content":user_input})
-                with st.spinner("..."):
-                    cevap = st.session_state.gemini.chat(user_input, rapor)
+                ph = st.empty()
+                cevap = st.session_state.gemini.chat_stream(user_input, rapor, ph)
                 st.session_state.chat_history.append({"role":"ai","content":cevap})
                 st.rerun()
 
