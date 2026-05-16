@@ -1390,14 +1390,14 @@ if tab_kar.active:
             renkler_kar = ["#059669" if v >= 0 else "#DC2626" for v in mp["NetKar"]]
             fig = go.Figure()
             fig.add_bar(
-                x=mp["Donem"], y=mp["NetKar"],
+                x=mp["Dönem"], y=mp["NetKar"],
                 marker_color=renkler_kar,
                 name="Net Kar",
                 opacity=0.9,
             )
             if "KarMarji" in mp.columns:
                 fig.add_scatter(
-                    x=mp["Donem"], y=mp["KarMarji"],
+                    x=mp["Dönem"], y=mp["KarMarji"],
                     name="Kar Marji (%)",
                     yaxis="y2",
                     mode="lines+markers",
@@ -1471,7 +1471,7 @@ if tab_kar.active:
     render_section("Aylik Karlilik Tablosu")
     mp2 = engine.profit.monthly_profit()
     if not mp2.empty:
-        display_cols = [c for c in ["Donem", "Gelir", "Gider", "NetKar", "KarMarji"] if c in mp2.columns]
+        display_cols = [c for c in ["Dönem", "Gelir", "Gider", "NetKar", "KarMarji"] if c in mp2.columns]
         mp2_disp = mp2[display_cols].copy()
         for col in ["Gelir", "Gider", "NetKar"]:
             if col in mp2_disp.columns:
@@ -1557,21 +1557,21 @@ if tab_tahmin.active:
                     mr   = engine.revenue.monthly_revenue()
                     fig  = go.Figure()
                     fig.add_scatter(
-                        x=mr["Donem"], y=mr["Toplam Gelir"], name="Gercek",
+                        x=mr["Dönem"], y=mr["Toplam Gelir"], name="Gercek",
                         mode="lines+markers",
                         line=dict(color="#0F2252", width=2.5),
                         marker=dict(size=5, color="#0F2252"),
                     )
                     fig.add_scatter(
-                        x=t_df["Donem"], y=t_df["Tahmin"], name="Tahmin",
+                        x=t_df["Dönem"], y=t_df["Tahmin"], name="Tahmin",
                         mode="lines+markers",
                         line=dict(color="#059669", width=2.5, dash="dot"),
                         marker=dict(size=7, symbol="diamond", color="#059669"),
                     )
                     if "Alt Sinir" in t_df.columns and "Ust Sinir" in t_df.columns:
                         fig.add_scatter(
-                            x=list(t_df["Donem"]) + list(reversed(t_df["Donem"])),
-                            y=list(t_df["Ust Sinir"]) + list(reversed(t_df["Alt Sinir"])),
+                            x=list(t_df["Dönem"]) + list(reversed(t_df["Dönem"])),
+                            y=list(t_df["Üst Sınır"]) + list(reversed(t_df["Alt Sınır"])),
                             fill="toself", fillcolor="rgba(5,150,105,0.08)",
                             line=dict(color="rgba(0,0,0,0)"), name="Guven Araligi",
                         )
