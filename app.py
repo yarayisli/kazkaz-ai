@@ -285,20 +285,42 @@ def show_landing_page():
         st.session_state["show_landing"] = False
         st.rerun()
         return
-    components.html(html, height=7000, scrolling=True)
+
+    # ── EN ÜSTTE sabit "Uygulamaya Geç" butonu ──
+    # (HTML cok uzun oldugu icin buton HER ZAMAN gorunur olsun diye ustte)
     st.markdown(
-        "<div style='height:1px;background:#E2E5EB;margin:8px 0 16px;'></div>",
+        "<div style='text-align:center;font-size:13px;color:#6B7280;"
+        "margin:0 0 6px;'>Aşağıda platformu inceleyin veya hemen başlayın 👇</div>",
         unsafe_allow_html=True,
     )
-    c1, c2, c3 = st.columns([1, 1.2, 1])
+    c1, c2, c3 = st.columns([1, 1.4, 1])
     with c2:
-        if st.button("🚀 Ücretsiz Başla — Uygulamaya Geç",
-                     use_container_width=True, type="primary"):
+        if st.button("🚀 Ücretsiz Başla — Veri Yüklemeye Geç",
+                     use_container_width=True, type="primary", key="enter_top"):
+            st.session_state["show_landing"] = False
+            st.rerun()
+    st.markdown(
+        "<div style='height:1px;background:#E2E5EB;margin:10px 0 4px;'></div>",
+        unsafe_allow_html=True,
+    )
+
+    # ── Landing HTML ──
+    components.html(html, height=6200, scrolling=True)
+
+    # ── Altta da bir buton (yedek) ──
+    b1, b2, b3 = st.columns([1, 1.4, 1])
+    with b2:
+        if st.button("🚀 Ücretsiz Başla",
+                     use_container_width=True, type="primary", key="enter_bottom"):
             st.session_state["show_landing"] = False
             st.rerun()
 
 if "show_landing" not in st.session_state:
     st.session_state["show_landing"] = (st.query_params.get("app") != "1")
+
+# HTML icindeki butonlar ?app=1 ekleyince de calissin
+if st.query_params.get("app") == "1":
+    st.session_state["show_landing"] = False
 
 if st.session_state.get("show_landing", True):
     show_landing_page()
