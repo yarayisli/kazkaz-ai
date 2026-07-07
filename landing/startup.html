@@ -1,0 +1,278 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<title>KazKaz for Startups — Yatırımcıya 90 günde hazır</title>
+<meta name="description" content="Cap table, burn rate, valuation — tek panelde. Startup'lar için CFO motoru. Pitch deck metrikleri, due diligence ve term sheet simülatörü." />
+<meta name="keywords" content="startup cfo, cap table yönetimi, burn rate, valuation modeli, pitch deck metrikleri, türkiye startup" />
+<meta property="og:title" content="KazKaz for Startups — Yatırımcıya 90 günde hazır" />
+<meta property="og:description" content="Cap table, burn rate, valuation — tek panelde. 120+ startup Seed/Series A'ya KazKaz ile hazırlandı." />
+<meta property="og:image" content="https://kazkaz.ai/og-startup.png" />
+<meta property="og:type" content="website" />
+<meta property="og:url" content="https://kazkaz.ai/startup" />
+<meta name="twitter:card" content="summary_large_image" />
+<meta name="twitter:title" content="KazKaz for Startups — Yatırımcıya 90 günde hazır" />
+<meta name="twitter:description" content="Cap table, burn rate, valuation — tek panelde. 120+ startup Seed/Series A'ya hazırlandı." />
+<link rel="canonical" href="https://kazkaz.ai/startup" />
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"WebPage","name":"KazKaz for Startups","url":"https://kazkaz.ai/startup","description":"Startup'lar için AI CFO platformu — Cap table, burn rate, valuation ve pitch deck metrikleri."}</script>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin="anonymous" />
+<link href="https://fonts.googleapis.com/css2?family=Hanken+Grotesk:wght@400;500;600;700;800;900&display=swap" rel="stylesheet" />
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'Hanken Grotesk',-apple-system,'Segoe UI',sans-serif;background:#F4F6FB;color:#0F1729;-webkit-font-smoothing:antialiased}
+::-webkit-scrollbar{width:8px}::-webkit-scrollbar-thumb{background:#CDD0D8;border-radius:4px}
+@keyframes kzfade{from{opacity:0;transform:translateY(16px)}to{opacity:1;transform:none}}
+button:focus-visible,a:focus-visible{outline:2px solid #7C3AED;outline-offset:3px;border-radius:6px}
+@media(max-width:768px){
+  section{padding:48px 24px!important}
+  nav{padding:0 20px!important}
+  h1{font-size:32px!important}
+  [style*="grid-template-columns:1fr 1fr"],[style*="grid-template-columns:repeat(3"],[style*="grid-template-columns:repeat(2"]{grid-template-columns:1fr!important}
+  [style*="grid-template-columns:1.4fr 1fr 1fr 1fr 1fr"]{grid-template-columns:1fr 1fr!important}
+}
+@keyframes kzpulse{0%,100%{opacity:1}50%{opacity:.6}}
+</style>
+</helmet>
+
+<!-- NAV -->
+<nav style="position:sticky;top:0;z-index:50;background:rgba(255,255,255,.85);backdrop-filter:blur(20px) saturate(180%);-webkit-backdrop-filter:blur(20px) saturate(180%);border-bottom:1px solid rgba(15,34,82,.07);padding:0 48px;display:flex;align-items:center;justify-content:space-between;height:56px">
+  <a href="KazKaz AI App v2.dc.html" style="display:flex;align-items:center;gap:8px;text-decoration:none">
+    <div style="width:28px;height:28px;border-radius:7px;background:#0F2252;display:flex;align-items:center;justify-content:center;font:700 13px 'Hanken Grotesk',sans-serif;color:#fff">K</div>
+    <span style="font:700 15px 'Hanken Grotesk',sans-serif;color:#0F1729">KazKaz AI</span>
+  </a>
+  <div style="display:flex;align-items:center;gap:2px;height:100%">
+    <a href="KazKaz AI App v2.dc.html" style="font:600 13px 'Hanken Grotesk',sans-serif;color:#8B93A8;text-decoration:none;padding:0 14px;height:100%;display:flex;align-items:center">Genel</a>
+    <a href="KazKaz Startup.dc.html" style="font:700 13px 'Hanken Grotesk',sans-serif;color:#0F2252;text-decoration:none;padding:0 14px;height:100%;display:flex;align-items:center;border-bottom:2px solid #0F2252">Startup</a>
+    <a href="KazKaz Kurumsal.dc.html" style="font:600 13px 'Hanken Grotesk',sans-serif;color:#8B93A8;text-decoration:none;padding:0 14px;height:100%;display:flex;align-items:center">Kurumsal</a>
+    <a href="KazKaz Yatırımcı.dc.html" style="font:600 13px 'Hanken Grotesk',sans-serif;color:#8B93A8;text-decoration:none;padding:0 14px;height:100%;display:flex;align-items:center">Yatırımcı</a>
+  </div>
+  <div style="display:flex;align-items:center;gap:8px">
+    <button onClick="{{ goDemo }}" style="background:transparent;color:#3D4663;border:1px solid #E2E5EB;border-radius:8px;padding:7px 14px;font:600 13px 'Hanken Grotesk',sans-serif;cursor:pointer">Giriş Yap</button>
+    <button onClick="{{ goSignup }}" style="background:#0F2252;color:#fff;border:none;border-radius:8px;padding:7px 16px;font:700 13px 'Hanken Grotesk',sans-serif;cursor:pointer">Ücretsiz Başla</button>
+  </div>
+</nav>
+
+<!-- HERO -->
+<section style="padding:72px 48px 64px;max-width:1100px;margin:0 auto;animation:kzfade .5s ease both">
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:48px;align-items:center">
+    <div>
+      <div style="display:inline-flex;align-items:center;gap:7px;background:#F5F3FF;border:1px solid #C4B5FD;border-radius:20px;padding:6px 14px;margin-bottom:22px">
+        <span style="font-size:14px">🚀</span>
+        <span style="font:700 10px 'Hanken Grotesk',sans-serif;letter-spacing:.1em;text-transform:uppercase;color:#7C3AED">STARTUP'LAR İÇİN</span>
+      </div>
+      <h1 style="font:900 48px/1.06 'Hanken Grotesk',sans-serif;letter-spacing:-.03em;color:#0A1628;margin-bottom:18px">Yatırımcıya<br><span style="background:linear-gradient(90deg,#7C3AED,#2563EB);-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent">90 günde hazır</span><br>olun</h1>
+      <p style="font:400 16px/1.65 'Hanken Grotesk',sans-serif;color:#3D4663;margin-bottom:28px">Cap table, burn rate, valuation — tek panelde. Yatırımcının sormadan önce gördüğü her metriği siz önce bilin.</p>
+      <div style="display:flex;gap:12px;align-items:center;margin-bottom:22px">
+        <button onClick="{{ goSignup }}" style="background:#0F2252;color:#fff;border:none;border-radius:11px;padding:15px 30px;font:700 15px 'Hanken Grotesk',sans-serif;cursor:pointer;box-shadow:0 8px 24px rgba(15,34,82,.22)">Ücretsiz başla →</button>
+        <button onClick="{{ goDemo }}" style="background:transparent;color:#7C3AED;border:2px solid #C4B5FD;border-radius:11px;padding:14px 24px;font:700 15px 'Hanken Grotesk',sans-serif;cursor:pointer">Demo iste</button>
+      </div>
+      <div style="display:flex;align-items:center;gap:8px">
+        <span style="width:7px;height:7px;border-radius:50%;background:#059669;box-shadow:0 0 7px #6EE7B7"></span>
+        <span style="font:500 13px 'Hanken Grotesk',sans-serif;color:#8B93A8">120+ startup KazKaz ile Seed/Series A'ya hazırlandı</span>
+      </div>
+    </div>
+
+    <!-- Dashboard preview -->
+    <div style="background:#fff;border:0.5px solid #E2E5EB;border-radius:16px;padding:22px;box-shadow:0 8px 32px rgba(15,34,82,.10)">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px">
+        <div style="font:700 13px 'Hanken Grotesk',sans-serif;color:#0F1729">Startup Dashboard</div>
+        <span style="font:600 10px 'Hanken Grotesk',sans-serif;letter-spacing:.08em;text-transform:uppercase;background:#ECFDF5;color:#059669;border:1px solid #6EE7B7;border-radius:4px;padding:2px 8px">CANLI</span>
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:14px">
+        <div style="background:#F4F6FB;border-radius:10px;padding:14px 16px"><div style="font:600 9px 'Hanken Grotesk',sans-serif;letter-spacing:.1em;text-transform:uppercase;color:#8B93A8;margin-bottom:6px">MRR</div><div style="font:800 22px 'Hanken Grotesk',sans-serif;color:#0F2252;letter-spacing:-.03em">₺142K</div><div style="font:600 10px 'Hanken Grotesk',sans-serif;color:#059669;margin-top:3px">+%18 MoM</div></div>
+        <div style="background:#F4F6FB;border-radius:10px;padding:14px 16px"><div style="font:600 9px 'Hanken Grotesk',sans-serif;letter-spacing:.1em;text-transform:uppercase;color:#8B93A8;margin-bottom:6px">Runway</div><div style="font:800 22px 'Hanken Grotesk',sans-serif;color:#0F2252;letter-spacing:-.03em">14 ay</div><div style="font:600 10px 'Hanken Grotesk',sans-serif;color:#D97706;margin-top:3px">Burn: ₺68K/ay</div></div>
+        <div style="background:#F4F6FB;border-radius:10px;padding:14px 16px"><div style="font:600 9px 'Hanken Grotesk',sans-serif;letter-spacing:.1em;text-transform:uppercase;color:#8B93A8;margin-bottom:6px">Valuation</div><div style="font:800 22px 'Hanken Grotesk',sans-serif;color:#7C3AED;letter-spacing:-.03em">$2.4M</div><div style="font:600 10px 'Hanken Grotesk',sans-serif;color:#8B93A8;margin-top:3px">Pre-money</div></div>
+        <div style="background:#F4F6FB;border-radius:10px;padding:14px 16px"><div style="font:600 9px 'Hanken Grotesk',sans-serif;letter-spacing:.1em;text-transform:uppercase;color:#8B93A8;margin-bottom:6px">LTV/CAC</div><div style="font:800 22px 'Hanken Grotesk',sans-serif;color:#059669;letter-spacing:-.03em">4.2x</div><div style="font:600 10px 'Hanken Grotesk',sans-serif;color:#059669;margin-top:3px">Sağlıklı</div></div>
+      </div>
+      <div style="background:#EEF2FF;border:1px solid #C7D2FE;border-radius:9px;padding:11px 14px;display:flex;align-items:center;gap:8px">
+        <span style="font-size:13px;animation:kzpulse 2s ease-in-out infinite">✦</span>
+        <span style="font:500 12px 'Hanken Grotesk',sans-serif;color:#3730A3">AI Analiz: "Series A için ARR hedefi ₺2.1M. Mevcut büyüme hızıyla 7 ayda ulaşılabilir."</span>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ÖZELLİK KARTLARI -->
+<section style="padding:56px 48px;background:#fff;border-top:1px solid #E2E5EB;border-bottom:1px solid #E2E5EB">
+  <div style="max-width:1100px;margin:0 auto">
+    <div style="text-align:center;font:700 10px 'Hanken Grotesk',sans-serif;letter-spacing:.14em;text-transform:uppercase;color:#7C3AED;margin-bottom:8px">STARTUP KIT</div>
+    <div style="text-align:center;font:800 28px 'Hanken Grotesk',sans-serif;letter-spacing:-.025em;color:#0A1628;margin-bottom:32px">Yatırımcının aradığı her şey</div>
+    <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:16px">
+
+      <div style="background:#F4F6FB;border:0.5px solid #E2E5EB;border-radius:14px;padding:22px;transition:transform .3s cubic-bezier(.16,1,.3,1),box-shadow .3s" style-hover="transform:translateY(-5px);box-shadow:0 12px 32px rgba(124,58,237,.10)">
+        <div style="font-size:24px;margin-bottom:12px">📊</div>
+        <div style="font:700 15px 'Hanken Grotesk',sans-serif;color:#0F1729;margin-bottom:6px">Cap Table Yönetimi</div>
+        <div style="font:400 13px/1.6 'Hanken Grotesk',sans-serif;color:#8B93A8">Hisse yapısı, seyreltme simülasyonu ve yatırım turları tek ekranda.</div>
+      </div>
+
+      <div style="background:#F4F6FB;border:0.5px solid #E2E5EB;border-radius:14px;padding:22px;transition:transform .3s cubic-bezier(.16,1,.3,1),box-shadow .3s" style-hover="transform:translateY(-5px);box-shadow:0 12px 32px rgba(124,58,237,.10)">
+        <div style="font-size:24px;margin-bottom:12px">🔥</div>
+        <div style="font:700 15px 'Hanken Grotesk',sans-serif;color:#0F1729;margin-bottom:6px">Burn Rate &amp; Runway</div>
+        <div style="font:400 13px/1.6 'Hanken Grotesk',sans-serif;color:#8B93A8">Aylık yanma hızı, pist uzunluğu ve senaryo planlaması.</div>
+      </div>
+
+      <div style="background:#F4F6FB;border:0.5px solid #E2E5EB;border-radius:14px;padding:22px;transition:transform .3s cubic-bezier(.16,1,.3,1),box-shadow .3s" style-hover="transform:translateY(-5px);box-shadow:0 12px 32px rgba(124,58,237,.10)">
+        <div style="font-size:24px;margin-bottom:12px">💎</div>
+        <div style="font:700 15px 'Hanken Grotesk',sans-serif;color:#0F1729;margin-bottom:6px">Valuation Modeli</div>
+        <div style="font:400 13px/1.6 'Hanken Grotesk',sans-serif;color:#8B93A8">DCF, comparables ve VC yöntemi — 3 modeli aynı anda çalıştırın.</div>
+      </div>
+
+      <div style="background:#F4F6FB;border:0.5px solid #E2E5EB;border-radius:14px;padding:22px;transition:transform .3s cubic-bezier(.16,1,.3,1),box-shadow .3s" style-hover="transform:translateY(-5px);box-shadow:0 12px 32px rgba(124,58,237,.10)">
+        <div style="font-size:24px;margin-bottom:12px">📈</div>
+        <div style="font:700 15px 'Hanken Grotesk',sans-serif;color:#0F1729;margin-bottom:6px">Pitch Deck Metrikleri</div>
+        <div style="font:400 13px/1.6 'Hanken Grotesk',sans-serif;color:#8B93A8">MRR, ARR, LTV, CAC, Churn — yatırımcı standart metrikleri otomatik.</div>
+      </div>
+
+      <div style="background:#F4F6FB;border:0.5px solid #E2E5EB;border-radius:14px;padding:22px;transition:transform .3s cubic-bezier(.16,1,.3,1),box-shadow .3s" style-hover="transform:translateY(-5px);box-shadow:0 12px 32px rgba(124,58,237,.10)">
+        <div style="font-size:24px;margin-bottom:12px">🔍</div>
+        <div style="font:700 15px 'Hanken Grotesk',sans-serif;color:#0F1729;margin-bottom:6px">Due Diligence Paketi</div>
+        <div style="font:400 13px/1.6 'Hanken Grotesk',sans-serif;color:#8B93A8">Yatırımcının isteyeceği 18 başlıklı paket — tek tıkla dışa aktar.</div>
+      </div>
+
+      <div style="background:#F4F6FB;border:0.5px solid #E2E5EB;border-radius:14px;padding:22px;transition:transform .3s cubic-bezier(.16,1,.3,1),box-shadow .3s" style-hover="transform:translateY(-5px);box-shadow:0 12px 32px rgba(124,58,237,.10)">
+        <div style="font-size:24px;margin-bottom:12px">✍️</div>
+        <div style="font:700 15px 'Hanken Grotesk',sans-serif;color:#0F1729;margin-bottom:6px">Term Sheet Simülatörü</div>
+        <div style="font:400 13px/1.6 'Hanken Grotesk',sans-serif;color:#8B93A8">Valuation cap, pro-rata hakları, seyreltme etkilerini anlık görün.</div>
+      </div>
+
+    </div>
+  </div>
+</section>
+
+<!-- VAKA ÇALIŞMASI -->
+<section style="padding:60px 48px">
+  <div style="max-width:1100px;margin:0 auto">
+    <div style="background:linear-gradient(135deg,#0F2252,#241452);border-radius:18px;padding:36px 40px;display:grid;grid-template-columns:1fr 1fr;gap:40px;align-items:center">
+      <div>
+        <div style="font:700 10px 'Hanken Grotesk',sans-serif;letter-spacing:.12em;text-transform:uppercase;color:#C4B5FD;margin-bottom:12px">BAŞARI HİKAYESİ</div>
+        <div style="font:800 24px 'Hanken Grotesk',sans-serif;color:#fff;letter-spacing:-.02em;margin-bottom:12px;line-height:1.25">FinTech Startup'ı Series A'ya hazırlandı</div>
+        <div style="font:400 14px/1.65 'Hanken Grotesk',sans-serif;color:rgba(255,255,255,.75);margin-bottom:20px;font-style:italic">"KazKaz olmadan yatırımcının due diligence sorularına bu kadar hızlı cevap veremezdik. 3 ayda her şey hazırdı — veri odası, metrikler, valuation modeli."</div>
+        <div style="font:600 13px 'Hanken Grotesk',sans-serif;color:rgba(255,255,255,.6)">— Erdem Y., CEO · PayLite FinTech</div>
+      </div>
+      <div style="display:flex;flex-direction:column;gap:14px">
+        <div style="background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.15);border-radius:12px;padding:18px 22px;display:flex;justify-content:space-between;align-items:center">
+          <div style="font:600 13px 'Hanken Grotesk',sans-serif;color:rgba(255,255,255,.7)">Hazırlık süresi</div>
+          <div style="font:900 28px 'Hanken Grotesk',sans-serif;color:#C4B5FD;letter-spacing:-.03em">3 ay</div>
+        </div>
+        <div style="background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.15);border-radius:12px;padding:18px 22px;display:flex;justify-content:space-between;align-items:center">
+          <div style="font:600 13px 'Hanken Grotesk',sans-serif;color:rgba(255,255,255,.7)">Yatırım miktarı</div>
+          <div style="font:900 28px 'Hanken Grotesk',sans-serif;color:#6EE7B7;letter-spacing:-.03em">$1.2M</div>
+        </div>
+        <div style="background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.15);border-radius:12px;padding:18px 22px;display:flex;justify-content:space-between;align-items:center">
+          <div style="font:600 13px 'Hanken Grotesk',sans-serif;color:rgba(255,255,255,.7)">Valuation çarpanı</div>
+          <div style="font:900 28px 'Hanken Grotesk',sans-serif;color:#FCD34D;letter-spacing:-.03em">8x</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- PRİCİNG -->
+<section id="pricing" style="padding:56px 48px;background:#fff;border-top:1px solid #E2E5EB;border-bottom:1px solid #E2E5EB">
+  <div style="max-width:520px;margin:0 auto;text-align:center">
+    <div style="font:700 10px 'Hanken Grotesk',sans-serif;letter-spacing:.14em;text-transform:uppercase;color:#7C3AED;margin-bottom:8px">STARTUP PAKETİ</div>
+    <div style="font:800 28px 'Hanken Grotesk',sans-serif;letter-spacing:-.025em;color:#0A1628;margin-bottom:28px">Bir yatırımcı toplantısı değeri</div>
+    <div style="background:#fff;border:2px solid #7C3AED;border-radius:18px;padding:32px 36px;box-shadow:0 12px 40px rgba(124,58,237,.14);position:relative">
+      <div style="position:absolute;top:-13px;left:50%;transform:translateX(-50%);background:#7C3AED;color:#fff;font:700 10px 'Hanken Grotesk',sans-serif;letter-spacing:.1em;padding:4px 16px;border-radius:20px;white-space:nowrap">İLK 3 AY ÜCRETSİZ</div>
+      <div style="font:700 10px 'Hanken Grotesk',sans-serif;letter-spacing:.1em;text-transform:uppercase;color:#8B93A8;margin-bottom:8px">STARTUP</div>
+      <div style="display:flex;align-items:baseline;justify-content:center;gap:4px;margin-bottom:6px">
+        <span style="font:900 52px 'Hanken Grotesk',sans-serif;color:#0F2252;letter-spacing:-.04em">₺299</span>
+        <span style="font:500 14px 'Hanken Grotesk',sans-serif;color:#8B93A8">/ay</span>
+      </div>
+      <div style="font:500 12px 'Hanken Grotesk',sans-serif;color:#8B93A8;margin-bottom:24px">Sonrasında · Kredi kartı gerekmez</div>
+      <div style="display:flex;flex-direction:column;gap:10px;text-align:left;margin-bottom:24px">
+        <div style="display:flex;align-items:center;gap:10px;font:500 13px 'Hanken Grotesk',sans-serif;color:#3D4663"><span style="color:#7C3AED;font-weight:700;flex:none">✓</span>Cap table &amp; burn rate yönetimi</div>
+        <div style="display:flex;align-items:center;gap:10px;font:500 13px 'Hanken Grotesk',sans-serif;color:#3D4663"><span style="color:#7C3AED;font-weight:700;flex:none">✓</span>Pitch deck metrikleri (MRR/ARR/LTV/CAC)</div>
+        <div style="display:flex;align-items:center;gap:10px;font:500 13px 'Hanken Grotesk',sans-serif;color:#3D4663"><span style="color:#7C3AED;font-weight:700;flex:none">✓</span>Yatırımcı raporları &amp; due diligence paketi</div>
+        <div style="display:flex;align-items:center;gap:10px;font:500 13px 'Hanken Grotesk',sans-serif;color:#3D4663"><span style="color:#7C3AED;font-weight:700;flex:none">✓</span>12 ay gelir projeksiyonu</div>
+        <div style="display:flex;align-items:center;gap:10px;font:500 13px 'Hanken Grotesk',sans-serif;color:#3D4663"><span style="color:#7C3AED;font-weight:700;flex:none">✓</span>Valuation modeli (DCF + comparables + VC)</div>
+        <div style="display:flex;align-items:center;gap:10px;font:500 13px 'Hanken Grotesk',sans-serif;color:#3D4663"><span style="color:#7C3AED;font-weight:700;flex:none">✓</span>Term sheet simülatörü</div>
+      </div>
+      <button onClick="{{ goSignup }}" style="width:100%;background:linear-gradient(135deg,#7C3AED,#2563EB);color:#fff;border:none;border-radius:12px;padding:16px;font:700 15px 'Hanken Grotesk',sans-serif;cursor:pointer;box-shadow:0 8px 24px rgba(124,58,237,.28)">Ücretsiz başla — 3 ay bedava →</button>
+      <div style="display:flex;justify-content:center;gap:14px;font:500 11px 'Hanken Grotesk',sans-serif;color:#A9B0C0;margin-top:12px"><span>✓ Anında iptal</span><span>✓ Kredi kartı yok</span><span>✓ KVKK uyumlu</span></div>
+    </div>
+  </div>
+</section>
+
+<!-- SSS -->
+<section style="padding:60px 48px;background:#F4F6FB">
+  <div style="max-width:700px;margin:0 auto">
+    <div style="text-align:center;font:800 26px 'Hanken Grotesk',sans-serif;letter-spacing:-.02em;color:#0A1628;margin-bottom:28px">Aklınızdaki sorular</div>
+    <div style="display:flex;flex-direction:column;gap:0;border:0.5px solid #E2E5EB;border-radius:14px;overflow:hidden;background:#fff;box-shadow:0 2px 12px rgba(15,34,82,.06)">
+
+      <sc-for list="{{ faqs }}" as="faq" hint-placeholder-count="4">
+        <div style="{{ faq.wrap }}">
+          <button onClick="{{ faq.toggle }}" style="width:100%;display:flex;align-items:center;justify-content:space-between;gap:16px;padding:18px 22px;background:none;border:none;cursor:pointer;text-align:left" style-hover="background:#FAFAFA">
+            <span style="font:700 14px 'Hanken Grotesk',sans-serif;color:#0F1729">{{ faq.q }}</span>
+            <span style="{{ faq.chevron }}">›</span>
+          </button>
+          <sc-if value="{{ faq.open }}">
+            <div style="padding:0 22px 18px;font:400 13.5px/1.7 'Hanken Grotesk',sans-serif;color:#3D4663;border-top:1px solid #F3F5F9;background:#FAFAFA">{{ faq.a }}</div>
+          </sc-if>
+        </div>
+      </sc-for>
+
+    </div>
+  </div>
+</section>
+
+<!-- CROSS-LINK -->
+<div style="background:#F4F6FB;border-top:1px solid #E2E5EB;padding:20px 48px;display:flex;align-items:center;justify-content:center;gap:32px;flex-wrap:wrap">
+  <a href="KazKaz AI App v2.dc.html" style="font:600 13px 'Hanken Grotesk',sans-serif;color:#3D4663;text-decoration:none">🏢 KOBİ misiniz? Buradan başlayın →</a>
+  <a href="KazKaz Kurumsal.dc.html" style="font:600 13px 'Hanken Grotesk',sans-serif;color:#3D4663;text-decoration:none">🏛️ Kurumsal mısınız? Buradan →</a>
+  <a href="KazKaz Yatırımcı.dc.html" style="font:600 13px 'Hanken Grotesk',sans-serif;color:#3D4663;text-decoration:none">💼 Yatırımcı mısınız? Buradan →</a>
+</div>
+
+<!-- ALT CTA -->
+  <div style="max-width:640px;margin:0 auto;text-align:center">
+    <div style="font:800 34px 'Hanken Grotesk',sans-serif;color:#fff;letter-spacing:-.025em;margin-bottom:12px;line-height:1.2">Bir sonraki yatırım turuna hazır mısınız?</div>
+    <div style="font:400 15px 'Hanken Grotesk',sans-serif;color:rgba(255,255,255,.75);margin-bottom:32px">120+ startup, yatırımcı görüşmelerine KazKaz ile hazırlandı.</div>
+    <button onClick="{{ goSignup }}" style="background:#fff;color:#7C3AED;border:none;border-radius:13px;padding:17px 44px;font:800 16px 'Hanken Grotesk',sans-serif;cursor:pointer;box-shadow:0 10px 32px rgba(0,0,0,.18)">Ücretsiz başla →</button>
+    <div style="font:500 12px 'Hanken Grotesk',sans-serif;color:rgba(255,255,255,.5);margin-top:14px">Kredi kartı gerekmez · İlk 3 ay ücretsiz</div>
+  </div>
+</section>
+</x-dc>
+<script type="text/x-dc" data-dc-script>
+class Component extends DCLogic {
+  state = { openFaq: null };
+
+  goSignup(){ alert('Kayıt ol sayfasına yönlendiriliyorsunuz…'); }
+  goDemo(){ alert('Demo talebi alındı! Ekibimiz sizinle iletişime geçecek.'); }
+  toggleFaq(i){ this.setState(s => ({ openFaq: s.openFaq===i ? null : i })); }
+
+  renderVals(){
+    const on = { padding:'7px 12px', borderRadius:'4px', border:'none', background:'#0F2252', color:'#fff', fontSize:'11px', fontWeight:700, cursor:'pointer' };
+    const off = { padding:'7px 12px', borderRadius:'4px', border:'none', background:'transparent', color:'#A9B0C0', fontSize:'11px', fontWeight:700, cursor:'pointer' };
+
+    const rawFaqs = [
+      { q:'KOBİ paketinden farkı nedir?', a:'Startup paketi cap table, burn rate, valuation ve pitch deck metriklerine odaklanır. KOBİ paketi ise gelir/gider/nakit analizi, sektör benchmark ve CFO Agent içerir. İkisi farklı büyüme aşamaları için tasarlandı.' },
+      { q:'Yatırımcıyı platforma davet edebilir miyim?', a:'Evet. Paylaşım linki oluşturarak yatırımcıya salt-okunur erişim verebilirsiniz. Yatırımcı hesap açmadan dashboard\'ı, metrikleri ve due diligence paketini inceleyebilir.' },
+      { q:'Series A için yeterli mi?', a:'Evet. Platform; ARR, LTV/CAC, burn multiple, valuation modeli ve due diligence paketi gibi Series A yatırımcılarının standart olarak beklediği tüm metrikleri üretir. 120+ startup bu içerikle yatırım turlarını tamamladı.' },
+      { q:'Pitch deck otomatik üretir mi?', a:'Pitch deck metnini doğrudan üretmiyoruz — ancak pitch deck\'in metrik sayfaları için hazır veri blokları, grafikler ve AI yorumları sunuyoruz. Bunları Canva veya PowerPoint\'e aktarabilirsiniz.' },
+    ];
+
+    const faqs = rawFaqs.map((f,i) => ({
+      q: f.q, a: f.a,
+      open: this.state.openFaq===i,
+      toggle: () => this.toggleFaq(i),
+      wrap: { borderBottom: i<rawFaqs.length-1 ? '1px solid #F3F5F9' : 'none' },
+      chevron: { fontSize:'18px', color:'#A9B0C0', transform: this.state.openFaq===i ? 'rotate(90deg)' : 'none', transition:'transform .2s ease', display:'inline-block' },
+    }));
+
+    return {
+      faqs,
+      goSignup: () => this.goSignup(),
+      goDemo: () => this.goDemo(),
+    };
+  }
+}
+</script>
+</body>
+</html>

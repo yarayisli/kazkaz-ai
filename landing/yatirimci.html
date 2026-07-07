@@ -1,0 +1,384 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<title>KazKaz for Investors — Portföy izleme ve yönetim platformu</title>
+<meta name="description" content="VC ve fonlar için portföy şirketleri tek panelde. CFO Kompozit Skor karşılaştırma, otomatik risk uyarıları ve LP rapor otomasyonu." />
+<meta name="keywords" content="vc portföy yönetimi, lp raporu, startup portföy izleme, türkiye vc fon, cfo skor karşılaştırma" />
+<meta property="og:title" content="KazKaz for Investors — Portföy izleme platformu" />
+<meta property="og:description" content="VC ve fonlar için tüm portföy şirketleri tek ekranda. CFO skor karşılaştırma, risk uyarıları ve LP rapor otomasyonu." />
+<meta property="og:image" content="https://kazkaz.ai/og-yatirimci.png" />
+<meta property="og:type" content="website" />
+<meta property="og:url" content="https://kazkaz.ai/yatirimci" />
+<meta name="twitter:card" content="summary_large_image" />
+<meta name="twitter:title" content="KazKaz for Investors — Portföy izleme platformu" />
+<meta name="twitter:description" content="VC ve fonlar için tüm portföy tek ekranda. CFO skor, risk uyarısı, LP raporu." />
+<link rel="canonical" href="https://kazkaz.ai/yatirimci" />
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"WebPage","name":"KazKaz for Investors","url":"https://kazkaz.ai/yatirimci","description":"VC ve fon yöneticileri için portföy izleme ve LP rapor platformu."}</script>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin="anonymous" />
+<link href="https://fonts.googleapis.com/css2?family=Hanken+Grotesk:wght@400;500;600;700;800;900&display=swap" rel="stylesheet" />
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'Hanken Grotesk',-apple-system,'Segoe UI',sans-serif;background:#F4F6FB;color:#0F1729;-webkit-font-smoothing:antialiased}
+::-webkit-scrollbar{width:8px}::-webkit-scrollbar-thumb{background:#CDD0D8;border-radius:4px}
+@keyframes kzfade{from{opacity:0;transform:translateY(16px)}to{opacity:1;transform:none}}
+@keyframes kzpulse{0%,100%{box-shadow:0 0 0 0 rgba(5,150,105,.4)}70%{box-shadow:0 0 0 8px rgba(5,150,105,0)}}
+button:focus-visible,a:focus-visible{outline:2px solid #059669;outline-offset:3px;border-radius:6px}
+@media(max-width:768px){
+  section{padding:48px 24px!important}
+  nav{padding:0 20px!important}
+  h1{font-size:32px!important}
+  [style*="grid-template-columns:1fr 1fr"],[style*="grid-template-columns:1fr 1.3fr"],[style*="grid-template-columns:repeat(3"],[style*="grid-template-columns:repeat(2"]{grid-template-columns:1fr!important}
+  [style*="grid-template-columns:1.4fr 1fr 1fr 1fr 1fr"]{grid-template-columns:1fr 1fr!important}
+}
+</style>
+</helmet>
+
+<!-- NAV -->
+<nav style="position:sticky;top:0;z-index:50;background:rgba(255,255,255,.85);backdrop-filter:blur(20px) saturate(180%);-webkit-backdrop-filter:blur(20px) saturate(180%);border-bottom:1px solid rgba(15,34,82,.07);padding:0 48px;display:flex;align-items:center;justify-content:space-between;height:56px">
+  <a href="KazKaz AI App v2.dc.html" style="display:flex;align-items:center;gap:8px;text-decoration:none">
+    <div style="width:28px;height:28px;border-radius:7px;background:#0F2252;display:flex;align-items:center;justify-content:center;font:700 13px 'Hanken Grotesk',sans-serif;color:#fff">K</div>
+    <span style="font:700 15px 'Hanken Grotesk',sans-serif;color:#0F1729">KazKaz AI</span>
+  </a>
+  <div style="display:flex;align-items:center;gap:2px;height:100%">
+    <a href="KazKaz AI App v2.dc.html" style="font:600 13px 'Hanken Grotesk',sans-serif;color:#8B93A8;text-decoration:none;padding:0 14px;height:100%;display:flex;align-items:center">Genel</a>
+    <a href="KazKaz Startup.dc.html" style="font:600 13px 'Hanken Grotesk',sans-serif;color:#8B93A8;text-decoration:none;padding:0 14px;height:100%;display:flex;align-items:center">Startup</a>
+    <a href="KazKaz Kurumsal.dc.html" style="font:600 13px 'Hanken Grotesk',sans-serif;color:#8B93A8;text-decoration:none;padding:0 14px;height:100%;display:flex;align-items:center">Kurumsal</a>
+    <a href="KazKaz Yatırımcı.dc.html" style="font:700 13px 'Hanken Grotesk',sans-serif;color:#0F2252;text-decoration:none;padding:0 14px;height:100%;display:flex;align-items:center;border-bottom:2px solid #0F2252">Yatırımcı</a>
+  </div>
+  <div style="display:flex;align-items:center;gap:8px">
+    <button onClick="{{ goDemo }}" style="background:transparent;color:#3D4663;border:1px solid #E2E5EB;border-radius:8px;padding:7px 14px;font:600 13px 'Hanken Grotesk',sans-serif;cursor:pointer">Giriş Yap</button>
+    <button onClick="{{ goWaitlist }}" style="background:#0F2252;color:#fff;border:none;border-radius:8px;padding:7px 16px;font:700 13px 'Hanken Grotesk',sans-serif;cursor:pointer">Ücretsiz Başla</button>
+  </div>
+</nav>
+
+<!-- HERO -->
+<section style="padding:72px 48px 60px;max-width:1100px;margin:0 auto;animation:kzfade .5s ease both">
+
+  <div style="display:inline-flex;align-items:center;gap:7px;background:#FFFBEB;border:1px solid #FCD34D;border-radius:20px;padding:6px 14px;margin-bottom:20px">
+    <span style="font-size:13px">🔒</span>
+    <span style="font:700 10px 'Hanken Grotesk',sans-serif;letter-spacing:.1em;text-transform:uppercase;color:#D97706">Q1 2026'da aktif olacak</span>
+  </div>
+
+  <div style="display:grid;grid-template-columns:1fr 1.3fr;gap:48px;align-items:start">
+    <div>
+      <div style="display:inline-flex;align-items:center;gap:7px;background:#ECFDF5;border:1px solid #6EE7B7;border-radius:20px;padding:6px 14px;margin-bottom:22px">
+        <span style="font-size:14px">💼</span>
+        <span style="font:700 10px 'Hanken Grotesk',sans-serif;letter-spacing:.1em;text-transform:uppercase;color:#059669">YATIRIMCI &amp; FONLAR İÇİN</span>
+      </div>
+      <h1 style="font:900 44px/1.07 'Hanken Grotesk',sans-serif;letter-spacing:-.03em;color:#0A1628;margin-bottom:18px">Portföyünüzü<br>tek panelden<br><span style="background:linear-gradient(90deg,#059669,#2563EB);-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent">izleyin</span></h1>
+      <p style="font:400 15px/1.65 'Hanken Grotesk',sans-serif;color:#3D4663;margin-bottom:28px">Tüm portföy şirketleriniz tek dashboardda. CFO Kompozit Skor karşılaştırma, otomatik risk uyarıları ve LP rapor otomasyonu.</p>
+      <div style="display:flex;gap:12px;align-items:center;margin-bottom:22px">
+        <button onClick="{{ goWaitlist }}" style="background:#059669;color:#fff;border:none;border-radius:11px;padding:15px 30px;font:700 15px 'Hanken Grotesk',sans-serif;cursor:pointer;box-shadow:0 8px 24px rgba(5,150,105,.28)">Bekleme listesine katıl →</button>
+        <button onClick="{{ goDemo }}" style="background:transparent;color:#059669;border:2px solid #6EE7B7;border-radius:11px;padding:14px 24px;font:700 15px 'Hanken Grotesk',sans-serif;cursor:pointer">Erken demo iste</button>
+      </div>
+      <div style="display:flex;align-items:center;gap:8px">
+        <span style="width:7px;height:7px;border-radius:50%;background:#059669;animation:kzpulse 2s ease-in-out infinite"></span>
+        <span style="font:500 13px 'Hanken Grotesk',sans-serif;color:#8B93A8">30+ VC ve fon erken erişim listesinde</span>
+      </div>
+    </div>
+
+    <!-- Portföy mockup -->
+    <div style="background:#fff;border:0.5px solid #E2E5EB;border-radius:16px;padding:20px;box-shadow:0 8px 32px rgba(15,34,82,.10)">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px">
+        <div style="font:700 13px 'Hanken Grotesk',sans-serif;color:#0F1729">Portföy Genel Bakış</div>
+        <span style="font:600 10px 'Hanken Grotesk',sans-serif;color:#8B93A8">12 şirket · Q2 2025</span>
+      </div>
+
+      <!-- Uyarı bandı -->
+      <div style="background:#FEF2F2;border:1px solid #FCA5A5;border-radius:9px;padding:10px 14px;margin-bottom:14px;display:flex;align-items:center;justify-content:space-between">
+        <div style="display:flex;align-items:center;gap:8px"><span style="font-size:14px">⚠️</span><span style="font:600 12px 'Hanken Grotesk',sans-serif;color:#DC2626">Acil dikkat gereken: 2 şirket</span></div>
+        <span style="font:700 10px 'Hanken Grotesk',sans-serif;color:#DC2626;cursor:pointer;text-decoration:underline;text-underline-offset:2px">Gör →</span>
+      </div>
+
+      <!-- Şirket grid -->
+      <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:7px">
+        <sc-for list="{{ portfolio }}" as="co" hint-placeholder-count="12">
+          <div style="{{ co.card }}">
+            <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:4px">
+              <div style="width:22px;height:22px;border-radius:6px;background:{{ co.avatarBg }};display:flex;align-items:center;justify-content:center;font:700 9px 'Hanken Grotesk',sans-serif;color:#fff;flex:none">{{ co.init }}</div>
+              <span style="{{ co.dotStyle }}"></span>
+            </div>
+            <div style="font:700 11px 'Hanken Grotesk',sans-serif;color:#0F1729;margin-bottom:1px;line-height:1.2">{{ co.name }}</div>
+            <div style="font:500 9px 'Hanken Grotesk',sans-serif;color:#8B93A8;margin-bottom:4px">{{ co.sector }}</div>
+            <div style="font:900 15px 'Hanken Grotesk',sans-serif;letter-spacing:-.02em;color:{{ co.scoreColor }}">{{ co.score }}<span style="font:600 9px 'Hanken Grotesk',sans-serif;color:#A9B0C0">/100</span></div>
+          </div>
+        </sc-for>
+      </div>
+
+      <div style="display:flex;gap:10px;margin-top:12px;justify-content:center">
+        <div style="display:flex;align-items:center;gap:4px;font:500 10px 'Hanken Grotesk',sans-serif;color:#8B93A8"><span style="width:8px;height:8px;border-radius:50%;background:#059669;flex:none"></span>Sağlıklı</div>
+        <div style="display:flex;align-items:center;gap:4px;font:500 10px 'Hanken Grotesk',sans-serif;color:#8B93A8"><span style="width:8px;height:8px;border-radius:50%;background:#D97706;flex:none"></span>Dikkat</div>
+        <div style="display:flex;align-items:center;gap:4px;font:500 10px 'Hanken Grotesk',sans-serif;color:#8B93A8"><span style="width:8px;height:8px;border-radius:50%;background:#DC2626;flex:none"></span>Kritik</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ÖZELLİK KARTLARI -->
+<section style="padding:56px 48px;background:#fff;border-top:1px solid #E2E5EB;border-bottom:1px solid #E2E5EB">
+  <div style="max-width:1100px;margin:0 auto">
+    <div style="text-align:center;font:700 10px 'Hanken Grotesk',sans-serif;letter-spacing:.14em;text-transform:uppercase;color:#059669;margin-bottom:8px">YATIRIMCI KIT</div>
+    <div style="text-align:center;font:800 28px 'Hanken Grotesk',sans-serif;letter-spacing:-.025em;color:#0A1628;margin-bottom:32px">Portföy yönetiminde yapay zeka</div>
+    <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:16px">
+
+      <div style="background:#F4F6FB;border:0.5px solid #E2E5EB;border-radius:14px;padding:22px;transition:transform .3s cubic-bezier(.16,1,.3,1),box-shadow .3s" style-hover="transform:translateY(-5px);box-shadow:0 12px 32px rgba(5,150,105,.10)">
+        <div style="font-size:24px;margin-bottom:12px">📊</div>
+        <div style="font:700 15px 'Hanken Grotesk',sans-serif;color:#0F1729;margin-bottom:6px">Portföy Dashboard</div>
+        <div style="font:400 13px/1.6 'Hanken Grotesk',sans-serif;color:#8B93A8">Tüm portföy şirketlerinizi tek ekranda, CFO Kompozit Skor ile görün.</div>
+      </div>
+
+      <div style="background:#F4F6FB;border:0.5px solid #E2E5EB;border-radius:14px;padding:22px;transition:transform .3s cubic-bezier(.16,1,.3,1),box-shadow .3s" style-hover="transform:translateY(-5px);box-shadow:0 12px 32px rgba(5,150,105,.10)">
+        <div style="font-size:24px;margin-bottom:12px">🔄</div>
+        <div style="font:700 15px 'Hanken Grotesk',sans-serif;color:#0F1729;margin-bottom:6px">Şirket Karşılaştırma</div>
+        <div style="font:400 13px/1.6 'Hanken Grotesk',sans-serif;color:#8B93A8">CFO skor bazlı yan yana karşılaştırma — hangi şirket daha iyi performansta?</div>
+      </div>
+
+      <div style="background:#F4F6FB;border:0.5px solid #E2E5EB;border-radius:14px;padding:22px;transition:transform .3s cubic-bezier(.16,1,.3,1),box-shadow .3s" style-hover="transform:translateY(-5px);box-shadow:0 12px 32px rgba(5,150,105,.10)">
+        <div style="font-size:24px;margin-bottom:12px">⚠️</div>
+        <div style="font:700 15px 'Hanken Grotesk',sans-serif;color:#0F1729;margin-bottom:6px">Otomatik Risk Uyarıları</div>
+        <div style="font:400 13px/1.6 'Hanken Grotesk',sans-serif;color:#8B93A8">Nakit krizi, marj düşüşü, tahsilat gecikmesi — portföyde herhangi bir şirkette tetiklenir.</div>
+      </div>
+
+      <div style="background:#F4F6FB;border:0.5px solid #E2E5EB;border-radius:14px;padding:22px;transition:transform .3s cubic-bezier(.16,1,.3,1),box-shadow .3s" style-hover="transform:translateY(-5px);box-shadow:0 12px 32px rgba(5,150,105,.10)">
+        <div style="font-size:24px;margin-bottom:12px">📈</div>
+        <div style="font:700 15px 'Hanken Grotesk',sans-serif;color:#0F1729;margin-bottom:6px">Trend Analizi</div>
+        <div style="font:400 13px/1.6 'Hanken Grotesk',sans-serif;color:#8B93A8">Çeyreklik karşılaştırma — hangi şirket büyüyor, hangisi duraklamış?</div>
+      </div>
+
+      <div style="background:#F4F6FB;border:0.5px solid #E2E5EB;border-radius:14px;padding:22px;transition:transform .3s cubic-bezier(.16,1,.3,1),box-shadow .3s" style-hover="transform:translateY(-5px);box-shadow:0 12px 32px rgba(5,150,105,.10)">
+        <div style="font-size:24px;margin-bottom:12px">📄</div>
+        <div style="font:700 15px 'Hanken Grotesk',sans-serif;color:#0F1729;margin-bottom:6px">LP Rapor Otomasyonu</div>
+        <div style="font:400 13px/1.6 'Hanken Grotesk',sans-serif;color:#8B93A8">Limited partner raporlarını tek tıkla üretin — saat değil dakika.</div>
+      </div>
+
+      <div style="background:#F4F6FB;border:0.5px solid #E2E5EB;border-radius:14px;padding:22px;transition:transform .3s cubic-bezier(.16,1,.3,1),box-shadow .3s" style-hover="transform:translateY(-5px);box-shadow:0 12px 32px rgba(5,150,105,.10)">
+        <div style="font-size:24px;margin-bottom:12px">🎯</div>
+        <div style="font:700 15px 'Hanken Grotesk',sans-serif;color:#0F1729;margin-bottom:6px">Yatırım Performans Skoru</div>
+        <div style="font:400 13px/1.6 'Hanken Grotesk',sans-serif;color:#8B93A8">Her şirket için IRR, MOIC ve CFO skor eğilimini tek metrikte görün.</div>
+      </div>
+
+    </div>
+  </div>
+</section>
+
+<!-- KULLANIM SENARYOSU -->
+<section style="padding:60px 48px;background:#F4F6FB;border-bottom:1px solid #E2E5EB">
+  <div style="max-width:1100px;margin:0 auto">
+    <div style="text-align:center;font:700 10px 'Hanken Grotesk',sans-serif;letter-spacing:.14em;text-transform:uppercase;color:#2563EB;margin-bottom:8px">KULLANIM SENARYOSU</div>
+    <div style="text-align:center;font:800 26px 'Hanken Grotesk',sans-serif;letter-spacing:-.025em;color:#0A1628;margin-bottom:32px">VC'lerin günlük rutini</div>
+    <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:16px">
+
+      <div style="background:#fff;border:0.5px solid #E2E5EB;border-radius:14px;padding:26px;box-shadow:0 2px 12px rgba(15,34,82,.06)">
+        <div style="display:flex;align-items:center;gap:10px;margin-bottom:16px">
+          <div style="width:36px;height:36px;border-radius:50%;background:#FEF3C7;display:flex;align-items:center;justify-content:center;font-size:18px;flex:none">🌅</div>
+          <div style="font:700 12px 'Hanken Grotesk',sans-serif;color:#D97706;letter-spacing:.06em;text-transform:uppercase">Sabah</div>
+        </div>
+        <div style="font:700 16px 'Hanken Grotesk',sans-serif;color:#0F1729;margin-bottom:10px">"Hangi şirketim dikkat istiyor?"</div>
+        <div style="font:400 13px/1.6 'Hanken Grotesk',sans-serif;color:#8B93A8;margin-bottom:14px">Portföy dashboardını açın — renkli skor haritası hangi şirkette alarm olduğunu anında gösterir.</div>
+        <div style="display:flex;align-items:center;gap:8px;background:#ECFDF5;border:1px solid #6EE7B7;border-radius:8px;padding:9px 12px"><span style="font-size:13px">✦</span><span style="font:600 12px 'Hanken Grotesk',sans-serif;color:#059669">KazKaz görür → siz karar verirsiniz</span></div>
+      </div>
+
+      <div style="background:#fff;border:0.5px solid #E2E5EB;border-radius:14px;padding:26px;box-shadow:0 2px 12px rgba(15,34,82,.06)">
+        <div style="display:flex;align-items:center;gap:10px;margin-bottom:16px">
+          <div style="width:36px;height:36px;border-radius:50%;background:#DBEAFE;display:flex;align-items:center;justify-content:center;font-size:18px;flex:none">☀️</div>
+          <div style="font:700 12px 'Hanken Grotesk',sans-serif;color:#2563EB;letter-spacing:.06em;text-transform:uppercase">Öğleden Sonra</div>
+        </div>
+        <div style="font:700 16px 'Hanken Grotesk',sans-serif;color:#0F1729;margin-bottom:10px">"Q2 LP raporunu hazırla"</div>
+        <div style="font:400 13px/1.6 'Hanken Grotesk',sans-serif;color:#8B93A8;margin-bottom:14px">Tek tıkla tüm portföy için LP raporu üretin. Sektör bazlı performans, risk özeti ve öneriler hazır.</div>
+        <div style="display:flex;align-items:center;gap:8px;background:#EFF6FF;border:1px solid #BFDBFE;border-radius:8px;padding:9px 12px"><span style="font-size:13px">⚡</span><span style="font:600 12px 'Hanken Grotesk',sans-serif;color:#2563EB">Saatler değil dakikalar</span></div>
+      </div>
+
+      <div style="background:#fff;border:0.5px solid #E2E5EB;border-radius:14px;padding:26px;box-shadow:0 2px 12px rgba(15,34,82,.06)">
+        <div style="display:flex;align-items:center;gap:10px;margin-bottom:16px">
+          <div style="width:36px;height:36px;border-radius:50%;background:#EDE9FE;display:flex;align-items:center;justify-content:center;font-size:18px;flex:none">🌆</div>
+          <div style="font:700 12px 'Hanken Grotesk',sans-serif;color:#7C3AED;letter-spacing:.06em;text-transform:uppercase">Akşam</div>
+        </div>
+        <div style="font:700 16px 'Hanken Grotesk',sans-serif;color:#0F1729;margin-bottom:10px">"Hangi şirkete ek yatırım?"</div>
+        <div style="font:400 13px/1.6 'Hanken Grotesk',sans-serif;color:#8B93A8;margin-bottom:14px">CFO Kompozit Skor sıralamasıyla şirketleri karşılaştırın. Büyüme potansiyeli en yüksek portföy şirketi kim?</div>
+        <div style="display:flex;align-items:center;gap:8px;background:#F5F3FF;border:1px solid #C4B5FD;border-radius:8px;padding:9px 12px"><span style="font-size:13px">📊</span><span style="font:600 12px 'Hanken Grotesk',sans-serif;color:#7C3AED">Veriyle karşılaştır</span></div>
+      </div>
+
+    </div>
+  </div>
+</section>
+
+<!-- PRİCİNG -->
+<section id="pricing" style="padding:56px 48px;background:#fff;border-bottom:1px solid #E2E5EB">
+  <div style="max-width:520px;margin:0 auto;text-align:center">
+    <div style="font:700 10px 'Hanken Grotesk',sans-serif;letter-spacing:.14em;text-transform:uppercase;color:#059669;margin-bottom:8px">FON / VC PAKETİ</div>
+    <div style="font:800 28px 'Hanken Grotesk',sans-serif;letter-spacing:-.025em;color:#0A1628;margin-bottom:28px">Portföy büyüklüğünüze özel fiyat</div>
+    <div style="background:#fff;border:2px solid #059669;border-radius:18px;padding:32px 36px;box-shadow:0 12px 40px rgba(5,150,105,.14);position:relative">
+      <div style="position:absolute;top:-13px;left:50%;transform:translateX(-50%);background:#059669;color:#fff;font:700 10px 'Hanken Grotesk',sans-serif;letter-spacing:.1em;padding:4px 16px;border-radius:20px;white-space:nowrap">ERKEN ERİŞİM</div>
+      <div style="font:700 10px 'Hanken Grotesk',sans-serif;letter-spacing:.1em;text-transform:uppercase;color:#8B93A8;margin-bottom:12px">FON / VC</div>
+      <div style="font:900 42px 'Hanken Grotesk',sans-serif;color:#0F2252;letter-spacing:-.04em;margin-bottom:6px">Özel Fiyat</div>
+      <div style="font:500 13px 'Hanken Grotesk',sans-serif;color:#8B93A8;margin-bottom:24px">Portföy şirket sayısına göre · Yıllık fatura</div>
+      <div style="display:flex;flex-direction:column;gap:10px;text-align:left;margin-bottom:24px">
+        <div style="display:flex;align-items:center;gap:10px;font:500 13px 'Hanken Grotesk',sans-serif;color:#3D4663"><span style="color:#059669;font-weight:700;flex:none">✓</span>Sınırsız portföy şirketi</div>
+        <div style="display:flex;align-items:center;gap:10px;font:500 13px 'Hanken Grotesk',sans-serif;color:#3D4663"><span style="color:#059669;font-weight:700;flex:none">✓</span>LP rapor otomasyonu</div>
+        <div style="display:flex;align-items:center;gap:10px;font:500 13px 'Hanken Grotesk',sans-serif;color:#3D4663"><span style="color:#059669;font-weight:700;flex:none">✓</span>Risk alarm sistemi (tüm portföy)</div>
+        <div style="display:flex;align-items:center;gap:10px;font:500 13px 'Hanken Grotesk',sans-serif;color:#3D4663"><span style="color:#059669;font-weight:700;flex:none">✓</span>API erişimi &amp; webhook entegrasyonu</div>
+        <div style="display:flex;align-items:center;gap:10px;font:500 13px 'Hanken Grotesk',sans-serif;color:#3D4663"><span style="color:#059669;font-weight:700;flex:none">✓</span>Özel hesap yöneticisi</div>
+        <div style="display:flex;align-items:center;gap:10px;font:500 13px 'Hanken Grotesk',sans-serif;color:#3D4663"><span style="color:#059669;font-weight:700;flex:none">✓</span>SLA garantisi &amp; öncelikli destek</div>
+      </div>
+      <button onClick="{{ goWaitlist }}" style="width:100%;background:linear-gradient(135deg,#059669,#2563EB);color:#fff;border:none;border-radius:12px;padding:16px;font:700 15px 'Hanken Grotesk',sans-serif;cursor:pointer;box-shadow:0 8px 24px rgba(5,150,105,.28)">İletişime geç →</button>
+      <div style="display:flex;justify-content:center;gap:14px;font:500 11px 'Hanken Grotesk',sans-serif;color:#A9B0C0;margin-top:12px"><span>✓ SLA garantisi</span><span>✓ API erişimi</span><span>✓ KVKK uyumlu</span></div>
+    </div>
+  </div>
+</section>
+
+<!-- SSS -->
+<section style="padding:60px 48px;background:#F4F6FB">
+  <div style="max-width:700px;margin:0 auto">
+    <div style="text-align:center;font:800 26px 'Hanken Grotesk',sans-serif;letter-spacing:-.02em;color:#0A1628;margin-bottom:28px">Yatırımcıların soruları</div>
+    <div style="display:flex;flex-direction:column;border:0.5px solid #E2E5EB;border-radius:14px;overflow:hidden;background:#fff;box-shadow:0 2px 12px rgba(15,34,82,.06)">
+      <sc-for list="{{ faqs }}" as="faq" hint-placeholder-count="4">
+        <div style="{{ faq.wrap }}">
+          <button onClick="{{ faq.toggle }}" style="width:100%;display:flex;align-items:center;justify-content:space-between;gap:16px;padding:18px 22px;background:none;border:none;cursor:pointer;text-align:left" style-hover="background:#FAFAFA">
+            <span style="font:700 14px 'Hanken Grotesk',sans-serif;color:#0F1729">{{ faq.q }}</span>
+            <span style="{{ faq.chevron }}">›</span>
+          </button>
+          <sc-if value="{{ faq.open }}">
+            <div style="padding:0 22px 18px;font:400 13.5px/1.7 'Hanken Grotesk',sans-serif;color:#3D4663;border-top:1px solid #F3F5F9;background:#FAFAFA">{{ faq.a }}</div>
+          </sc-if>
+        </div>
+      </sc-for>
+    </div>
+  </div>
+</section>
+
+<!-- CROSS-LINK -->
+<div style="background:#F4F6FB;border-top:1px solid #E2E5EB;padding:20px 48px;display:flex;align-items:center;justify-content:center;gap:32px;flex-wrap:wrap">
+  <a href="KazKaz AI App v2.dc.html" style="font:600 13px 'Hanken Grotesk',sans-serif;color:#3D4663;text-decoration:none">🏢 Portföy şirketleriniz KazKaz kullanmıyor mu? →</a>
+  <a href="KazKaz Startup.dc.html" style="font:600 13px 'Hanken Grotesk',sans-serif;color:#3D4663;text-decoration:none">🚀 Startup'sınız? Buradan →</a>
+  <a href="KazKaz Kurumsal.dc.html" style="font:600 13px 'Hanken Grotesk',sans-serif;color:#3D4663;text-decoration:none">🏛️ Kurumsal mısınız? Buradan →</a>
+</div>
+
+<!-- FOOTER -->
+<footer style="background:#0A1628;padding:52px 48px 28px">
+  <div style="max-width:1100px;margin:0 auto">
+    <div style="display:grid;grid-template-columns:1.4fr 1fr 1fr 1fr 1fr;gap:36px;margin-bottom:40px">
+      <div>
+        <div style="display:flex;align-items:center;gap:8px;margin-bottom:12px">
+          <div style="width:28px;height:28px;border-radius:7px;background:#fff;display:flex;align-items:center;justify-content:center;font:700 13px 'Hanken Grotesk',sans-serif;color:#0F2252">K</div>
+          <span style="font:700 15px 'Hanken Grotesk',sans-serif;color:#fff">KazKaz AI</span>
+        </div>
+        <div style="font:400 12.5px/1.65 'Hanken Grotesk',sans-serif;color:#6B7A99">Yatırımcıya hazır şirketler için yapay zeka CFO platformu.</div>
+        <div style="display:flex;gap:10px;margin-top:14px">
+          <a href="#" style="width:30px;height:30px;border-radius:7px;background:rgba(255,255,255,.08);display:flex;align-items:center;justify-content:center;color:#9CA3AF;font-size:13px;text-decoration:none">𝕏</a>
+          <a href="#" style="width:30px;height:30px;border-radius:7px;background:rgba(255,255,255,.08);display:flex;align-items:center;justify-content:center;color:#9CA3AF;font-size:13px;text-decoration:none">in</a>
+          <a href="#" style="width:30px;height:30px;border-radius:7px;background:rgba(255,255,255,.08);display:flex;align-items:center;justify-content:center;color:#9CA3AF;font-size:12px;text-decoration:none">▶</a>
+        </div>
+      </div>
+      <div>
+        <div style="font:700 10px 'Hanken Grotesk',sans-serif;letter-spacing:.12em;text-transform:uppercase;color:#4B5A70;margin-bottom:14px">Çözümler</div>
+        <div style="display:flex;flex-direction:column;gap:9px">
+          <a href="KazKaz AI App v2.dc.html" style="font:500 13px 'Hanken Grotesk',sans-serif;color:#9CA3AF;text-decoration:none">KOBİ</a>
+          <a href="KazKaz Startup.dc.html" style="font:500 13px 'Hanken Grotesk',sans-serif;color:#9CA3AF;text-decoration:none">Startup</a>
+          <a href="KazKaz Kurumsal.dc.html" style="font:500 13px 'Hanken Grotesk',sans-serif;color:#9CA3AF;text-decoration:none">Kurumsal</a>
+          <a href="KazKaz Yatırımcı.dc.html" style="font:500 13px 'Hanken Grotesk',sans-serif;color:#9CA3AF;text-decoration:none">Yatırımcı</a>
+        </div>
+      </div>
+      <div>
+        <div style="font:700 10px 'Hanken Grotesk',sans-serif;letter-spacing:.12em;text-transform:uppercase;color:#4B5A70;margin-bottom:14px">Ürün</div>
+        <div style="display:flex;flex-direction:column;gap:9px">
+          <a href="#" style="font:500 13px 'Hanken Grotesk',sans-serif;color:#9CA3AF;text-decoration:none">Özellikler</a>
+          <a href="#pricing" style="font:500 13px 'Hanken Grotesk',sans-serif;color:#9CA3AF;text-decoration:none">Fiyatlandırma</a>
+          <a href="#" style="font:500 13px 'Hanken Grotesk',sans-serif;color:#9CA3AF;text-decoration:none">Yol Haritası</a>
+          <a href="#" style="font:500 13px 'Hanken Grotesk',sans-serif;color:#9CA3AF;text-decoration:none">SSS</a>
+        </div>
+      </div>
+      <div>
+        <div style="font:700 10px 'Hanken Grotesk',sans-serif;letter-spacing:.12em;text-transform:uppercase;color:#4B5A70;margin-bottom:14px">Şirket</div>
+        <div style="display:flex;flex-direction:column;gap:9px">
+          <a href="#" style="font:500 13px 'Hanken Grotesk',sans-serif;color:#9CA3AF;text-decoration:none">Hakkımızda</a>
+          <a href="#" style="font:500 13px 'Hanken Grotesk',sans-serif;color:#9CA3AF;text-decoration:none">Blog</a>
+          <a href="#" style="font:500 13px 'Hanken Grotesk',sans-serif;color:#9CA3AF;text-decoration:none">Kariyer</a>
+          <a href="#" style="font:500 13px 'Hanken Grotesk',sans-serif;color:#9CA3AF;text-decoration:none">İletişim</a>
+        </div>
+      </div>
+      <div>
+        <div style="font:700 10px 'Hanken Grotesk',sans-serif;letter-spacing:.12em;text-transform:uppercase;color:#4B5A70;margin-bottom:14px">Yasal</div>
+        <div style="display:flex;flex-direction:column;gap:9px">
+          <a href="#" style="font:500 13px 'Hanken Grotesk',sans-serif;color:#9CA3AF;text-decoration:none">KVKK</a>
+          <a href="#" style="font:500 13px 'Hanken Grotesk',sans-serif;color:#9CA3AF;text-decoration:none">GDPR</a>
+          <a href="#" style="font:500 13px 'Hanken Grotesk',sans-serif;color:#9CA3AF;text-decoration:none">Kullanım Şartları</a>
+          <a href="#" style="font:500 13px 'Hanken Grotesk',sans-serif;color:#9CA3AF;text-decoration:none">Gizlilik</a>
+        </div>
+      </div>
+    </div>
+    <div style="border-top:1px solid rgba(255,255,255,.07);padding-top:20px;display:flex;align-items:center;justify-content:space-between">
+      <div style="font:400 12px 'Hanken Grotesk',sans-serif;color:#4B5A70">© 2025 KazKaz AI · Türkiye'de tasarlandı ve geliştirildi</div>
+      <div style="font:400 12px 'Hanken Grotesk',sans-serif;color:#4B5A70">Groq · Llama 3.3 70B · Anthropic</div>
+    </div>
+  </div>
+</footer>
+
+<!-- ALT CTA -->
+  <div style="max-width:640px;margin:0 auto;text-align:center">
+    <div style="font:800 34px 'Hanken Grotesk',sans-serif;color:#fff;letter-spacing:-.025em;margin-bottom:12px;line-height:1.2">Yatırım kararlarınızı<br>veriyle destekleyin</div>
+    <div style="font:400 15px 'Hanken Grotesk',sans-serif;color:rgba(255,255,255,.75);margin-bottom:32px">30+ VC ve fon yöneticisi erken erişim listesinde. Yerinizi ayırtın.</div>
+    <button onClick="{{ goWaitlist }}" style="background:#fff;color:#059669;border:none;border-radius:13px;padding:17px 44px;font:800 16px 'Hanken Grotesk',sans-serif;cursor:pointer;box-shadow:0 10px 32px rgba(0,0,0,.18)">Bekleme listesine katıl →</button>
+    <div style="font:500 12px 'Hanken Grotesk',sans-serif;color:rgba(255,255,255,.5);margin-top:14px">Q1 2026 · Erken erişim fiyatı korunur</div>
+  </div>
+</section>
+</x-dc>
+<script type="text/x-dc" data-dc-script>
+class Component extends DCLogic {
+  state = { openFaq: null };
+
+  goWaitlist(){ alert('Bekleme listesine eklendiniz! KazKaz Yatırımcı ekibi sizinle iletişime geçecek.'); }
+  goDemo(){ alert('Demo talebi alındı! Ekibimiz 24 saat içinde sizinle iletişime geçecek.'); }
+  toggleFaq(i){ this.setState(s => ({ openFaq: s.openFaq===i ? null : i })); }
+
+  renderVals(){
+    const companies = [
+      { name:'TechNova', sector:'SaaS', score:82, status:'green' },
+      { name:'Anadolu T.', sector:'Tekstil', score:68, status:'green' },
+      { name:'Delta Loj.', sector:'Lojistik', score:74, status:'green' },
+      { name:'Bursa Ürt.', sector:'Üretim', score:45, status:'red' },
+      { name:'MaviHane', sector:'Perakende', score:71, status:'green' },
+      { name:'AkdGıda', sector:'Gıda', score:58, status:'amber' },
+      { name:'Süper Ofis', sector:'B2B SaaS', score:88, status:'green' },
+      { name:'PayLite', sector:'FinTech', score:79, status:'green' },
+      { name:'NanoMed', sector:'Sağlık', score:38, status:'red' },
+      { name:'GreenBuild', sector:'İnşaat', score:65, status:'amber' },
+      { name:'EduTech A.', sector:'EdTech', score:77, status:'green' },
+      { name:'LogiPro', sector:'B2B', score:61, status:'amber' },
+    ];
+    const statusColor = { green:'#059669', amber:'#D97706', red:'#DC2626' };
+    const avatarColors = ['#0F2252','#7C3AED','#2563EB','#059669','#0F766E','#D97706'];
+    const portfolio = companies.map((c,i) => ({
+      name:c.name, sector:c.sector, score:c.score, init:c.name.slice(0,2).toUpperCase(),
+      avatarBg: avatarColors[i%avatarColors.length],
+      scoreColor: statusColor[c.status],
+      dotStyle:{ width:'7px', height:'7px', borderRadius:'50%', background:statusColor[c.status], flexShrink:0 },
+      card:{ background:'#F9FAFB', border:'0.5px solid '+(c.status==='red'?'#FCA5A5':c.status==='amber'?'#FCD34D':'#E2E5EB'), borderRadius:'9px', padding:'10px' },
+    }));
+
+    const rawFaqs = [
+      { q:'Portföy şirketlerim KazKaz kullanmak zorunda mı?', a:'Hayır. Yatırımcı dashboardı için portföy şirketlerinin KazKaz kullanması tercih edilir; ancak veri paylaşımı şirket onayıyla gerçekleşir. Şirket kullanmıyorsa manuel veri yükleme de desteklenir.' },
+      { q:'Veri gizliliği nasıl sağlanıyor?', a:'Her portföy şirketinin verisi tamamen izole edilmiş tenants\'ta tutulur. Şirket, yalnızca onayladığı metrikleri yatırımcıyla paylaşır. Veri erişim logları KVKK uyumlu şekilde tutulur.' },
+      { q:'LP raporları otomatik mi üretiliyor?', a:'Evet. Tek tıkla tüm portföy için çeyreklik LP raporu üretilebilir. Şablon özelleştirilebilir — sektör performansı, risk özeti, büyüme trendi ve AI yorumları dahil edilebilir.' },
+      { q:'API ile kendi sistemimize entegre edebilir miyiz?', a:'Evet. REST API ve webhook desteği Fon/VC paketinde mevcuttur. Kendi portföy yönetim sisteminize, BI araçlarınıza (Tableau, Power BI) veya LP portalınıza bağlanabilirsiniz.' },
+    ];
+    const faqs = rawFaqs.map((f,i) => ({
+      q:f.q, a:f.a, open:this.state.openFaq===i,
+      toggle:()=>this.toggleFaq(i),
+      wrap:{ borderBottom: i<rawFaqs.length-1?'1px solid #F3F5F9':'none' },
+      chevron:{ fontSize:'18px', color:'#A9B0C0', transform:this.state.openFaq===i?'rotate(90deg)':'none', transition:'transform .2s ease', display:'inline-block' },
+    }));
+
+    return { portfolio, faqs, goWaitlist:()=>this.goWaitlist(), goDemo:()=>this.goDemo() };
+  }
+}
+</script>
+</body>
+</html>
