@@ -10,6 +10,12 @@ app.py entegrasyonu:
 import streamlit as st
 import pandas as pd
 from design_system import *
+from ui_components import (
+    render_page_header, render_exec_summary, render_kpi_row,
+    render_section, render_alerts, render_health_bars,
+    render_stat_strip, render_insight_card, render_action_card,
+    badge_html, T,
+)
 from datetime import datetime
 
 from cfo_agent import (
@@ -45,24 +51,18 @@ def show_cfo_tab(
     cf_rapor:   dict = None,
     debt_rapor: dict = None,
 ):
-    st.markdown(
-        '<div style="font-family:Inter,-apple-system,sans-serif;font-size:1.5rem;font-weight:800;'
-        'background:linear-gradient(135deg,#0EA5E9,#1D4ED8,#4F46E5);'
-        '-webkit-background-clip:text;-webkit-text-fill-color:transparent;">'
-        '🧠 CFO AI Agent</div>'
-        '<div style="color:#64748B;font-size:.78rem;letter-spacing:2px;'
-        'text-transform:uppercase;margin-bottom:18px;">'
-        'Proaktif Analiz · Uyarılar · Yatırım & Borç Önerileri · Otomatik Rapor</div>',
-        unsafe_allow_html=True)
+    render_page_header(
+        "CFO Agent",
+        "Yapay Zeka Destekli Finansal Karar Merkezi · Proaktif Analiz · 90 Gunluk Aksiyon Plani",
+        badge_text="AI Aktif", badge_level="brand",
+    )
 
     if ai_engine is None:
-        st.markdown(
-            '<div style="background:#F8FAFC;border:1px solid #DC262644;'
-            'border-radius:12px;padding:20px;text-align:center;color:#ff8080;">'
-            '🔒 CFO Agent için AI motoru gerekli.<br>'
-            '<span style="font-size:.85rem;color:#64748B;">'
-            'Sol panelden Groq veya Gemini API anahtarınızı ekleyin.</span></div>',
-            unsafe_allow_html=True)
+        render_alerts([{
+            "title": "CFO Agent icin AI motoru gerekli",
+            "body": "AI Analiz sayfasindan Groq veya Gemini API anahtarinizi ekleyin.",
+            "level": "warning"
+        }])
         return
 
     # ── Agent oluştur / cache ──
@@ -96,7 +96,25 @@ def show_cfo_tab(
                 st.rerun()
 
     # ── KPI Satırı ──
-    c1,c2,c3,c4,c5 = st.columns(5)
+    render_kpi_row([
+        {"label": "CFO Skoru",    "value": f'{durum["skor"]}/100',
+         "delta": durum["kategori"], "positive": durum["skor"] >= 60,
+         "accent_color": "#059669" if durum["skor"] >= 65 else "#D97706" if durum["skor"] >= 40 else "#DC2626",
+         "color": "#059669" if durum["skor"] >= 65 else "#D97706" if durum["skor"] >= 40 else "#DC2626"},
+        {"label": "Kategori",     "value": durum["kategori"],
+         "delta": "Genel degerlendirme", "positive": durum["skor"] >= 60,
+         "accent_color": "#2563EB"},
+        {"label": "Kritik",       "value": str(durum["kritik_uyari"]),
+         "delta": "Uyari sayisi",  "positive": durum["kritik_uyari"] == 0,
+         "accent_color": "#DC2626" if durum["kritik_uyari"] > 0 else "#059669"},
+        {"label": "Dikkat",       "value": str(durum["dikkat_uyari"]),
+         "delta": "Izleniyor",    "positive": durum["dikkat_uyari"] == 0,
+         "accent_color": "#D97706" if durum["dikkat_uyari"] > 0 else "#059669"},
+        {"label": "Risk Profili", "value": durum["risk_profili"],
+         "delta": "Genel risk", "positive": True,
+         "accent_color": "#2563EB"},
+    ], height=118)
+    c1,c2,c3,c4,c5 = st.columns(5)  # uyumluluk icin bos birakildi
     skor_renk = (C_GREEN if durum["skor"]>=70 else
                  C_YELLOW if durum["skor"]>=50 else C_RED)
     with c1: kpi("CFO Skoru", f'{durum["skor"]}/100',
@@ -167,7 +185,7 @@ def show_cfo_tab(
     # ════════════ YATIRIM ÖNERİLERİ ════════════
     with s2:
         inv = analiz["inv"]
-        sec(f"💼 Yatırım Profili: {inv['risk_profili']}")
+        render_section(f"💼 Yatırım Profili: {inv['risk_profili']}")
 
         c1,c2 = st.columns(2)
         with c1: kpi("Yıllık Gelir",   fmt(inv["yillik_gelir"]))
@@ -217,7 +235,7 @@ def show_cfo_tab(
     # ════════════ BORÇ ÖNERİLERİ ════════════
     with s3:
         debt = analiz.get("debt") or {}
-        sec("🏦 Borç Yönetimi Analizi")
+        render_section("🏦 Borç Yönetimi Analizi")
 
         c1,c2,c3 = st.columns(3)
         with c1: kpi("Toplam Borç", fmt(debt["mevcut_borc"]),
@@ -290,7 +308,7 @@ def show_cfo_tab(
 
     # ════════════ OTOMATİK RAPOR ════════════
     with s4:
-        sec("📋 Otomatik Periyodik Rapor")
+        render_section("📋 Otomatik Periyodik Rapor")
 
         col1, col2 = st.columns(2)
         with col1:
@@ -335,7 +353,7 @@ def show_cfo_tab(
 
             if "cfo_rapor_zengin" in st.session_state:
                 st.markdown("---")
-                sec("🤖 AI Tarafından Zenginleştirilmiş Rapor")
+                render_section("🤖 AI Tarafından Zenginleştirilmiş Rapor")
                 st.markdown(
                     f'<div style="background:#F8FAFC;border:1px solid #BFDBFE;'
                     f'border-radius:14px;padding:20px 24px;color:#334155;'
@@ -345,7 +363,7 @@ def show_cfo_tab(
 
     # ════════════ CFO SOHBET ════════════
     with s5:
-        sec("💬 CFO ile Sohbet")
+        render_section("💬 CFO ile Sohbet")
         st.markdown(
             '<div style="color:#64748B;font-size:.82rem;margin-bottom:16px;">'
             'Şirket verilerinizi bilen CFO AI Agent ile finansal kararlarınız '

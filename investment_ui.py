@@ -20,6 +20,16 @@ from typing import List
 
 from investment_engine import Investment, InvestmentEngine, InvestmentComparator
 
+try:
+    from ui_components import (
+        render_page_header, render_exec_summary, render_kpi_row,
+        render_section, render_alerts, render_health_bars,
+        render_stat_strip, render_insight_card, badge_html, T,
+    )
+except ImportError:
+    pass
+
+
 # ─────────────────────────────────────────────
 # TEMA SABİTLERİ
 # ─────────────────────────────────────────────

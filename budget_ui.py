@@ -17,6 +17,16 @@ from design_system import *
 
 from budget_engine import BudgetEngine, BudgetPlan, BudgetPeriod
 
+try:
+    from ui_components import (
+        render_page_header, render_exec_summary, render_kpi_row,
+        render_section, render_alerts, render_health_bars,
+        render_stat_strip, render_insight_card, badge_html, T,
+    )
+except ImportError:
+    pass
+
+
 # ─────────────────────────────────────────────
 # TEMA
 # ─────────────────────────────────────────────
@@ -457,7 +467,7 @@ def show_budget_tab(df: pd.DataFrame, fin_rapor: dict = None):
 
             st.dataframe(
                 display.style
-                .map(color_sapma,
+                .applymap(color_sapma,
                           subset=[c for c in display.columns
                                   if "Sapma" in c])
                 .format({c: "{:,.0f} ₺" for c in display.columns

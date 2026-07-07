@@ -25,18 +25,18 @@ import streamlit as st
 
 class DS:
     # ── Açık Tema — Navy/Corporate Premium ──
-    BG_BASE     = "#F7F8FC"
+    BG_BASE     = "#F4F6FB"
     BG_SURFACE  = "#FFFFFF"
     BG_ELEVATED = "#F3F5F9"
     BG_OVERLAY  = "#F9FAFB"
 
-    BORDER      = "#E8EAEF"
-    BORDER_STR  = "#D1D5DB"
+    BORDER      = "#E2E5EB"
+    BORDER_STR  = "#CDD0D8"
     BORDER_FOCUS= "#0F2252"
 
-    TEXT_PRI    = "#1A1F36"
-    TEXT_SEC    = "#4B5563"
-    TEXT_TER    = "#9CA3AF"
+    TEXT_PRI    = "#0F1729"
+    TEXT_SEC    = "#3D4663"
+    TEXT_TER    = "#8B93A8"
     TEXT_DIS    = "#D1D5DB"
 
     ACCENT      = "#0F2252"
@@ -51,15 +51,15 @@ class DS:
 
     GREEN       = "#059669"
     GREEN_BG    = "#ECFDF5"
-    GREEN_BDR   = "#A7F3D0"
+    GREEN_BDR   = "#6EE7B7"
 
     RED         = "#DC2626"
     RED_BG      = "#FEF2F2"
-    RED_BDR     = "#FECACA"
+    RED_BDR     = "#FCA5A5"
 
     AMBER       = "#D97706"
     AMBER_BG    = "#FFFBEB"
-    AMBER_BDR   = "#FDE68A"
+    AMBER_BDR   = "#FCD34D"
 
     BLUE_INFO   = "#2563EB"
     BLUE_BG     = "#EFF6FF"
