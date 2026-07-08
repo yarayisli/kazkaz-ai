@@ -331,15 +331,92 @@ class HealthScore:
 
     # --- Alt skor hesaplayıcılar (0-100) ---
 
+    # ── Sektör hedef marjı (varsayılan)
+    # Sektör verilirse override edilir; yoksa Türkiye KOBİ ortalaması %10 hedef, %20 mükemmel
+    _default_target_margin: float = 10.0   # %10 → 60 puan
+    _default_top_margin:    float = 20.0   # %20+ → 100 puan
+
+    def set_sector_targets(self, hedef_marj: float, ust_marj: float):
+        """Sektör bazlı marj eşiklerini ayarla."""
+        self._default_target_margin = hedef_marj
+        self._default_top_margin    = ust_marj
+
     def _karlilik_skoru(self) -> float:
-        """Kar marjına göre skor. >20% → 100, <0% → 0."""
+        """
+        Kar marjına göre skor (0-100).
+        - Negatif marj → 0
+        - Hedef marj (varsayılan %10) → 60 puan
+        - Üst marj (varsayılan %20) → 100 puan
+        - Arada doğrusal interpolasyon
+        Bu yaklaşım her marjı ayrıştırır (eski clip*5 hatası çözüldü).
+        """
         margin = self.profit.profit_margin()
-        return float(np.clip(margin * 5, 0, 100))
+        if margin <= 0:
+            return 0.0
+        if margin >= self._default_top_margin:
+            return 100.0
+        if margin >= self._default_target_margin:
+            # Hedef ile üst marj arası: 60→100
+            oran = (margin - self._default_target_margin) / \
+                   (self._default_top_margin - self._default_target_margin)
+            return round(60 + oran * 40, 1)
+        # 0 ile hedef arası: 0→60
+        oran = margin / self._default_target_margin
+        return round(oran * 60, 1)
 
     def _buyume_skoru(self) -> float:
-        """Ortalama gelir büyüme oranına göre skor. >10% → 100."""
-        growth = self.revenue.summary()["ortalama_buyume_orani"]
-        return float(np.clip(growth * 10, 0, 100))
+        """
+        Gelir büyüme skoru (0-100).
+
+        UYARI: Nominal büyüme kullanılır. 2024-2025 Türkiye'sinde
+        yüksek enflasyon nedeniyle nominal büyüme yanıltıcı olabilir
+        (%20 büyüme aslında enflasyon altında kalıp reel küçülme olabilir).
+        TÜFE düzeltmesi ileride eklenecek.
+
+        Metodoloji:
+        - 12+ ay verisi varsa: YoY (yıllık aynı ay karşılaştırması) — mevsimsel gürültüden arındırılmış
+        - 12 aydan az: MoM ortalaması (daha az güvenilir)
+        - Eşikler yumuşak eğri: <0% → 0, 15% → 60, 30% → 100
+        """
+        monthly = self.revenue.monthly_revenue()
+        if monthly.empty or len(monthly) < 2:
+            return 50.0
+
+        buyume_pct = self._compute_growth(monthly)
+
+        # Negatif büyüme
+        if buyume_pct <= 0:
+            # -20% ve altı → 0, 0% → 40
+            return round(float(np.clip(40 + buyume_pct * 2, 0, 40)), 1)
+
+        # Pozitif büyüme: 0% → 40, 10% → 55, 20% → 80, 30%+ → 100
+        if buyume_pct >= 30:
+            return 100.0
+        if buyume_pct >= 20:
+            return round(80 + (buyume_pct - 20) / 10 * 20, 1)
+        if buyume_pct >= 10:
+            return round(55 + (buyume_pct - 10) / 10 * 25, 1)
+        return round(40 + (buyume_pct / 10) * 15, 1)
+
+    @staticmethod
+    def _compute_growth(monthly: pd.DataFrame) -> float:
+        """
+        12+ ay verisi varsa YoY, yoksa MoM ortalaması.
+        Mevsimsellikten arınmış büyüme.
+        """
+        rev = monthly["Toplam Gelir"].values
+        n = len(rev)
+        if n >= 13:
+            # YoY: son 3 ay ile 12 ay önceki 3 ayı karşılaştır
+            son_3 = rev[-3:].mean()
+            eski_3 = rev[-15:-12].mean()
+            if eski_3 <= 0:
+                return 0.0
+            return round((son_3 - eski_3) / eski_3 * 100, 2)
+        else:
+            # Yetersiz veri: MoM ortalaması, ama sinyal zayıf
+            pct = pd.Series(rev).pct_change().dropna() * 100
+            return round(float(pct.mean()) if not pct.empty else 0.0, 2)
 
     def _gider_kontrolu_skoru(self) -> float:
         """Gider/Gelir oranına göre skor. Düşük oran → yüksek skor."""
@@ -354,16 +431,56 @@ class HealthScore:
 
     def _nakit_skoru(self) -> float:
         """
-        Nakit sürdürülebilirliği: son 3 aydaki ortalama net kar pozitif mi?
-        Pozitif → 100, negatif → 0, arada orantılı.
+        Nakit sürdürülebilirliği skoru (0-100).
+        UYARI: Bu skor NET KÂR üzerinden hesaplanır, gerçek NAKİT değil.
+        Vadeli tahsilat/ödeme farklılıkları göz önüne alınmaz.
+        Gerçek nakit analizi için cashflow_engine.CashFlowScorer kullanılmalı.
+
+        Metodoloji:
+        - Son 3 ayın net kâr trendi + istikrarı
+        - Toplam gelire oranla marj sağlamlığı
         """
         monthly = self.profit.monthly_profit()
-        if monthly.empty:
+        if monthly.empty or len(monthly) < 2:
             return 50.0
-        son_3 = monthly.tail(3)["NetKar"].mean()
-        if son_3 >= 0:
-            return float(np.clip(50 + son_3 / max(abs(son_3), 1) * 50, 0, 100))
-        return float(np.clip(50 + son_3 / max(abs(son_3), 1) * 50, 0, 100))
+
+        son_n = min(3, len(monthly))
+        son_donem = monthly.tail(son_n)
+        ort_kar   = son_donem["NetKar"].mean()
+
+        # Aynı dönemin gelir tabanı
+        toplam_gelir_son = son_donem["Gelir"].sum() if "Gelir" in son_donem.columns else 0
+        if toplam_gelir_son <= 0:
+            return 0.0
+
+        # Marj yüzdesi
+        kar_marj = (ort_kar * son_n) / toplam_gelir_son * 100
+
+        # Negatif marj → 0-40 arası
+        if kar_marj < 0:
+            # -20% ve altı → 0, 0% → 40
+            return round(float(np.clip(40 + kar_marj * 2, 0, 40)), 1)
+
+        # Pozitif marj: 0% → 40, 5% → 60, 15% → 90, 20%+ → 100
+        if kar_marj >= 20:
+            base = 100.0
+        elif kar_marj >= 15:
+            base = 90 + (kar_marj - 15) / 5 * 10
+        elif kar_marj >= 5:
+            base = 60 + (kar_marj - 5) / 10 * 30
+        else:
+            base = 40 + (kar_marj / 5) * 20
+
+        # İstikrar bonusu/cezası: son dönemler pozitif mi negatif mi?
+        pozitif_ay = (son_donem["NetKar"] > 0).sum()
+        if pozitif_ay == son_n:
+            istikrar = 5   # tüm aylar pozitif → +5
+        elif pozitif_ay == 0:
+            istikrar = -15  # tüm aylar negatif → -15
+        else:
+            istikrar = -5   # karışık → -5
+
+        return round(float(np.clip(base + istikrar, 0, 100)), 1)
 
     def calculate(self) -> Dict[str, Any]:
         """Genel sağlık skorunu ve alt skorları döndürür."""
@@ -386,6 +503,18 @@ class HealthScore:
             "kategori": kategori,
             "alt_skorlar": alt_skorlar,
             "aciklama": self._aciklama(kategori),
+            "uyarilar": [
+                "Bu skor nominal değerlere dayanır — enflasyon düzeltmesi uygulanmamıştır.",
+                "Nakit skoru NET KÂR üzerinden hesaplanır, gerçek nakit pozisyonu değildir. "
+                "Vadeli tahsilat/ödeme varsa gerçek nakit farklı olabilir.",
+            ],
+            "metodoloji": {
+                "karlilik_agirlik": self.WEIGHTS["karlilik"],
+                "buyume_agirlik":   self.WEIGHTS["buyume"],
+                "gider_agirlik":    self.WEIGHTS["gider_kontrolu"],
+                "nakit_agirlik":    self.WEIGHTS["nakit"],
+                "not": "Ağırlıklı toplam formülü: Σ (alt_skor × ağırlık)",
+            },
         }
 
     @staticmethod

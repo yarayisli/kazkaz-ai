@@ -11,6 +11,27 @@ KazKaz AI - Sektör Karşılaştırma & Benchmark Motoru (v14)
   - Güçlü/zayıf yön tespiti
 
 Kurulum: pip install google-generativeai pandas numpy
+
+═══════════════════════════════════════════════════════════════
+ÖNEMLİ METODOLOJİ UYARISI
+═══════════════════════════════════════════════════════════════
+Aşağıdaki SECTOR_DB benchmark değerleri, kamuya açık kaynaklar
+(TCMB, BIST sektör raporları, McKinsey Türkiye raporları,
+sektör derneklerinin yıllık raporları) referans alınarak
+KOBİ segmentine göre kalibre edilmiş TAHMİNİ değerlerdir.
+
+Bu değerler:
+  1. Kaba yönlendirme sağlar, kesin sektör ortalaması DEĞİLDİR.
+  2. Alt sektör kırılımı yoktur (örn. Teknoloji altında SaaS vs
+     Sistem Entegratörü farklı marjlar gösterir).
+  3. Türkiye enflasyon ortamı hızla değişir; TL bazındaki
+     "aylık gelir" değerleri her yıl güncellenmelidir.
+
+100 kullanıcıya ulaşınca anonimleştirilmiş kullanıcı ortalamaları
+ile değiştirilecektir.
+
+Son güncelleme: 2025-Q4
+═══════════════════════════════════════════════════════════════
 """
 
 import numpy as np
@@ -408,19 +429,36 @@ class BenchmarkEngine:
             return 0.0, "Zayıf"
 
     def _hesapla_metrikler(self) -> Dict[str, Any]:
-        """Şirket metriklerini hesapla."""
+        """
+        Şirket metriklerini hesapla.
+
+        NOT: operasyonel_marj için gerçek EBIT hesabı yapılmaz — bu bilgi
+        raporda yoksa net kâr marjının yaklaşık %85'i olarak tahmin edilir.
+        (Türkiye KOBİ ortalamasına göre finansman + vergi giderleri gelirin
+        %2-4'ü civarındadır.) Gerçek EBIT için gider tipini (finansal/vergi/
+        operasyonel) ayırt eden veri gereklidir.
+        """
         g = self.rapor["gelir"]
         e = self.rapor["gider"]
         k = self.rapor["karlilik"]
 
         gider_gelir = (e["toplam_gider"] / g["toplam_gelir"] * 100
                        if g["toplam_gelir"] > 0 else 100)
+
+        # Gerçek EBIT varsa kullan, yoksa yaklaşık
+        gercek_ebit_marj = k.get("operasyonel_marj")
+        if gercek_ebit_marj is None:
+            # Uyarı: bu bir tahmindir
+            operasyonel_marj = round(k["kar_marji"] * 0.85, 2)
+        else:
+            operasyonel_marj = gercek_ebit_marj
+
         return {
             "kar_marji":         k["kar_marji"],
             "gelir_buyumesi":    g["ortalama_buyume_orani"],
             "gider_gelir_orani": round(gider_gelir, 2),
             "aylik_gelir":       g["ortalama_aylik_gelir"],
-            "operasyonel_marj":  k["kar_marji"] * 0.85,  # yaklaşık
+            "operasyonel_marj":  operasyonel_marj,
         }
 
     def compare(self) -> Dict[str, Any]:
@@ -468,6 +506,17 @@ class BenchmarkEngine:
             "guclu_yonler":    self._guclu_yonler(sonuclar),
             "zayif_yonler":    self._zayif_yonler(sonuclar),
             "tavsiyeler":      self._tavsiyeler(sonuclar, genel_skor),
+            "metodoloji_uyarilari": [
+                "Sektör benchmark değerleri kamuya açık kaynaklar temel alınarak "
+                "KOBİ segmenti için kalibre edilmiş TAHMİNİ değerlerdir. "
+                "Kesin sektör ortalaması değildir.",
+                "Alt sektör kırılımı yoktur (örn. Teknoloji altında SaaS/Sistem "
+                "Entegratörü/Danışmanlık farklı marj yapılarına sahiptir).",
+                "TL bazlı 'aylık gelir' eşikleri her yıl enflasyona göre "
+                "güncellenmelidir. Son kalibrasyon: 2025-Q4",
+                "Operasyonel marj gerçek EBIT verisi yoksa net kâr marjının "
+                "%85'i olarak yaklaşık hesaplanır.",
+            ],
         }
 
     @staticmethod

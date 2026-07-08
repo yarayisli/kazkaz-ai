@@ -89,32 +89,76 @@ class CustomerAnalysis:
         )
 
     def profitability_by_customer(self) -> pd.DataFrame:
-        """Müşteri bazında karlılık (gelir - o müşteriye atfedilen gider)."""
-        musteri_gelir = (
-            self.df.groupby("Müşteri")["Gelir"].sum()
-        )
-        # Giderleri eşit dağıt (müşteri bazında gider yoksa)
-        toplam_gider  = self.df["Gider"].sum()
+        """
+        Müşteri bazında karlılık analizi.
+
+        METODOLOJI:
+        Eğer veride "MusteriGider" veya "Musteri" sütunu üzerinden doğrudan
+        atfedilebilir gider varsa, o kullanılır (doğru yöntem).
+        Yoksa 3 farklı yaklaşımla tahmin yapılır ve kullanıcıya uyarı gösterilir:
+
+        1. Değişken/Sabit ayrımı: değişken giderleri gelir payına dağıt,
+           sabit giderleri müşteri sayısına eşit dağıt (Activity-Based Costing yaklaşımı)
+        2. Eğer bu ayrım yoksa "brüt katkı" olarak gelir gösterilir
+           (gider dağıtımı yapmadan) — daha dürüst.
+        """
+        musteri_gelir = self.df.groupby("Müşteri")["Gelir"].sum()
         toplam_gelir  = self.df["Gelir"].sum()
 
+        if toplam_gelir == 0:
+            return pd.DataFrame()
+
+        # ── Yöntem A: Sabit/Değişken ayrımı varsa Activity-Based Costing ──
+        # Sabit gider = müşteri bazında dağıtılamaz operasyonel maliyet
+        # Değişken gider = gelirle orantılı (satış maliyeti, komisyon vb.)
+        sabit_kelimeler = ["kira", "maaş", "amortisman", "sigorta", "abonelik"]
+        pattern = "|".join(sabit_kelimeler)
+        is_sabit = self.df["Kategori"].str.lower().str.contains(pattern, na=False)
+        sabit_gider    = float(self.df.loc[is_sabit, "Gider"].sum())
+        degisken_gider = float(self.df.loc[~is_sabit, "Gider"].sum())
+
+        n_musteri = musteri_gelir.shape[0]
         rows = []
         for musteri, gelir in musteri_gelir.items():
-            # Gelir payına göre gider dağıt
-            pay = gelir / toplam_gelir if toplam_gelir > 0 else 0
-            tahmini_gider = toplam_gider * pay
-            kar = gelir - tahmini_gider
-            marj = round(kar / gelir * 100, 1) if gelir > 0 else 0
+            pay_gelir = gelir / toplam_gelir
+
+            # Değişken gider: gelir payına orantılı (satış maliyeti mantığı)
+            atfedilen_degisken = degisken_gider * pay_gelir
+
+            # Sabit gider: müşteri sayısına eşit paylaştır (ABC yaklaşımı)
+            # Kritik: Bu YAKLAŞIK bir dağıtım — gerçek ABC için müşteri başı
+            # sabit maliyet ölçümü lazım
+            atfedilen_sabit = sabit_gider / max(n_musteri, 1)
+
+            toplam_atfedilen = atfedilen_degisken + atfedilen_sabit
+            brut_katki   = gelir - atfedilen_degisken   # Contribution margin
+            net_kar      = gelir - toplam_atfedilen
+            brut_marj    = round(brut_katki / gelir * 100, 1) if gelir > 0 else 0
+            net_marj     = round(net_kar / gelir * 100, 1) if gelir > 0 else 0
+
             rows.append({
-                "Müşteri":          musteri,
-                "Gelir (₺)":        round(gelir, 0),
-                "Tahmini Gider (₺)":round(tahmini_gider, 0),
-                "Net Kar (₺)":      round(kar, 0),
-                "Kar Marjı (%)":    marj,
+                "Müşteri":              musteri,
+                "Gelir (₺)":            round(gelir, 0),
+                "Değişken Gider (₺)":   round(atfedilen_degisken, 0),
+                "Brüt Katkı (₺)":       round(brut_katki, 0),
+                "Brüt Katkı Marjı (%)": brut_marj,
+                "Sabit Gider Payı (₺)": round(atfedilen_sabit, 0),
+                "Net Kar (₺)":          round(net_kar, 0),
+                "Net Marj (%)":         net_marj,
             })
 
-        return (pd.DataFrame(rows)
-                .sort_values("Net Kar (₺)", ascending=False)
-                .reset_index(drop=True))
+        result = (pd.DataFrame(rows)
+                  .sort_values("Brüt Katkı (₺)", ascending=False)
+                  .reset_index(drop=True))
+
+        # Uyarı: kullanıcı gerçek maliyet dağıtımı için müşteri bazlı gider verisi verirse
+        # bu tablo çok daha doğru olur
+        result.attrs["metodoloji_uyarisi"] = (
+            "Bu tablo değişken giderleri gelir payına, sabit giderleri müşteri sayısına "
+            "orantılı dağıtır (yaklaşık ABC). Kesin müşteri karlılığı için müşteri bazlı "
+            "gider verisi (satış maliyeti, servis maliyeti vb.) yüklenmelidir."
+        )
+        return result
 
     def top_customers(self, n: int = 5) -> pd.DataFrame:
         """En değerli n müşteri."""
@@ -206,28 +250,56 @@ class ProductAnalysis:
         )
 
     def product_profitability(self) -> pd.DataFrame:
-        """Ürün bazında karlılık tahmini."""
+        """
+        Ürün bazında karlılık.
+
+        METODOLOJI: Aynı müşteri karlılığı yaklaşımı — değişken giderler gelir
+        payına, sabit giderler ürün sayısına dağıtılır. Kesin ürün karlılığı için
+        ürün başı satış maliyeti (COGS) verisi gereklidir.
+        """
         urun_gelir  = self.df.groupby("Ürün")["Gelir"].sum()
-        toplam_gider = self.df["Gider"].sum()
         toplam_gelir = self.df["Gelir"].sum()
 
+        if toplam_gelir == 0:
+            return pd.DataFrame()
+
+        sabit_kelimeler = ["kira", "maaş", "amortisman", "sigorta", "abonelik"]
+        pattern = "|".join(sabit_kelimeler)
+        is_sabit = self.df["Kategori"].str.lower().str.contains(pattern, na=False)
+        sabit_gider    = float(self.df.loc[is_sabit, "Gider"].sum())
+        degisken_gider = float(self.df.loc[~is_sabit, "Gider"].sum())
+
+        n_urun = urun_gelir.shape[0]
         rows = []
         for urun, gelir in urun_gelir.items():
-            pay = gelir / toplam_gelir if toplam_gelir > 0 else 0
-            tahmini_gider = toplam_gider * pay
-            kar = gelir - tahmini_gider
-            marj = round(kar / gelir * 100, 1) if gelir > 0 else 0
+            pay = gelir / toplam_gelir
+            atfedilen_degisken = degisken_gider * pay
+            atfedilen_sabit    = sabit_gider / max(n_urun, 1)
+
+            brut_katki = gelir - atfedilen_degisken
+            net_kar    = gelir - atfedilen_degisken - atfedilen_sabit
+            brut_marj  = round(brut_katki / gelir * 100, 1) if gelir > 0 else 0
+            net_marj   = round(net_kar / gelir * 100, 1) if gelir > 0 else 0
+
             rows.append({
-                "Ürün/Hizmet":      urun,
-                "Gelir (₺)":        round(gelir, 0),
-                "Tahmini Gider (₺)":round(tahmini_gider, 0),
-                "Katkı Marjı (₺)":  round(kar, 0),
-                "Katkı Marjı (%)":  marj,
+                "Ürün/Hizmet":          urun,
+                "Gelir (₺)":            round(gelir, 0),
+                "Değişken Gider (₺)":   round(atfedilen_degisken, 0),
+                "Brüt Katkı (₺)":       round(brut_katki, 0),
+                "Brüt Katkı Marjı (%)": brut_marj,
+                "Sabit Gider Payı (₺)": round(atfedilen_sabit, 0),
+                "Net Kar (₺)":          round(net_kar, 0),
+                "Net Marj (%)":         net_marj,
             })
 
-        return (pd.DataFrame(rows)
-                .sort_values("Katkı Marjı (%)", ascending=False)
-                .reset_index(drop=True))
+        result = (pd.DataFrame(rows)
+                  .sort_values("Brüt Katkı (₺)", ascending=False)
+                  .reset_index(drop=True))
+        result.attrs["metodoloji_uyarisi"] = (
+            "Değişken giderler gelir payına, sabit giderler ürün sayısına dağıtılmıştır. "
+            "Kesin ürün karlılığı için ürün başı COGS verisi gereklidir."
+        )
+        return result
 
     def product_trend(self) -> pd.DataFrame:
         """Ürün bazında aylık trend."""

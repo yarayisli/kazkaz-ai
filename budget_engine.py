@@ -118,12 +118,35 @@ class VarianceAnalysis:
         merged["Net Sapma (%)"]   = merged.apply(
             lambda r: sapma_pct(r["Gercek_Net"], r["Bütçe Net"]), axis=1)
 
-        # Durum etiketi
-        merged["Gelir Durumu"] = merged["Gelir Sapma (₺)"].apply(
-            lambda v: "✅ Hedef Üstü" if v > 0 else
-                      "⚠️ Hedefe Yakın" if v >= -v*0.1 else
-                      "❌ Hedef Altı"
-        )
+        # Durum etiketi — hem gelir hem gider sapmasını hesaba katarak
+        def _gelir_durum(row):
+            butce = row["Bütçe Gelir"]
+            sapma = row["Gelir Sapma (₺)"]
+            if butce == 0:
+                return "ℹ️ Bütçe Yok"
+            # Bütçenin %5'i tolerans
+            tolerans = abs(butce) * 0.05
+            if sapma >= 0:
+                return "✅ Hedef Üstü"
+            if abs(sapma) <= tolerans:
+                return "⚠️ Hedefe Yakın"
+            return "❌ Hedef Altı"
+
+        def _gider_durum(row):
+            butce = row["Bütçe Gider"]
+            sapma = row["Gider Sapma (₺)"]
+            if butce == 0:
+                return "ℹ️ Bütçe Yok"
+            tolerans = abs(butce) * 0.05
+            # Gider tarafında düşük olması iyi
+            if sapma <= 0:
+                return "✅ Gider Hedefi Altı"
+            if abs(sapma) <= tolerans:
+                return "⚠️ Gider Hedefinde"
+            return "❌ Gider Aşıldı"
+
+        merged["Gelir Durumu"] = merged.apply(_gelir_durum, axis=1)
+        merged["Gider Durumu"] = merged.apply(_gider_durum, axis=1)
 
         return merged.sort_values("Dönem").reset_index(drop=True)
 
@@ -161,15 +184,39 @@ class VarianceAnalysis:
             "net_basari_pct":      net_basari,
             "hedef_ay":            hedef_ay,
             "toplam_ay":           len(df),
-            "performans":          self._performans(gelir_basari),
+            "performans":          self._performans(gelir_basari, net_basari),
         }
 
     @staticmethod
-    def _performans(pct: float) -> str:
-        if pct >= 110: return "🏆 Hedefi Aştı"
-        if pct >= 100: return "✅ Hedefe Ulaştı"
-        if pct >= 90:  return "🟡 Hedefe Yakın"
-        if pct >= 75:  return "⚠️ Hedef Altı"
+    def _performans(gelir_pct: float, net_pct: float = None) -> str:
+        """
+        Gerçek performans hem gelir hedefi hem net kâr hedefi ile ölçülür.
+        Gelir hedefi aşılmış ama gider patlamışsa 'Hedefi Aştı' demek yanıltıcı.
+        """
+        # Sadece gelir varsa (net_pct verilmemişse) eski davranış
+        if net_pct is None:
+            if gelir_pct >= 110: return "🏆 Hedefi Aştı"
+            if gelir_pct >= 100: return "✅ Hedefe Ulaştı"
+            if gelir_pct >= 90:  return "🟡 Hedefe Yakın"
+            if gelir_pct >= 75:  return "⚠️ Hedef Altı"
+            return "❌ Kritik Sapma"
+
+        # Kombinasyon: gelir yeterli ama net kâr yoksa problem
+        gelir_iyi = gelir_pct >= 100
+        net_iyi   = net_pct >= 100
+
+        if gelir_iyi and net_iyi:
+            if gelir_pct >= 110 and net_pct >= 110:
+                return "🏆 Hedefi Aştı"
+            return "✅ Hedefe Ulaştı"
+        if gelir_iyi and not net_iyi:
+            # Gelir tuttu ama net kâr düşük → gider patladı
+            return "⚠️ Ciro Tuttu, Marj Bozuldu"
+        if not gelir_iyi and net_iyi:
+            # Ciro tutmadı ama gider disiplini iyi
+            return "🟡 Ciro Zayıf, Marj Korundu"
+        if gelir_pct >= 75:
+            return "⚠️ Hedef Altı"
         return "❌ Kritik Sapma"
 
 

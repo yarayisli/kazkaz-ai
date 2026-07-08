@@ -99,8 +99,31 @@ class ForecastEngine:
     ) -> "ForecastEngine":
         data = self._prepare_data()
 
-        if len(data) < 3:
-            raise ValueError("Tahmin için en az 3 aylık veri gereklidir.")
+        # Minimum veri şartı — güvenilir tahmin için
+        n_ay = len(data)
+        if n_ay < 3:
+            raise ValueError(
+                "Tahmin için en az 3 aylık veri gereklidir. "
+                f"Şu an {n_ay} ay veri var."
+            )
+
+        # Uyarılar için sakla (tahmin çıktısında gösterilir)
+        self._veri_uyarilari = []
+        if n_ay < 6:
+            self._veri_uyarilari.append(
+                f"⚠️ Sadece {n_ay} ay veri var. Tahmin güvenilirliği düşüktür. "
+                "En az 6 ay, ideal olarak 12+ ay veri önerilir."
+            )
+        elif n_ay < 12:
+            self._veri_uyarilari.append(
+                f"⚠️ {n_ay} ay veri ile mevsimsel örüntü tam yakalanamaz. "
+                "Yıllık mevsimsellik için 12+ ay veri önerilir."
+            )
+        elif n_ay < 24 and PROPHET_AVAILABLE:
+            self._veri_uyarilari.append(
+                f"ℹ️ {n_ay} ay veri ile Prophet mevsimsellik tespit edebilir "
+                "ancak 24+ ay veri sonuçları daha da iyileştirir."
+            )
 
         self._train_data = data
 
@@ -108,8 +131,16 @@ class ForecastEngine:
             self._train_prophet(data, yearly_seasonality, changepoint_prior_scale)
         elif STATSMODELS_AVAILABLE:
             self._train_statsmodels(data)
+            self._veri_uyarilari.append(
+                "ℹ️ Prophet yüklü değil, Holt-Winters kullanılıyor. "
+                "Güven aralığı istatistiksel değil, ±%15 sabit tahminidir."
+            )
         else:
             self._train_linear(data)
+            self._veri_uyarilari.append(
+                "⚠️ Prophet ve statsmodels yüklü değil, sadece lineer trend kullanılıyor. "
+                "Mevsimsellik ve döngüsellik tespit edilmez. Güven aralığı geniş (±%20)."
+            )
 
         self._trained = True
         return self
@@ -223,6 +254,15 @@ class ForecastEngine:
         son_tahmin  = float(yhat_vals[-1]) if len(yhat_vals) > 0 else son_gercek
         buyume_oran = ((son_tahmin - son_gercek) / son_gercek * 100) if son_gercek > 0 else 0
 
+        uyarilar = list(getattr(self, "_veri_uyarilari", []))
+        # Backend'e özgü güven notu
+        if ACTIVE_BACKEND == "linear":
+            guven_notu = "Tahmin sadece son 6 ayın doğrusal trendine dayanır."
+        elif ACTIVE_BACKEND == "statsmodels":
+            guven_notu = "Güven aralığı istatistiksel değil, ±%15 sabit tahminidir."
+        else:
+            guven_notu = "Güven aralığı %90 (Prophet default)."
+
         return {
             "tahmin_tablosu":    tahmin_df,
             "trend_yonu":        self._trend_direction(yhat_vals),
@@ -232,6 +272,12 @@ class ForecastEngine:
             "ay_sayisi":         len(tahmin_df),
             "backend":           ACTIVE_BACKEND,
             "backend_label":     get_backend_info()["label"],
+            "guven_notu":        guven_notu,
+            "veri_uyarilari":    uyarilar,
+            "metodoloji_notu":   (
+                "Tahmin nominal değerlere dayanır — enflasyon düzeltmesi uygulanmamıştır. "
+                "Tahmin edilen büyüme reel değil, nominal büyümedir."
+            ),
             # Prophet'ta dolu gelir, diğerlerinde None
             "tam_forecast":      self._forecast_df[["ds","yhat","yhat_lower","yhat_upper","trend"]]
                                  if self._forecast_df is not None else None,

@@ -34,13 +34,35 @@ except ImportError:
 
 @dataclass
 class Investment:
-    """Tek bir yatırım tanımı."""
+    """
+    Tek bir yatırım tanımı.
+
+    ═══════════════════════════════════════════════════════
+    İSKONTO ORANI (WACC) SEÇİMİ - TÜRKİYE KOBİ REHBERİ
+    ═══════════════════════════════════════════════════════
+    Default %35: 2025 Türkiye KOBİ WACC yaklaşımı
+      = Risksiz getiri (~%45 mevduat) × 0.4
+      + Öz sermaye maliyeti (~%50) × 0.6
+
+    Sektöre göre öneri (2025):
+      - Düşük risk (perakende, gıda):    %30-35
+      - Orta risk (üretim, hizmet):       %35-40
+      - Yüksek risk (teknoloji, startup): %40-50
+
+    UYARI: Enflasyon ortamında iskonto oranı büyük etki yapar.
+    Nominal iskonto oranı ile nominal nakit akışları,
+    veya reel iskonto oranı ile reel nakit akışları kullanılmalı.
+    Karıştırılırsa NPV yanıltıcı olur.
+
+    Vergi (%25): 2025 kurumlar vergisi oranı.
+    """
     ad:               str
     baslangic_maliyeti: float          # İlk yatırım tutarı (₺)
     nakit_akislari:   List[float]      # Yıllık nakit akışları listesi
-    iskonto_orani:    float = 0.12     # Yıllık iskonto oranı (WACC)
-    vergi_orani:      float = 0.22     # Kurumlar vergisi oranı
-    enflasyon_orani:  float = 0.40     # Yıllık enflasyon oranı
+    iskonto_orani:    float = 0.35     # Yıllık iskonto oranı (WACC) — 2025 TR
+    vergi_orani:      float = 0.25     # Kurumlar vergisi oranı (2025 TR)
+    enflasyon_orani:  float = 0.35     # Yıllık enflasyon beklentisi
+    vergi_sonrasi:    bool  = False    # Nakit akışları vergi sonrası mı?
     aciklama:         str   = ""
 
     def __post_init__(self):
@@ -405,11 +427,25 @@ class InvestmentScorer:
         }
 
     def _npv_score(self) -> float:
+        """
+        NPV skoru (0-100).
+        Negatif NPV = değer yok eden yatırım → skor 0.
+        Pozitif NPV artık asimetrik değil, yatırım büyüklüğüne göre orantılı.
+        """
         npv = self.s["npv"]
         mal = self.s["maliyet"]
-        if npv <= 0:          return max(0, 50 + npv / mal * 50)
+        if npv <= 0:
+            return 0.0
+        # NPV/Maliyet oranı: 1.0 = 100 puan, 0.5 = 75 puan, 0.1 = 55 puan
         ratio = npv / mal
-        return min(100, 50 + ratio * 50)
+        if ratio >= 1.0:
+            return 100.0
+        if ratio >= 0.5:
+            return round(75 + (ratio - 0.5) / 0.5 * 25, 1)
+        if ratio >= 0.1:
+            return round(55 + (ratio - 0.1) / 0.4 * 20, 1)
+        # Çok küçük pozitif NPV
+        return round(30 + ratio / 0.1 * 25, 1)
 
     def _roi_score(self) -> float:
         roi = self.s["roi"]
