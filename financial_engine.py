@@ -204,9 +204,31 @@ class ExpenseAnalysis:
     def fixed_vs_variable(self, fixed_keywords: Optional[list] = None) -> Dict[str, float]:
         """
         Sabit/değişken gider ayrımı.
+
+        ÖNCELİK: Veride 'Gider Tipi' sütunu varsa ve doluysa onu kullan
+        (kullanıcı gerçek sınıflandırma yapmış).
+        Yoksa anahtar kelime tabanlı tespit (yaklaşık).
+
         fixed_keywords: sabit gider kategorilerini içeren anahtar kelimeler.
         Varsayılan: ['kira', 'maaş', 'amortisman', 'sigorta']
         """
+        # Yöntem 1: Kullanıcı Gider Tipi işaretlemişse öncelikli
+        if "Gider Tipi" in self.df.columns and self.df["Gider Tipi"].astype(str).str.strip().any():
+            gt = self.df["Gider Tipi"].astype(str).str.strip()
+            is_fixed = gt.isin(["Sabit"])
+            is_var   = gt.isin(["Değişken", "COGS"])
+            sabit    = float(self.df.loc[is_fixed, "Gider"].sum())
+            degisken = float(self.df.loc[is_var,   "Gider"].sum())
+            # Vergi + Finansal + CapEx = "diger"
+            diger    = float(self.df.loc[~(is_fixed | is_var), "Gider"].sum())
+            return {
+                "sabit_gider": sabit,
+                "degisken_gider": degisken,
+                "diger_gider": diger,
+                "kaynak": "kullanici_isaretlemesi",
+            }
+
+        # Yöntem 2: Anahtar kelime tabanlı (yaklaşık)
         if fixed_keywords is None:
             fixed_keywords = ["kira", "maaş", "amortisman", "sigorta", "abonelik"]
 
@@ -214,7 +236,12 @@ class ExpenseAnalysis:
         is_fixed = self.df["Kategori"].str.lower().str.contains(pattern, na=False)
         sabit = float(self.df.loc[is_fixed, "Gider"].sum())
         degisken = float(self.df.loc[~is_fixed, "Gider"].sum())
-        return {"sabit_gider": sabit, "degisken_gider": degisken}
+        return {
+            "sabit_gider": sabit,
+            "degisken_gider": degisken,
+            "diger_gider": 0.0,
+            "kaynak": "anahtar_kelime_tahmini",
+        }
 
     def expense_growth_rate(self) -> pd.DataFrame:
         """Aylık gider büyüme oranı (%)."""

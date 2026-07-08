@@ -24,12 +24,22 @@ warnings.filterwarnings("ignore")
 # ─────────────────────────────────────────────
 # STANDART KAZKAZ FORMATI
 # ─────────────────────────────────────────────
-# Tarih     | Kategori | Gelir | Gider | Müşteri | Ürün
-# 2024-01   | Satış    | 50000 | 0     | Acme    | ERP
-# 2024-01   | Kira     | 0     | 8000  |         |
+# Tarih     | Kategori | Gelir | Gider | Müşteri | Ürün | Gider Tipi | Vade Tarihi
+# 2024-01   | Satış    | 50000 | 0     | Acme    | ERP  |            | 2024-03-15
+# 2024-01   | Kira     | 0     | 8000  |         |      | Sabit      |
+#
+# Yeni opsiyonel sütunlar:
+#   - Gider Tipi:  Sabit / Değişken / COGS / Vergi / Finansal
+#                  (Boş bırakılırsa otomatik tespit — anahtar kelime tabanlı)
+#   - Vade Tarihi: Vadeli işlemler için tahsilat/ödeme tarihi
+#                  (Boş bırakılırsa Tarih ile aynı kabul edilir)
+# ─────────────────────────────────────────────
 
 STANDART_KOLONLAR = ["Tarih", "Kategori", "Gelir", "Gider"]
-OPSIYONEL_KOLONLAR = ["Müşteri", "Ürün", "Açıklama"]
+OPSIYONEL_KOLONLAR = ["Müşteri", "Ürün", "Açıklama", "Gider Tipi", "Vade Tarihi"]
+
+# Gider tipi kategorileri
+GIDER_TIPLERI = ["Sabit", "Değişken", "COGS", "Vergi", "Finansal", "CapEx"]
 
 
 # ─────────────────────────────────────────────
@@ -156,10 +166,13 @@ class KazKazConverter(BaseConverter):
         col_map = {}
         for col in df.columns:
             cl = col.lower()
-            if "tarih" in cl:          col_map[col] = "Tarih"
-            elif "kateg" in cl:        col_map[col] = "Kategori"
-            elif "gelir" in cl:        col_map[col] = "Gelir"
-            elif "gider" in cl:        col_map[col] = "Gider"
+            if "tarih" in cl and "vade" not in cl:  col_map[col] = "Tarih"
+            elif "vade" in cl:                       col_map[col] = "Vade Tarihi"
+            elif "kateg" in cl:                      col_map[col] = "Kategori"
+            elif "gelir" in cl:                      col_map[col] = "Gelir"
+            elif "gider" in cl and "tip" not in cl:  col_map[col] = "Gider"
+            elif "gider" in cl and "tip" in cl:      col_map[col] = "Gider Tipi"
+            elif "tip" in cl and "gider" not in cl:  col_map[col] = "Gider Tipi"
             elif "müşteri" in cl or "musteri" in cl: col_map[col] = "Müşteri"
             elif "ürün" in cl or "urun" in cl:       col_map[col] = "Ürün"
 
@@ -169,7 +182,46 @@ class KazKazConverter(BaseConverter):
         df["Gider"] = df.get("Gider", pd.Series([0]*len(df))).apply(self._clean_number)
         if "Kategori" not in df.columns:
             df["Kategori"] = "Genel"
+
+        # Vade tarihi varsa normalize et
+        if "Vade Tarihi" in df.columns:
+            df["Vade Tarihi"] = self._normalize_date(df["Vade Tarihi"])
+
+        # Gider Tipi otomatik tespit (boş bırakılmışsa)
+        if "Gider Tipi" not in df.columns:
+            df["Gider Tipi"] = ""
+        df["Gider Tipi"] = df.apply(self._infer_gider_tipi, axis=1)
+
         return self._to_standard(df)
+
+    @staticmethod
+    def _infer_gider_tipi(row) -> str:
+        """
+        Gider Tipi boşsa kategoriden otomatik tespit et.
+        Kullanıcı manuel değer girmişse ona dokunma.
+        """
+        mevcut = str(row.get("Gider Tipi", "")).strip()
+        if mevcut and mevcut in GIDER_TIPLERI:
+            return mevcut
+
+        if float(row.get("Gider", 0)) <= 0:
+            return ""  # Gelir satırı için tip yok
+
+        kat = str(row.get("Kategori", "")).lower()
+
+        # Anahtar kelime tabanlı sınıflandırma (kullanıcı sonradan düzenleyebilir)
+        if any(k in kat for k in ["kira", "maaş", "amortisman", "sigorta", "abonelik", "aidat"]):
+            return "Sabit"
+        if any(k in kat for k in ["hammadde", "malzeme", "üretim maliyeti", "cogs", "satış maliyeti"]):
+            return "COGS"
+        if any(k in kat for k in ["vergi", "kdv", "sgk", "muhtasar", "kurumlar"]):
+            return "Vergi"
+        if any(k in kat for k in ["faiz", "kredi", "banka", "finansman"]):
+            return "Finansal"
+        if any(k in kat for k in ["yatırım", "capex", "makine alım", "ekipman alım"]):
+            return "CapEx"
+        # Kalan her şey değişken sayılır
+        return "Değişken"
 
 
 class LogoConverter(BaseConverter):

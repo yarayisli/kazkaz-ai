@@ -909,6 +909,33 @@ if tab_genel.active:
             "Nakit":          alt.get("nakit", 0),
         })
 
+        # ── Metodoloji + Uyarılar (yeni) ────────────────────────────────────
+        _uyarilar   = s.get("uyarilar", [])
+        _metodoloji = s.get("metodoloji", {})
+        if _uyarilar or _metodoloji:
+            with st.expander("ℹ️ Skor nasıl hesaplandı?", expanded=False):
+                if _metodoloji:
+                    st.markdown(
+                        f"""
+                        <div style='font-size:12.5px;color:#3D4663;line-height:1.7'>
+                        <b>Ağırlıklı formül:</b> Σ (alt_skor × ağırlık)<br>
+                        • Karlılık: <b>%{int(_metodoloji.get('karlilik_agirlik', 0.35)*100)}</b><br>
+                        • Büyüme: <b>%{int(_metodoloji.get('buyume_agirlik', 0.25)*100)}</b><br>
+                        • Gider Kontrolü: <b>%{int(_metodoloji.get('gider_agirlik', 0.20)*100)}</b><br>
+                        • Nakit: <b>%{int(_metodoloji.get('nakit_agirlik', 0.20)*100)}</b>
+                        </div>
+                        """,
+                        unsafe_allow_html=True,
+                    )
+                    st.markdown("<div style='height:8px'></div>", unsafe_allow_html=True)
+                for u in _uyarilar:
+                    st.markdown(
+                        f"<div style='background:#FFFBEB;border-left:3px solid #D97706;"
+                        f"padding:8px 12px;border-radius:6px;font-size:12px;color:#78350F;"
+                        f"margin-bottom:6px'>⚠️ {u}</div>",
+                        unsafe_allow_html=True,
+                    )
+
     # ── 3 Sütun: Risk / CFO Önerileri / Kategori ────────────────────────────
     st.markdown("<div style='height:8px;'></div>", unsafe_allow_html=True)
     c1, c2, c3 = st.columns(3, gap="medium")
@@ -1609,6 +1636,39 @@ if tab_tahmin.active:
             with col_main:
                 if st.session_state.get("forecast"):
                     sonuc = st.session_state.forecast
+
+                    # ── Veri kalitesi uyarıları (yeni) ──
+                    _veri_uy = sonuc.get("veri_uyarilari", [])
+                    _guven_notu = sonuc.get("guven_notu", "")
+                    _metod_notu = sonuc.get("metodoloji_notu", "")
+                    if _veri_uy or _guven_notu:
+                        for u in _veri_uy:
+                            # İçerikten renk seç
+                            is_warn = u.startswith("⚠️") or "düşük" in u.lower() or "yakalanamaz" in u.lower()
+                            bg = "#FEF2F2" if is_warn else "#EEF2FF"
+                            bd = "#FCA5A5" if is_warn else "#C7D2FE"
+                            fg = "#991B1B" if is_warn else "#1E3A8A"
+                            st.markdown(
+                                f'<div style="background:{bg};border:0.5px solid {bd};'
+                                f'border-radius:8px;padding:10px 14px;margin-bottom:6px;'
+                                f'font-size:12px;color:{fg};line-height:1.55;">{u}</div>',
+                                unsafe_allow_html=True,
+                            )
+                        if _guven_notu:
+                            st.markdown(
+                                f'<div style="background:#F9FAFB;border:0.5px solid #E2E5EB;'
+                                f'border-radius:8px;padding:8px 14px;margin-bottom:10px;'
+                                f'font-size:11.5px;color:#6B7280;line-height:1.5;">'
+                                f'ℹ️ <b>Güven notu:</b> {_guven_notu}'
+                                f'{"<br>" + _metod_notu if _metod_notu else ""}</div>',
+                                unsafe_allow_html=True,
+                            )
+
+                    # Güven aralığı KPI'da backend'e göre değişir
+                    _backend = sonuc.get("backend", "prophet")
+                    _ci_label = "%90" if _backend == "prophet" else "±%15" if _backend == "statsmodels" else "±%20"
+                    _ci_delta = "Prophet CI" if _backend == "prophet" else "Holt-Winters" if _backend == "statsmodels" else "Lineer trend"
+
                     render_kpi_row([
                         {"label": "Toplam Tahmin",     "value": fmt(sonuc["toplam_tahmin"]),
                          "delta": f'{sonuc["ay_sayisi"]} aylik', "positive": True},
@@ -1616,8 +1676,8 @@ if tab_tahmin.active:
                          "delta": "Tahmin", "positive": True, "accent_color": "#2563EB"},
                         {"label": "Buyume Beklentisi", "value": f'%{sonuc["buyume_beklentisi"]}',
                          "delta": "Projeksiyon", "positive": sonuc["buyume_beklentisi"] >= 0},
-                        {"label": "Guven Araligi",     "value": "%90",
-                         "delta": "Prophet CI", "positive": True, "accent_color": "#7C3AED"},
+                        {"label": "Guven Araligi",     "value": _ci_label,
+                         "delta": _ci_delta, "positive": True, "accent_color": "#7C3AED"},
                     ], height=118)
 
                     t_df = sonuc["tahmin_tablosu"]
