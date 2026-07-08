@@ -1909,9 +1909,27 @@ if tab_ai.active:
         st.error("`groq` veya `google-generativeai` kurulu değil.")
         st.stop()
 
-    # AI aktivasyon
+    # ── AI Otomatik Aktivasyon (Secrets'ta key varsa) ─────────────────────
+    # Streamlit Secrets'a GROQ_API_KEY veya GEMINI_API_KEY eklenmişse
+    # kullanıcı butona basmadan AI otomatik başlar.
+    if not st.session_state.ai_active:
+        _auto_key = GROQ_API_KEY_ENV or GEMINI_API_KEY_ENV
+        _auto_provider = "groq" if GROQ_API_KEY_ENV else ("gemini" if GEMINI_API_KEY_ENV else None)
+        if _auto_key and _auto_provider:
+            try:
+                st.session_state.gemini    = GeminiEngine(api_key=_auto_key, provider=_auto_provider)
+                st.session_state.ai_active = True
+            except Exception as ex:
+                st.warning(f"AI otomatik başlatılamadı: {ex}")
+
+    # AI aktivasyon (kullanıcı manuel)
     if not st.session_state.ai_active:
         st.markdown("#### AI Motorunu Aktive Et")
+        st.info(
+            "ℹ️ Kalıcı otomatik aktivasyon için: "
+            "Streamlit → Manage app → Settings → Secrets → "
+            "`GROQ_API_KEY = \"gsk_...\"` ekleyin.",
+        )
         provider = st.radio("Servis", ["Groq (Ücretsiz, Hızlı)", "Gemini"], horizontal=True)
         if "Groq" in provider:
             api_key = GROQ_API_KEY_ENV or st.text_input("Groq API Key", type="password",
