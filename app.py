@@ -267,7 +267,6 @@ def _read_landing(filename="index.html"):
     return None
 
 def show_landing_page():
-        unsafe_allow_html=True,
     """
     Native Streamlit landing sayfası (segfault-safe).
     HTML dosyası import etmez, iframe kullanmaz.
