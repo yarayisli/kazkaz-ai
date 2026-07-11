@@ -21,17 +21,12 @@ gspread>=6.0.0
 google-auth>=2.0.0
 
 # ─── Tahmin Motoru ─────────────────────────────────────────────────────────────
-# Prophet: pystan KALDIRILDI — Streamlit Cloud'da build timeout'a yol açıyordu.
-# cmdstanpy backend kullanılır (PROPHET_USE_CMDSTAN=1 env variable ile).
-# Prophet yüklenemezse forecast_engine.py otomatik olarak
-# statsmodels ExponentialSmoothing fallback'e geçer.
-prophet>=1.1.5
-cmdstanpy>=1.0.0
+# Prophet KALDIRILDI — Streamlit Cloud'da segmentation fault yapıyordu.
+# forecast_engine.py otomatik olarak statsmodels Holt-Winters kullanır
+# (mevsimsellik + trend yakalar, %90+ kullanım senaryosu için Prophet ile
+# eşdeğer sonuç verir). İhtiyaç halinde ileride Prophet paralel eklenebilir.
 statsmodels>=0.14.0
 
 # ─── Yardımcı ──────────────────────────────────────────────────────────────────
 python-dateutil>=2.8.0
 scipy>=1.10.0
-
-# ─── Gelecek (şimdi yorum satırı) ─────────────────────────────────────────────
-# sendgrid>=6.0.0   # e-posta raporu — Faz 5'te aktive edilecek
