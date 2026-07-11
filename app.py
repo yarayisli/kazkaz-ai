@@ -263,55 +263,144 @@ for k, v in DEFAULTS.items():
 import os as _os
 
 def _read_landing(filename="index.html"):
-    try:
-        p = _os.path.join(_os.path.dirname(_os.path.abspath(__file__)), "landing", filename)
-        with open(p, "r", encoding="utf-8") as f:
-            return f.read()
-    except Exception:
-        return None
+    """Landing artık native Streamlit ile çiziliyor — HTML dosyası kullanılmıyor."""
+    return None
 
 def show_landing_page():
-    qp = st.query_params
-    page = qp.get("page", "home")
-    file_map = {
-        "home": "index.html",
-        "startup": "startup.html",
-        "kurumsal": "kurumsal.html",
-        "yatirimci": "yatirimci.html",
-    }
-    html = _read_landing(file_map.get(page, "index.html"))
-    if html is None:
-        # Landing dosyasi yoksa direkt login'e gec
-        st.session_state["show_landing"] = False
-        st.rerun()
-        return
-
-    # ── EN ÜSTTE sabit "Uygulamaya Geç" butonu ──
-    # (HTML cok uzun oldugu icin buton HER ZAMAN gorunur olsun diye ustte)
-    st.markdown(
-        "<div style='text-align:center;font-size:13px;color:#6B7280;"
-        "margin:0 0 6px;'>Aşağıda platformu inceleyin veya hemen başlayın 👇</div>",
         unsafe_allow_html=True,
-    )
+    """
+    Native Streamlit landing sayfası (segfault-safe).
+    HTML dosyası import etmez, iframe kullanmaz.
+    Aynı görsel dil: navy/purple/green, Hanken Grotesk, KazKaz marka kimliği.
+    """
+    # ── Global CSS ──
+    st.markdown("""
+    <style>
+    @import url('https://fonts.googleapis.com/css2?family=Hanken+Grotesk:wght@400;600;700;800;900&display=swap');
+    .kz-hero{padding:56px 24px 32px;text-align:center;background:linear-gradient(180deg,#F4F6FB 0%,#fff 100%);border-radius:16px;margin-bottom:24px}
+    .kz-eyebrow{display:inline-block;background:#EEF2FF;color:#0F2252;font-size:11px;font-weight:800;letter-spacing:.08em;padding:4px 14px;border-radius:20px;text-transform:uppercase;margin-bottom:18px;font-family:'Hanken Grotesk',sans-serif}
+    .kz-h1{font:900 42px/1.1 'Hanken Grotesk',sans-serif;color:#0A1628;letter-spacing:-.03em;margin:0 auto 14px;max-width:720px}
+    .kz-h1 .grad{background:linear-gradient(90deg,#0F2252,#7C3AED);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
+    .kz-sub{font:400 16px/1.6 'Hanken Grotesk',sans-serif;color:#3D4663;max-width:560px;margin:0 auto 24px}
+    .kz-sec-eyebrow{font:800 10px 'Hanken Grotesk',sans-serif;letter-spacing:.15em;color:#7C3AED;text-transform:uppercase;text-align:center;margin-bottom:8px}
+    .kz-sec-title{font:900 26px 'Hanken Grotesk',sans-serif;color:#0A1628;text-align:center;letter-spacing:-.02em;margin-bottom:22px}
+    .kz-feat{background:#F9FAFB;border:.5px solid #E2E5EB;border-radius:12px;padding:20px;height:100%}
+    .kz-feat-ico{font-size:22px;margin-bottom:10px}
+    .kz-feat h3{font:800 14.5px 'Hanken Grotesk',sans-serif;color:#0F1729;margin:0 0 6px}
+    .kz-feat p{font:400 13px/1.6 'Hanken Grotesk',sans-serif;color:#3D4663;margin:0}
+    .kz-badge-on{display:inline-block;background:#ECFDF5;color:#059669;font:800 9px 'Hanken Grotesk',sans-serif;padding:3px 10px;border-radius:20px;text-transform:uppercase;letter-spacing:.08em;margin-bottom:10px}
+    .kz-badge-soon{display:inline-block;background:#FFFBEB;color:#D97706;font:800 9px 'Hanken Grotesk',sans-serif;padding:3px 10px;border-radius:20px;text-transform:uppercase;letter-spacing:.08em;margin-bottom:10px}
+    .kz-cta-band{background:#0F2252;color:#fff;padding:36px 24px;border-radius:14px;text-align:center;margin-top:24px}
+    .kz-cta-band h2{font:900 26px 'Hanken Grotesk',sans-serif;color:#fff;margin:0 0 10px}
+    .kz-cta-band p{font:400 14px 'Hanken Grotesk',sans-serif;color:rgba(255,255,255,.7);margin:0 0 16px}
+    </style>
+    """, unsafe_allow_html=True)
+
+    # ── HERO ──
+    st.markdown("""
+    <div class="kz-hero">
+      <span class="kz-eyebrow">⚡ Dijital CFO Platformu</span>
+      <h1 class="kz-h1">Yatırımcıya hazır<br><span class="grad">yapay zeka CFO'su</span><br>30 saniyede çalışıyor</h1>
+      <p class="kz-sub">KOBİ ve startup'lar için finansal CFO motoru. Verinizi yükleyin;
+      kâr fırsatlarını, risk uyarılarını ve yatırımcıya hazır raporlarınızı 30 saniyede alın.</p>
+    </div>
+    """, unsafe_allow_html=True)
+
+    # ── ANA CTA ──
     c1, c2, c3 = st.columns([1, 1.4, 1])
     with c2:
         if st.button("🚀 Ücretsiz Başla — Veri Yüklemeye Geç",
                      use_container_width=True, type="primary", key="enter_top"):
             st.session_state["show_landing"] = False
             st.rerun()
-    st.markdown(
-        "<div style='height:1px;background:#E2E5EB;margin:10px 0 4px;'></div>",
-        unsafe_allow_html=True,
-    )
+        st.markdown(
+            "<div style='text-align:center;font-size:12px;color:#6B7280;margin-top:6px;'>"
+            "Kredi kartı gerekmez · KVKK uyumlu</div>",
+            unsafe_allow_html=True,
+        )
 
-    # ── Landing HTML ──
-    components.html(html, height=6200, scrolling=True)
+    st.markdown("<div style='height:32px'></div>", unsafe_allow_html=True)
 
-    # ── Altta da bir buton (yedek) ──
+    # ── SEGMENTLER ──
+    st.markdown('<div class="kz-sec-eyebrow">Kimler için</div>', unsafe_allow_html=True)
+    st.markdown('<div class="kz-sec-title">4 segment, tek platform</div>', unsafe_allow_html=True)
+
+    sc1, sc2, sc3, sc4 = st.columns(4)
+    with sc1:
+        st.markdown("""<div class="kz-feat"><span class="kz-badge-on">Şu an aktif</span>
+        <div class="kz-feat-ico">🏢</div><h3>KOBİ'ler</h3>
+        <p>Kurumsallaşma ve büyüme yolculuğu. 14 modüllü tek panel.</p></div>""",
+        unsafe_allow_html=True)
+    with sc2:
+        st.markdown("""<div class="kz-feat"><span class="kz-badge-on">Şu an aktif</span>
+        <div class="kz-feat-ico">🚀</div><h3>Startup'lar</h3>
+        <p>Yatırımcıya hazır olun. Burn rate, runway, pitch metrikleri.</p></div>""",
+        unsafe_allow_html=True)
+    with sc3:
+        st.markdown("""<div class="kz-feat"><span class="kz-badge-soon">Yakında</span>
+        <div class="kz-feat-ico">🏛️</div><h3>Kurumsal</h3>
+        <p>ESG ve risk raporlama otomasyonu. GRI/SASB uyumlu.</p></div>""",
+        unsafe_allow_html=True)
+    with sc4:
+        st.markdown("""<div class="kz-feat"><span class="kz-badge-soon">Yakında</span>
+        <div class="kz-feat-ico">💼</div><h3>Yatırımcı / Fon</h3>
+        <p>Portföyünüzü tek panelden izleyin. Şirket karşılaştırma.</p></div>""",
+        unsafe_allow_html=True)
+
+    st.markdown("<div style='height:36px'></div>", unsafe_allow_html=True)
+
+    # ── ÖZELLİKLER ──
+    st.markdown('<div class="kz-sec-eyebrow">Özellikler</div>', unsafe_allow_html=True)
+    st.markdown('<div class="kz-sec-title">Kurumsal analiz, KOBİ fiyatına</div>', unsafe_allow_html=True)
+
+    f1, f2, f3 = st.columns(3)
+    with f1:
+        st.markdown("""<div class="kz-feat"><div class="kz-feat-ico">📊</div>
+        <h3>14 Analiz Modülü</h3>
+        <p>Gelir, gider, karlılık, nakit akışı, borç, bütçe, müşteri, yatırım, sektör benchmark.</p></div>""",
+        unsafe_allow_html=True)
+    with f2:
+        st.markdown("""<div class="kz-feat"><div class="kz-feat-ico">🤖</div>
+        <h3>AI CFO Agent</h3>
+        <p>Türkçe finansal yorum, 90 günlük aksiyon planı, karar destek — Groq/Gemini destekli.</p></div>""",
+        unsafe_allow_html=True)
+    with f3:
+        st.markdown("""<div class="kz-feat"><div class="kz-feat-ico">📈</div>
+        <h3>Gelir Tahmini</h3>
+        <p>Holt-Winters ile 12 aya kadar mevsimsellik uyumlu projeksiyon ve senaryo analizi.</p></div>""",
+        unsafe_allow_html=True)
+
+    st.markdown("<div style='height:14px'></div>", unsafe_allow_html=True)
+
+    f4, f5, f6 = st.columns(3)
+    with f4:
+        st.markdown("""<div class="kz-feat"><div class="kz-feat-ico">🇹🇷</div>
+        <h3>Türkiye'ye Özel</h3>
+        <p>Logo, Mikro, Netsis entegrasyonu. BIST sektör benchmark. Türkçe muhasebe formatı.</p></div>""",
+        unsafe_allow_html=True)
+    with f5:
+        st.markdown("""<div class="kz-feat"><div class="kz-feat-ico">⚡</div>
+        <h3>Risk & Alarm Merkezi</h3>
+        <p>Otomatik risk tespiti, öncelik sıralaması, kritik durum uyarıları.</p></div>""",
+        unsafe_allow_html=True)
+    with f6:
+        st.markdown("""<div class="kz-feat"><div class="kz-feat-ico">📄</div>
+        <h3>Yatırımcı Raporları</h3>
+        <p>Bankaya, yatırımcıya, ortağa sunulabilir PDF raporlar. Tek tıkla üret.</p></div>""",
+        unsafe_allow_html=True)
+
+    # ── Alt CTA ──
+    st.markdown("""
+    <div class="kz-cta-band">
+      <h2>Şirketinizin CFO'su bugün başlasın</h2>
+      <p>Kredi kartı gerekmez · 30 saniyede ilk sonuç</p>
+    </div>
+    """, unsafe_allow_html=True)
+
     b1, b2, b3 = st.columns([1, 1.4, 1])
     with b2:
-        if st.button("🚀 Ücretsiz Başla",
-                     use_container_width=True, type="primary", key="enter_bottom"):
+        if st.button("🚀 Ücretsiz Başla", use_container_width=True,
+                     type="primary", key="enter_bottom"):
             st.session_state["show_landing"] = False
             st.rerun()
 
