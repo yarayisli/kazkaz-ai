@@ -305,7 +305,7 @@ def show_landing_page():
     )
 
     # ── Landing HTML ──
-    components.html(html, height=6200, scrolling=True)
+    components.html(html, height=5500, scrolling=True)
 
     # ── Altta da bir buton (yedek) ──
     b1, b2, b3 = st.columns([1, 1.4, 1])
