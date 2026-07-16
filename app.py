@@ -260,12 +260,6 @@ for k, v in DEFAULTS.items():
         st.session_state[k] = v
 
 # ── Landing Sayfası ───────────────────────────────────────────────────────────
-import os as _os
-
-def _read_landing(filename="index.html"):
-    """Landing artık native Streamlit ile çiziliyor — HTML dosyası kullanılmıyor."""
-    return None
-
 def show_landing_page():
     """
     Native Streamlit landing sayfası (segfault-safe).
@@ -453,70 +447,21 @@ def gate(feature, label=""):
         return True
     return plan_gate(feature, label)
 
-# ── Yardımcı: format & renk ───────────────────────────────────────────────────
-def fmt(v):
-    try:
-        v = float(v)
-    except Exception:
-        return str(v)
-    if abs(v) >= 1_000_000_000: return f"{v/1_000_000_000:.1f}Mn ₺"
-    if abs(v) >= 1_000_000:     return f"{v/1_000_000:.1f}M ₺"
-    if abs(v) >= 1_000:         return f"{v/1_000:.0f}K ₺"
-    return f"{v:,.0f} ₺"
-
-def score_color(k):
-    return {
-        "Mükemmel": "#059669", "İyi": "#2563EB",
-        "Orta": "#D97706",    "Zayıf": "#f97316", "Kritik": "#DC2626",
-    }.get(k, "#6B7280")
-
-PLOTLY_THEME = dict(
+# ── Yardımcı: Plotly layout şablonu ──────────────────────────────────────────
+_AXIS = dict(gridcolor="#F0F2F5", showgrid=True, zeroline=False,
+             tickfont=dict(size=10, color="#8B93A8"))
+_PLOT = dict(
     paper_bgcolor="rgba(0,0,0,0)",
-    plot_bgcolor="#FAFBFC",
-    font=dict(color="#9CA3AF", family="-apple-system,Segoe UI,Arial,sans-serif", size=11),
-    xaxis=dict(gridcolor="#F3F4F6", showgrid=True, zeroline=False,
-               tickfont=dict(size=10, color="#9CA3AF")),
-    yaxis=dict(gridcolor="#F3F4F6", showgrid=True, zeroline=False,
-               tickfont=dict(size=10, color="#9CA3AF")),
-    margin=dict(l=8, r=8, t=36, b=8),
-    legend=dict(bgcolor="rgba(255,255,255,0.9)", bordercolor="#E5E7EB",
-                borderwidth=1, font=dict(size=11, color="#475569")),
-    hoverlabel=dict(bgcolor="#FFFFFF", bordercolor="#E5E7EB",
-                    font=dict(size=11, color="#0F172A")),
+    plot_bgcolor="#F9FAFB",
+    font=dict(color="#8B93A8", family="-apple-system,Segoe UI,Arial,sans-serif", size=11),
+    xaxis=_AXIS,
+    yaxis=_AXIS,
+    margin=dict(l=8, r=8, t=8, b=8),
+    legend=dict(bgcolor="rgba(255,255,255,0.9)", bordercolor="#E2E5EB",
+                borderwidth=1, font=dict(size=11)),
+    hoverlabel=dict(bgcolor="#fff", bordercolor="#E2E5EB",
+                    font=dict(size=11, color="#0F1729")),
 )
-
-def kpi(label, value, delta="", color="#0F172A", positive=True):
-    try:
-        _p = bool(positive)
-    except Exception:
-        _p = True
-    accent = "#059669" if _p else "#DC2626"
-    dh = (
-        f'<div style="display:inline-flex;align-items:center;gap:3px;font-size:11px;'
-        f'font-weight:500;padding:2px 6px;border-radius:3px;margin-top:6px;'
-        f'background:{"#F0FDF4" if _p else "#FFF7F7"};color:{accent};">'
-        f'{"+" if _p else "−"} {delta}</div>'
-    ) if delta else ""
-    st.markdown(
-        f'<div style="background:#FFFFFF;border:1px solid #E2E8F0;border-radius:10px;'
-        f'padding:18px 20px 16px 22px;position:relative;overflow:hidden;margin-bottom:8px;">'
-        f'<div style="position:absolute;left:0;top:0;bottom:0;width:3px;'
-        f'border-radius:4px 0 0 4px;background:{accent};"></div>'
-        f'<div style="font-size:10px;font-weight:600;letter-spacing:0.1em;'
-        f'text-transform:uppercase;color:#94A3B8;margin-bottom:8px;">{label}</div>'
-        f'<div style="font-size:24px;font-weight:600;letter-spacing:-0.025em;'
-        f'line-height:1.1;color:{color};">{value}</div>{dh}</div>',
-        unsafe_allow_html=True
-    )
-
-def sec(text, small=False):
-    fs = "0.78rem" if small else "0.8rem"
-    st.markdown(
-        f'<div style="font-size:{fs};font-weight:600;letter-spacing:0.08em;'
-        f'text-transform:uppercase;color:#94A3B8;padding:0 0 10px;'
-        f'border-bottom:1px solid #E2E8F0;margin:28px 0 16px;">{text}</div>',
-        unsafe_allow_html=True
-    )
 
 # ─────────────────────────────────────────────────────────────────────────────
 # SIDEBAR — Sadece navigasyon
@@ -864,34 +809,11 @@ engine = st.session_state.engine
 df     = st.session_state.df
 
 # ── Sayfa routing ─────────────────────────────────────────────────────────────
-class _Page:
-    def __init__(self, active): self.active = active
-    def __enter__(self): return self
-    def __exit__(self, *a): pass
-    def __bool__(self): return self.active
-
-tab_genel   = _Page(_sayfa == "genel")
-tab_gelir   = _Page(_sayfa == "gelir")
-tab_gider   = _Page(_sayfa == "gider")
-tab_kar     = _Page(_sayfa == "kar")
-tab_tahmin  = _Page(_sayfa == "tahmin")
-tab_yatirim = _Page(_sayfa == "yatirim")
-tab_nakit   = _Page(_sayfa == "nakit")
-tab_borc    = _Page(_sayfa == "borc")
-tab_sektor  = _Page(_sayfa == "sektor")
-tab_profil  = _Page(_sayfa == "profil")
-tab_musteri = _Page(_sayfa == "musteri")
-tab_butce   = _Page(_sayfa == "butce")
-tab_cfo     = _Page(_sayfa == "cfo")
-tab_ai      = _Page(_sayfa == "ai")
-tab_sohbet  = _Page(_sayfa == "sohbet")
-tab_risk    = _Page(_sayfa == "risk")
-tab_pdf     = _Page(_sayfa == "pdf")
 
 # ══════════════════════════════════════════════════════════════════════════════
 # DASHBOARD
 # ══════════════════════════════════════════════════════════════════════════════
-if tab_genel.active:
+if _sayfa == "genel":
     g   = rapor["gelir"]
     e   = rapor["gider"]
     k   = rapor["karlilik"]
@@ -971,21 +893,7 @@ if tab_genel.active:
                 line=dict(color="#059669", width=2.5),
                 marker=dict(size=6, color="#059669", symbol="circle"),
             )
-            fig.update_layout(
-                barmode="group", height=290,
-                paper_bgcolor="rgba(0,0,0,0)",
-                plot_bgcolor="#F9FAFB",
-                font=dict(color="#8B93A8", family="-apple-system,Segoe UI,Arial", size=11),
-                margin=dict(l=8, r=8, t=8, b=8),
-                xaxis=dict(gridcolor="#F0F2F5", showgrid=True, zeroline=False,
-                           tickfont=dict(size=10, color="#8B93A8")),
-                yaxis=dict(gridcolor="#F0F2F5", showgrid=True, zeroline=False,
-                           tickfont=dict(size=10, color="#8B93A8")),
-                legend=dict(bgcolor="rgba(255,255,255,.9)", bordercolor="#E2E5EB",
-                            borderwidth=1, font=dict(size=11)),
-                hoverlabel=dict(bgcolor="#fff", bordercolor="#E2E5EB",
-                                font=dict(size=11, color="#0F1729")),
-            )
+            fig.update_layout(**_PLOT, barmode="group", height=290)
             st.plotly_chart(fig, use_container_width=True)
 
     with col_side:
@@ -1106,7 +1014,7 @@ if tab_genel.active:
 # ══════════════════════════════════════════════════════════════════════════════
 # RİSK & ALARM
 # ══════════════════════════════════════════════════════════════════════════════
-if tab_risk.active:
+if _sayfa == "risk":
     g    = rapor["gelir"]
     e    = rapor["gider"]
     k    = rapor["karlilik"]
@@ -1262,7 +1170,7 @@ if tab_risk.active:
             unsafe_allow_html=True
         )
 
-if tab_gelir.active:
+if _sayfa == "gelir":
     g    = rapor["gelir"]
     k    = rapor["karlilik"]
     _bv  = float(g.get("ortalama_buyume_orani", 0) or 0)
@@ -1309,19 +1217,7 @@ if tab_gelir.active:
                 x=mr["Dönem"], y=mr["Toplam Gelir"],
                 marker_color="#0F2252", opacity=0.88, name="Gelir",
             )
-            fig.update_layout(
-                height=220,
-                paper_bgcolor="rgba(0,0,0,0)", plot_bgcolor="#F9FAFB",
-                font=dict(color="#8B93A8", size=11),
-                margin=dict(l=8, r=8, t=8, b=8),
-                xaxis=dict(gridcolor="#F0F2F5", showgrid=True, zeroline=False,
-                           tickfont=dict(size=10, color="#8B93A8")),
-                yaxis=dict(gridcolor="#F0F2F5", showgrid=True, zeroline=False,
-                           tickfont=dict(size=10, color="#8B93A8")),
-                showlegend=False,
-                hoverlabel=dict(bgcolor="#fff", bordercolor="#E2E5EB",
-                                font=dict(size=11, color="#0F1729")),
-            )
+            fig.update_layout(**_PLOT, height=220, showlegend=False)
             st.plotly_chart(fig, use_container_width=True)
 
         render_section("Büyüme Oranı Trendi", top_margin=8)
@@ -1339,20 +1235,8 @@ if tab_gelir.active:
             )
             fig2.add_hline(y=0, line_dash="dash",
                            line_color="#DC2626", opacity=0.35)
-            fig2.update_layout(
-                height=160,
-                paper_bgcolor="rgba(0,0,0,0)", plot_bgcolor="#F9FAFB",
-                font=dict(color="#8B93A8", size=11),
-                margin=dict(l=8, r=8, t=8, b=8),
-                xaxis=dict(gridcolor="#F0F2F5", zeroline=False,
-                           tickfont=dict(size=10, color="#8B93A8")),
-                yaxis=dict(gridcolor="#F0F2F5", zeroline=False,
-                           tickfont=dict(size=10, color="#8B93A8"),
-                           ticksuffix="%"),
-                showlegend=False,
-                hoverlabel=dict(bgcolor="#fff", bordercolor="#E2E5EB",
-                                font=dict(size=11, color="#0F1729")),
-            )
+            fig2.update_layout(**_PLOT, height=160, showlegend=False,
+                               yaxis=dict(**_AXIS, ticksuffix="%"))
             st.plotly_chart(fig2, use_container_width=True)
 
     with col_side:
@@ -1369,12 +1253,8 @@ if tab_gelir.active:
                             line=dict(color="#fff", width=2)),
                 textfont=dict(size=11),
             ))
-            fig3.update_layout(
-                height=200,
-                paper_bgcolor="rgba(0,0,0,0)",
-                margin=dict(l=8, r=8, t=8, b=8),
-                showlegend=False,
-            )
+            fig3.update_layout(height=200, paper_bgcolor="rgba(0,0,0,0)",
+                               margin=dict(l=8, r=8, t=8, b=8), showlegend=False)
             st.plotly_chart(fig3, use_container_width=True)
 
             toplam = cr["Toplam Gelir"].sum()
@@ -1400,7 +1280,7 @@ if tab_gelir.active:
         mr2_display["Toplam Gelir"] = mr2_display["Toplam Gelir"].apply(fmt)
         st.dataframe(mr2_display, use_container_width=True, hide_index=True)
 
-if tab_gider.active:
+if _sayfa == "gider":
     e    = rapor["gider"]
     g    = rapor["gelir"]
     _sv  = float(e.get("sabit_gider_orani", 0) or 0)
@@ -1451,19 +1331,9 @@ if tab_gider.active:
                 marker_color=renkler_g[:len(ce)],
                 opacity=0.88,
             )
-            fig.update_layout(
-                height=240,
-                paper_bgcolor="rgba(0,0,0,0)", plot_bgcolor="#F9FAFB",
-                font=dict(color="#8B93A8", size=11),
-                margin=dict(l=8, r=8, t=8, b=8),
-                xaxis=dict(gridcolor="#F0F2F5", zeroline=False,
-                           tickfont=dict(size=10, color="#8B93A8")),
-                yaxis=dict(gridcolor="rgba(0,0,0,0)", zeroline=False,
-                           tickfont=dict(size=11, color="#3D4663")),
-                showlegend=False,
-                hoverlabel=dict(bgcolor="#fff", bordercolor="#E2E5EB",
-                                font=dict(size=11, color="#0F1729")),
-            )
+            fig.update_layout(**_PLOT, height=240, showlegend=False,
+                             yaxis=dict(gridcolor="rgba(0,0,0,0)", zeroline=False,
+                                        tickfont=dict(size=11, color="#3D4663")))
             st.plotly_chart(fig, use_container_width=True)
 
     with col2:
@@ -1527,7 +1397,7 @@ if tab_gider.active:
     if me is not None and not me.empty:
         st.dataframe(me, use_container_width=True, hide_index=True)
 
-if tab_kar.active:
+if _sayfa == "kar":
     k    = rapor["karlilik"]
     g    = rapor["gelir"]
     _km  = float(k.get("kar_marji", 0) or 0)
@@ -1586,25 +1456,13 @@ if tab_kar.active:
                     line=dict(color="#D97706", width=2, dash="dot"),
                     marker=dict(size=5, color="#D97706"),
                 )
-            fig.update_layout(
-                barmode="relative", height=300,
-                paper_bgcolor="rgba(0,0,0,0)", plot_bgcolor="#F9FAFB",
-                font=dict(color="#8B93A8", size=11),
-                margin=dict(l=8, r=8, t=8, b=8),
-                xaxis=dict(gridcolor="#F0F2F5", zeroline=False,
-                           tickfont=dict(size=10, color="#8B93A8")),
-                yaxis=dict(gridcolor="#F0F2F5", zeroline=True,
-                           zerolinecolor="#E2E5EB", zerolinewidth=1,
-                           tickfont=dict(size=10, color="#8B93A8")),
-                yaxis2=dict(overlaying="y", side="right",
-                            tickformat=".0f", ticksuffix="%",
-                            tickfont=dict(size=10, color="#D97706"),
-                            showgrid=False),
-                legend=dict(bgcolor="rgba(255,255,255,.9)", bordercolor="#E2E5EB",
-                            borderwidth=1, font=dict(size=11)),
-                hoverlabel=dict(bgcolor="#fff", bordercolor="#E2E5EB",
-                                font=dict(size=11, color="#0F1729")),
-            )
+            fig.update_layout(**_PLOT, barmode="relative", height=300,
+                             yaxis=dict(**_AXIS, zeroline=True,
+                                        zerolinecolor="#E2E5EB", zerolinewidth=1),
+                             yaxis2=dict(overlaying="y", side="right",
+                                         tickformat=".0f", ticksuffix="%",
+                                         tickfont=dict(size=10, color="#D97706"),
+                                         showgrid=False))
             st.plotly_chart(fig, use_container_width=True)
 
     with col_side:
@@ -1662,7 +1520,7 @@ if tab_kar.active:
             mp2_disp["KarMarji"] = mp2_disp["KarMarji"].apply(lambda x: f"%{round(x,1)}" if x == x else "—")
         st.dataframe(mp2_disp, use_container_width=True, hide_index=True)
 
-if tab_tahmin.active:
+if _sayfa == "tahmin":
     render_page_header(
         "Tahmin & Senaryo",
         "Prophet destekli gelir tahmini · What-if analizi",
@@ -1790,20 +1648,7 @@ if tab_tahmin.active:
                             fill="toself", fillcolor="rgba(5,150,105,0.08)",
                             line=dict(color="rgba(0,0,0,0)"), name="Guven Araligi",
                         )
-                    fig.update_layout(
-                        height=300,
-                        paper_bgcolor="rgba(0,0,0,0)", plot_bgcolor="#F9FAFB",
-                        font=dict(color="#8B93A8", size=11),
-                        margin=dict(l=8, r=8, t=8, b=8),
-                        xaxis=dict(gridcolor="#F0F2F5", zeroline=False,
-                                   tickfont=dict(size=10, color="#8B93A8")),
-                        yaxis=dict(gridcolor="#F0F2F5", zeroline=False,
-                                   tickfont=dict(size=10, color="#8B93A8")),
-                        legend=dict(bgcolor="rgba(255,255,255,.9)", bordercolor="#E2E5EB",
-                                    borderwidth=1, font=dict(size=11)),
-                        hoverlabel=dict(bgcolor="#fff", bordercolor="#E2E5EB",
-                                        font=dict(size=11, color="#0F1729")),
-                    )
+                    fig.update_layout(**_PLOT, height=300)
                     st.plotly_chart(fig, use_container_width=True)
                     render_section("Tahmin Tablosu")
                     st.dataframe(t_df.style.format({
@@ -1855,19 +1700,10 @@ if tab_tahmin.active:
         ]:
             fig_sen.add_bar(name=name, x=["Gelir","Gider","Net Kar"],
                             y=vals, marker_color=color, opacity=0.88)
-        fig_sen.update_layout(
-            barmode="group", height=280,
-            paper_bgcolor="rgba(0,0,0,0)", plot_bgcolor="#F9FAFB",
-            font=dict(color="#8B93A8", size=11),
-            margin=dict(l=8, r=8, t=8, b=8),
-            xaxis=dict(gridcolor="#F0F2F5", zeroline=False),
-            yaxis=dict(gridcolor="#F0F2F5", zeroline=False),
-            legend=dict(bgcolor="rgba(255,255,255,.9)", bordercolor="#E2E5EB",
-                        borderwidth=1, font=dict(size=11)),
-        )
+        fig_sen.update_layout(**_PLOT, barmode="group", height=280)
         st.plotly_chart(fig_sen, use_container_width=True)
 
-if tab_yatirim.active:
+if _sayfa == "yatirim":
     render_page_header(
         "Yatirim Merkezi",
         "ROI · NPV · IRR · Monte Carlo simulasyonu",
@@ -1882,7 +1718,7 @@ if tab_yatirim.active:
 # ══════════════════════════════════════════════════════════════════════════════
 # NAKİT AKIŞI
 # ══════════════════════════════════════════════════════════════════════════════
-if tab_nakit.active:
+if _sayfa == "nakit":
     render_page_header(
         "Nakit Akisi",
         "Operasyonel nakit · Burn rate · Likidite analizi",
@@ -1897,7 +1733,7 @@ if tab_nakit.active:
 # ══════════════════════════════════════════════════════════════════════════════
 # BORÇ
 # ══════════════════════════════════════════════════════════════════════════════
-if tab_borc.active:
+if _sayfa == "borc":
     render_page_header(
         "Borc & Finansman",
         "Borc yapisi · Odeme takvimi · Faiz analizi",
@@ -1912,7 +1748,7 @@ if tab_borc.active:
 # ══════════════════════════════════════════════════════════════════════════════
 # SEKTÖR
 # ══════════════════════════════════════════════════════════════════════════════
-if tab_sektor.active:
+if _sayfa == "sektor":
     render_page_header(
         "Sektor Benchmark",
         "Rakip karsilastirma · Sektör ortalamalari · Pozisyon analizi",
@@ -1929,7 +1765,7 @@ if tab_sektor.active:
 # ══════════════════════════════════════════════════════════════════════════════
 # ŞİRKET PROFİLİ
 # ══════════════════════════════════════════════════════════════════════════════
-if tab_profil.active:
+if _sayfa == "profil":
     render_page_header(
         "Sirket Profili & Sektor",
         "Sirket bilgileri · Sektör konumu · Benchmark hedefleri",
@@ -1944,7 +1780,7 @@ if tab_profil.active:
 # ══════════════════════════════════════════════════════════════════════════════
 # MÜŞTERİ & ÜRÜN
 # ══════════════════════════════════════════════════════════════════════════════
-if tab_musteri.active:
+if _sayfa == "musteri":
     render_page_header(
         "Musteri & Urun Analizi",
         "RFM segmentasyonu · Churn riski · Urun karlilik",
@@ -1959,7 +1795,7 @@ if tab_musteri.active:
 # ══════════════════════════════════════════════════════════════════════════════
 # BÜTÇE
 # ══════════════════════════════════════════════════════════════════════════════
-if tab_butce.active:
+if _sayfa == "butce":
     render_page_header(
         "Butce & Gerceklesen",
         "Sapma analizi · Kategori bazli takip · Projeksiyon",
@@ -1974,7 +1810,7 @@ if tab_butce.active:
 # ══════════════════════════════════════════════════════════════════════════════
 # CFO AGENT
 # ══════════════════════════════════════════════════════════════════════════════
-if tab_cfo.active:
+if _sayfa == "cfo":
     if not CFO_OK:
         st.error("`cfo_ui.py` bulunamadı.")
     else:
@@ -1989,7 +1825,7 @@ if tab_cfo.active:
 # ══════════════════════════════════════════════════════════════════════════════
 # AI ANALİZ
 # ══════════════════════════════════════════════════════════════════════════════
-if tab_ai.active:
+if _sayfa == "ai":
     render_page_header("AI Finansal Analiz", "Groq · Gemini · Otomatik yorum")
     if not gate("ai_yorum", "AI Yorumları"):
         st.stop()
@@ -2072,7 +1908,7 @@ if tab_ai.active:
 # ══════════════════════════════════════════════════════════════════════════════
 # AI SOHBET
 # ══════════════════════════════════════════════════════════════════════════════
-if tab_sohbet.active:
+if _sayfa == "sohbet":
     render_page_header("AI Finansal Asistan", "Sorularınızı doğal dilde sorun")
     if not gate("ai_sohbet", "AI Sohbet"):
         st.stop()
@@ -2137,7 +1973,7 @@ if tab_sohbet.active:
 # ══════════════════════════════════════════════════════════════════════════════
 # PDF RAPOR
 # ══════════════════════════════════════════════════════════════════════════════
-if tab_pdf.active:
+if _sayfa == "pdf":
     render_page_header("PDF Rapor", "Tek tıkla profesyonel rapor üretimi")
     if not gate("pdf_rapor", "PDF Rapor"):
         st.stop()
