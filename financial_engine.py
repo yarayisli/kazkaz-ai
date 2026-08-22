@@ -332,14 +332,27 @@ class ProfitAnalysis:
 class HealthScore:
     """
     0-100 arası finansal sağlık skoru üretir.
-    Faktörler ve ağırlıklar:
-      - Karlılık marjı          : %30
-      - Gelir büyüme oranı      : %25
-      - Gider kontrol oranı     : %25
+
+    5 boyut (customer verilirse):
+      - Karlılık marjı          : %25
+      - Gelir büyüme oranı      : %20
+      - Gider kontrol oranı     : %20
       - Nakit sürdürülebilirliği: %20
+      - Konsantrasyon riski     : %15   (top müşteri gelir payı)
+
+    4 boyut (customer verilmezse — backward compat):
+      - Karlılık %30, Büyüme %25, Gider %25, Nakit %20
     """
 
-    WEIGHTS = {
+    WEIGHTS_5D = {
+        "karlilik": 0.25,
+        "buyume": 0.20,
+        "gider_kontrolu": 0.20,
+        "nakit": 0.20,
+        "konsantrasyon": 0.15,
+    }
+
+    WEIGHTS_4D = {
         "karlilik": 0.30,
         "buyume": 0.25,
         "gider_kontrolu": 0.25,
@@ -351,10 +364,13 @@ class HealthScore:
         profit: ProfitAnalysis,
         revenue: RevenueAnalysis,
         expense: ExpenseAnalysis,
+        customer: Optional[Any] = None,
     ):
         self.profit = profit
         self.revenue = revenue
         self.expense = expense
+        self.customer = customer
+        self.WEIGHTS = self.WEIGHTS_5D if customer is not None else self.WEIGHTS_4D
 
     # --- Alt skor hesaplayıcılar (0-100) ---
 
@@ -509,6 +525,47 @@ class HealthScore:
 
         return round(float(np.clip(base + istikrar, 0, 100)), 1)
 
+    def _konsantrasyon_skoru(self) -> float:
+        """
+        Müşteri konsantrasyon riski skoru (0-100).
+        Yüksek konsantrasyon = düşük skor (tek müşteri kaybı = büyük risk).
+
+        Kaynak: customer_engine.CustomerAnalysis.customer_concentration()
+        Sinyal: top %20 müşterinin toplam gelirdeki payı (top20_pct_pay).
+
+        Eşikler:
+        - Müşteri sayısı < 3 → 0-30 (yapısal tekilik, veriye bakmadan riskli)
+        - top20 payı ≤ %40 → 100  (çok dağılmış, sağlıklı)
+        - %40-60 → 90-60           (normal)
+        - %60-80 → 60-30           (riskli — mevcut mühendisliğin de "risk var" eşiği)
+        - > %80 → 30-0             (kritik bağımlılık)
+
+        customer None ise 50 döner (nötr — skor dışı bırakmaz, ama yönlendirmez).
+        """
+        if self.customer is None:
+            return 50.0
+
+        try:
+            conc = self.customer.customer_concentration()
+        except Exception:
+            return 50.0
+        if not conc:
+            return 50.0
+
+        n_musteri = conc.get("toplam_musteri", 0)
+        top20 = conc.get("top20_pct_pay", 100.0)
+
+        if n_musteri < 3:
+            return round(max(0.0, 30.0 - (3 - n_musteri) * 10.0), 1)
+
+        if top20 <= 40:
+            return 100.0
+        if top20 <= 60:
+            return round(90 - (top20 - 40) / 20 * 30, 1)
+        if top20 <= 80:
+            return round(60 - (top20 - 60) / 20 * 30, 1)
+        return round(max(0.0, 30 - (top20 - 80) / 20 * 30), 1)
+
     def calculate(self) -> Dict[str, Any]:
         """Genel sağlık skorunu ve alt skorları döndürür."""
         alt_skorlar = {
@@ -517,6 +574,8 @@ class HealthScore:
             "gider_kontrolu": round(self._gider_kontrolu_skoru(), 1),
             "nakit": round(self._nakit_skoru(), 1),
         }
+        if "konsantrasyon" in self.WEIGHTS:
+            alt_skorlar["konsantrasyon"] = round(self._konsantrasyon_skoru(), 1)
 
         genel_skor = sum(
             alt_skorlar[k] * self.WEIGHTS[k] for k in self.WEIGHTS
@@ -525,23 +584,28 @@ class HealthScore:
 
         kategori = self._kategori(genel_skor)
 
+        uyarilar = [
+            "Bu skor nominal değerlere dayanır — enflasyon düzeltmesi uygulanmamıştır.",
+            "Nakit skoru NET KÂR üzerinden hesaplanır, gerçek nakit pozisyonu değildir. "
+            "Vadeli tahsilat/ödeme varsa gerçek nakit farklı olabilir.",
+        ]
+        if "konsantrasyon" not in self.WEIGHTS:
+            uyarilar.append(
+                "Konsantrasyon riski boyutu skorlanmadı (müşteri verisi verilmedi). "
+                "Müşteri sütununu yüklerseniz 5 boyutlu skor devreye girer."
+            )
+
+        metodoloji = {f"{k}_agirlik": self.WEIGHTS[k] for k in self.WEIGHTS}
+        metodoloji["not"] = "Ağırlıklı toplam formülü: Σ (alt_skor × ağırlık)"
+        metodoloji["boyut_sayisi"] = len(self.WEIGHTS)
+
         return {
             "skor": genel_skor,
             "kategori": kategori,
             "alt_skorlar": alt_skorlar,
             "aciklama": self._aciklama(kategori),
-            "uyarilar": [
-                "Bu skor nominal değerlere dayanır — enflasyon düzeltmesi uygulanmamıştır.",
-                "Nakit skoru NET KÂR üzerinden hesaplanır, gerçek nakit pozisyonu değildir. "
-                "Vadeli tahsilat/ödeme varsa gerçek nakit farklı olabilir.",
-            ],
-            "metodoloji": {
-                "karlilik_agirlik": self.WEIGHTS["karlilik"],
-                "buyume_agirlik":   self.WEIGHTS["buyume"],
-                "gider_agirlik":    self.WEIGHTS["gider_kontrolu"],
-                "nakit_agirlik":    self.WEIGHTS["nakit"],
-                "not": "Ağırlıklı toplam formülü: Σ (alt_skor × ağırlık)",
-            },
+            "uyarilar": uyarilar,
+            "metodoloji": metodoloji,
         }
 
     @staticmethod
@@ -586,7 +650,20 @@ class FinancialEngine:
         self.revenue = RevenueAnalysis(self.df)
         self.expense = ExpenseAnalysis(self.df)
         self.profit = ProfitAnalysis(self.df)
-        self.health = HealthScore(self.profit, self.revenue, self.expense)
+
+        # Müşteri sütunu varsa 5. boyutu (konsantrasyon riski) devreye al.
+        # Yoksa HealthScore 4 boyutta çalışır (backward compat).
+        self.customer = None
+        if "Müşteri" in self.df.columns or "Musteri" in self.df.columns:
+            try:
+                from customer_engine import CustomerAnalysis
+                self.customer = CustomerAnalysis(self.df)
+            except Exception:
+                self.customer = None
+
+        self.health = HealthScore(
+            self.profit, self.revenue, self.expense, self.customer
+        )
 
     # --- Fabrika metodları ---
 
