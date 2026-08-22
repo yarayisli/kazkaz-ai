@@ -1256,6 +1256,136 @@ class TestForecast(unittest.TestCase):
 # 9. MÜŞTERİ KARLILIĞI — Regresyon (yanlış yöntem)
 # ═══════════════════════════════════════════════════════
 
+class TestCACLTV(unittest.TestCase):
+    """
+    P1.7: CAC / LTV veri modeli ve hesabı.
+    """
+
+    def _df_full(self):
+        """3 ay veri: her ay yeni bir müşteri, aylık pazarlama gideri."""
+        return pd.DataFrame({
+            "Tarih": pd.to_datetime([
+                "2024-01-15", "2024-01-20", "2024-01-25",
+                "2024-02-10", "2024-02-15", "2024-02-20",
+                "2024-03-05", "2024-03-10", "2024-03-15",
+            ]),
+            "Kategori": ["Satış", "Pazarlama Gideri", "Satış",
+                         "Satış", "Reklam", "Satış",
+                         "Satış", "Google Ads", "Satış"],
+            "Gelir":    [10_000, 0, 15_000,
+                         12_000, 0, 20_000,
+                         14_000, 0, 25_000],
+            "Gider":    [0, 5_000, 0,
+                         0, 6_000, 0,
+                         0, 7_000, 0],
+            "Müşteri":  ["Acme", "", "Beta",
+                         "Acme", "", "Gamma",
+                         "Beta", "", "Delta"],
+        })
+
+    def test_pazarlama_kategorisi_tespit(self):
+        from customer_engine import CACLTVAnalysis
+        cac_a = CACLTVAnalysis(self._df_full())
+        pg = cac_a.pazarlama_giderleri_aylik()
+        self.assertEqual(len(pg), 3)  # 3 farklı ay
+        self.assertEqual(pg["PazarlamaGideri"].sum(), 18_000)
+
+    def test_pazarlama_flag_sutunu_oncelikli(self):
+        """Opsiyonel PazarlamaGideri sütunu varsa kategori adı yok sayılır."""
+        from customer_engine import CACLTVAnalysis
+        df = self._df_full().copy()
+        df["PazarlamaGideri"] = False
+        # Sadece son satırı manuel pazarlama işaretle (kategori Satış olsa da)
+        df.loc[df.index[-1], "PazarlamaGideri"] = True
+        df.loc[df.index[-1], "Gider"] = 3_000
+        df.loc[df.index[-1], "Gelir"] = 0
+        cac_a = CACLTVAnalysis(df)
+        pg = cac_a.pazarlama_giderleri_aylik()
+        # Yalnızca son satırın 3_000'i sayılır (kategori "Pazarlama Gideri" olsa bile flag False)
+        self.assertEqual(pg["PazarlamaGideri"].sum(), 3_000)
+
+    def test_yeni_musteriler_aylik(self):
+        """Her müşteri sadece ilk ayında sayılır."""
+        from customer_engine import CACLTVAnalysis
+        cac_a = CACLTVAnalysis(self._df_full())
+        yc = cac_a.yeni_musteriler_aylik()
+        # Acme→Ocak, Beta→Ocak, Gamma→Şubat, Delta→Mart = 2+1+1
+        toplam = yc["YeniMusteri"].sum()
+        self.assertEqual(toplam, 4)
+
+    def test_cac_hesap(self):
+        """CAC = 18_000 / 4 = 4_500."""
+        from customer_engine import CACLTVAnalysis
+        r = CACLTVAnalysis(self._df_full()).cac()
+        self.assertTrue(r["hesaplandi"])
+        self.assertEqual(r["toplam_yeni_musteri"], 4)
+        self.assertEqual(r["toplam_pazarlama_gideri"], 18_000)
+        self.assertEqual(r["ortalama_cac"], 4_500)
+
+    def test_cac_pazarlama_yoksa_hesaplanmaz(self):
+        """Pazarlama gideri yoksa CAC hesaplanmaz — sahte sayı üretmez."""
+        from customer_engine import CACLTVAnalysis
+        df = pd.DataFrame({
+            "Tarih":    pd.to_datetime(["2024-01-15", "2024-02-10"]),
+            "Kategori": ["Satış", "Satış"],
+            "Gelir":    [10_000, 12_000],
+            "Gider":    [0, 0],
+            "Müşteri":  ["Acme", "Beta"],
+        })
+        r = CACLTVAnalysis(df).cac()
+        self.assertFalse(r["hesaplandi"])
+        self.assertIn("Pazarlama gideri", r["sebep"])
+
+    def test_ltv_hesap_marj_ile(self):
+        """LTV pozitif değer döner, brut_marj_pct etkiyor."""
+        from customer_engine import CACLTVAnalysis
+        cac_a = CACLTVAnalysis(self._df_full())
+        ltv_100 = cac_a.ltv(brut_marj_pct=100)
+        ltv_50  = cac_a.ltv(brut_marj_pct=50)
+        self.assertTrue(ltv_100["hesaplandi"])
+        # Marj yarıya inince LTV de yarıya iner
+        self.assertAlmostEqual(ltv_100["ltv"], ltv_50["ltv"] * 2, delta=1.0)
+
+    def test_ltv_hesaplanmaz_gelir_yoksa(self):
+        from customer_engine import CACLTVAnalysis
+        df = pd.DataFrame({
+            "Tarih":    pd.to_datetime(["2024-01-15"]),
+            "Kategori": ["Gider"],
+            "Gelir":    [0],
+            "Gider":    [5000],
+            "Müşteri":  ["X"],
+        })
+        r = CACLTVAnalysis(df).ltv()
+        self.assertFalse(r["hesaplandi"])
+
+    def test_cac_ltv_ratio_saglikli(self):
+        """Yüksek marjlı senaryoda LTV/CAC ≥3 → 🟢."""
+        from customer_engine import CACLTVAnalysis
+        r = CACLTVAnalysis(self._df_full()).cac_ltv_ratio(brut_marj_pct=100)
+        self.assertTrue(r["hesaplandi"])
+        self.assertIn("ratio", r)
+        self.assertIn("durum", r)
+
+    def test_cac_ltv_ratio_eksik_veri(self):
+        """Pazarlama yoksa ratio hesaplanmaz — sahte sayı üretmez."""
+        from customer_engine import CACLTVAnalysis
+        df = pd.DataFrame({
+            "Tarih":    pd.to_datetime(["2024-01-15", "2024-02-10"]),
+            "Kategori": ["Satış", "Satış"],
+            "Gelir":    [10_000, 12_000],
+            "Gider":    [0, 0],
+            "Müşteri":  ["Acme", "Beta"],
+        })
+        r = CACLTVAnalysis(df).cac_ltv_ratio()
+        self.assertFalse(r["hesaplandi"])
+
+    def test_customer_engine_full_report_cac_ltv(self):
+        """CustomerEngine.full_report'a cac_ltv eklendi mi?"""
+        from customer_engine import CustomerEngine
+        rapor = CustomerEngine(self._df_full()).full_report(brut_marj_pct=60)
+        self.assertIn("cac_ltv", rapor)
+
+
 class TestCustomerProfitability(unittest.TestCase):
 
     def test_ayni_marj_bugı_cozuldu(self):
