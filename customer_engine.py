@@ -523,6 +523,202 @@ class ChurnRiskAnalysis:
 
 
 # ─────────────────────────────────────────────
+# CAC / LTV ANALİZİ (P1.7)
+# ─────────────────────────────────────────────
+
+class CACLTVAnalysis:
+    """
+    CAC (Customer Acquisition Cost) ve LTV (Lifetime Value) hesabı.
+
+    Veri modeli:
+      - PAZARLAMA GİDERİ: opsiyonel bool sütun "PazarlamaGideri" varsa onu
+        kullan; yoksa Kategori adında "pazarlama", "reklam", "marketing",
+        "ads" gibi anahtar kelimeler geçenleri pazarlama say.
+      - MÜŞTERİ KAZANIM TARİHİ: müşterinin ilk gelir işlemi tarihi.
+      - CHURN: son 90 günde işlem yapmayan müşteri sayısı / toplam ×
+        (aylık ort. için 3'e böl). Yaklaşımdır — abonelik modeli için net.
+
+    Formüller:
+      CAC = Toplam Pazarlama Gideri / Yeni Kazanılan Müşteri Sayısı
+      LTV = Ortalama Aylık Gelir/Müşteri × Brüt Marj × Müşteri Ömrü (ay)
+      Müşteri Ömrü ≈ 1 / Aylık Churn (üst sınır 60 ay = 5 yıl)
+      Sağlık göstergesi: LTV / CAC ≥ 3 → 🟢 Sağlıklı
+
+    Şeffaflık: veri yetersizse "hesaplanamadı" + sebep döner; sahte sayı
+    üretmez.
+    """
+
+    _PAZARLAMA_ANAHTARLAR = (
+        "pazarlama", "reklam", "marketing", "ads",
+        "google ads", "meta ads", "sosyal medya",
+    )
+
+    def __init__(self, df: pd.DataFrame):
+        self.df = prepare_customer_data(df)
+        self.gelir_df = self.df[self.df["Gelir"] > 0].copy()
+
+    def _pazarlama_mask(self) -> pd.Series:
+        """Bool mask: hangi satırlar pazarlama gideri?"""
+        if "PazarlamaGideri" in self.df.columns:
+            return self.df["PazarlamaGideri"].astype(bool)
+        kat = self.df["Kategori"].astype(str).str.lower()
+        pattern = "|".join(self._PAZARLAMA_ANAHTARLAR)
+        return kat.str.contains(pattern, na=False, regex=True)
+
+    def pazarlama_giderleri_aylik(self) -> pd.DataFrame:
+        """Aylık pazarlama gideri toplamı."""
+        pg_mask = self._pazarlama_mask() & (self.df["Gider"] > 0)
+        pg = self.df[pg_mask].copy()
+        if pg.empty:
+            return pd.DataFrame(columns=["YilAy", "PazarlamaGideri"])
+        pg["YilAy"] = pd.to_datetime(pg["Tarih"]).dt.to_period("M").astype(str)
+        return (pg.groupby("YilAy")["Gider"]
+                  .sum().reset_index(name="PazarlamaGideri"))
+
+    def yeni_musteriler_aylik(self) -> pd.DataFrame:
+        """Her müşteri ilk gelir işlemi ayında kazanılmış sayılır."""
+        if self.gelir_df.empty:
+            return pd.DataFrame(columns=["YilAy", "YeniMusteri"])
+        ilk = (self.gelir_df.groupby("Müşteri")["Tarih"].min()
+               .reset_index())
+        ilk["YilAy"] = pd.to_datetime(ilk["Tarih"]).dt.to_period("M").astype(str)
+        # "Genel"/"Belirtilmemiş" gibi placeholder isimleri say ama gerçek olmadıklarını rapor et
+        return ilk.groupby("YilAy").size().reset_index(name="YeniMusteri")
+
+    def cac(self) -> Dict[str, Any]:
+        """
+        Ortalama CAC (tüm dönem) + aylık kırılım.
+        Veri yetersizse hesaplandi=False, sebep verir.
+        """
+        pg_df = self.pazarlama_giderleri_aylik()
+        yc_df = self.yeni_musteriler_aylik()
+
+        if pg_df.empty:
+            return {
+                "hesaplandi": False,
+                "sebep": (
+                    "Pazarlama gideri verisi bulunamadı. Kategori adında "
+                    "'pazarlama', 'reklam', 'marketing' veya 'ads' geçen "
+                    "gider kayıtları veya opsiyonel 'PazarlamaGideri' bool "
+                    "sütunu ekleyin."
+                ),
+            }
+        if yc_df.empty:
+            return {
+                "hesaplandi": False,
+                "sebep": "Müşteri sütununda geçerli müşteri kayıtları yok.",
+            }
+
+        toplam_pg   = float(pg_df["PazarlamaGideri"].sum())
+        toplam_yeni = int(yc_df["YeniMusteri"].sum())
+        if toplam_yeni <= 0:
+            return {
+                "hesaplandi": False,
+                "sebep": "Kazanılan yeni müşteri sayısı 0; CAC hesaplanamaz.",
+            }
+
+        cac_avg = round(toplam_pg / toplam_yeni, 2)
+        aylik = (pg_df.merge(yc_df, on="YilAy", how="outer")
+                       .fillna(0)
+                       .sort_values("YilAy")
+                       .reset_index(drop=True))
+        aylik["CAC"] = aylik.apply(
+            lambda r: round(r["PazarlamaGideri"] / r["YeniMusteri"], 2)
+                      if r["YeniMusteri"] > 0 else None,
+            axis=1,
+        )
+        return {
+            "hesaplandi": True,
+            "toplam_pazarlama_gideri": round(toplam_pg, 2),
+            "toplam_yeni_musteri":     toplam_yeni,
+            "ortalama_cac":            cac_avg,
+            "aylik_cac":               aylik,
+        }
+
+    def churn_rate_aylik(self) -> float:
+        """
+        Yaklaşık aylık churn oranı:
+          son 90 gün içinde işlem yapmayan müşteri sayısı / toplam × (1/3)
+        Not: Abonelik olmayan iş modeli için üst sınır tahmin.
+        """
+        if self.gelir_df.empty:
+            return 0.0
+        son_tarih = self.gelir_df["Tarih"].max()
+        son_islem = self.gelir_df.groupby("Müşteri")["Tarih"].max()
+        gecen = (son_tarih - son_islem).dt.days
+        kayip = int((gecen > 90).sum())
+        toplam = len(son_islem)
+        if toplam == 0:
+            return 0.0
+        return round(kayip / toplam / 3.0, 4)
+
+    def ltv(self, brut_marj_pct: Optional[float] = None) -> Dict[str, Any]:
+        """
+        LTV = Ortalama Aylık Gelir/Müşteri × Brüt Marj × Müşteri Ömrü (ay)
+        brut_marj_pct verilmezse marj %100 varsayılır (LTV üst sınırı).
+        """
+        if self.gelir_df.empty:
+            return {"hesaplandi": False, "sebep": "Gelir verisi yok."}
+
+        df = self.gelir_df.copy()
+        df["YilAy"] = pd.to_datetime(df["Tarih"]).dt.to_period("M").astype(str)
+        aylik_gelir_musteri = df.groupby(["YilAy", "Müşteri"])["Gelir"].sum()
+        if aylik_gelir_musteri.empty:
+            return {"hesaplandi": False, "sebep": "Aylık müşteri geliri boş."}
+        ort_aylik_musteri = float(aylik_gelir_musteri.mean())
+
+        churn_a = self.churn_rate_aylik()
+        omur_ay = 24.0 if churn_a <= 0 else min(1.0 / churn_a, 60.0)
+
+        marj = (brut_marj_pct if brut_marj_pct is not None else 100.0) / 100.0
+        ltv_val = round(ort_aylik_musteri * marj * omur_ay, 2)
+
+        return {
+            "hesaplandi":                       True,
+            "ortalama_aylik_gelir_per_musteri": round(ort_aylik_musteri, 2),
+            "aylik_churn_orani":                churn_a,
+            "musteri_omru_ay_tahmin":           round(omur_ay, 1),
+            "brut_marj_kullanilan":             brut_marj_pct if brut_marj_pct is not None else "gelir_ustunden_100",
+            "ltv":                              ltv_val,
+        }
+
+    def cac_ltv_ratio(self, brut_marj_pct: Optional[float] = None) -> Dict[str, Any]:
+        """
+        LTV / CAC — sağlıklı iş modeli için ≥3 olması beklenir.
+        Eksik veride hesaplandi=False.
+        """
+        cac_r = self.cac()
+        ltv_r = self.ltv(brut_marj_pct)
+        if not cac_r.get("hesaplandi") or not ltv_r.get("hesaplandi"):
+            return {
+                "hesaplandi": False,
+                "sebep": "CAC veya LTV hesaplanamadı; alt sonuçlarda detay var.",
+                "cac": cac_r,
+                "ltv": ltv_r,
+            }
+        cac_val = cac_r["ortalama_cac"]
+        ltv_val = ltv_r["ltv"]
+        if cac_val <= 0:
+            return {"hesaplandi": False, "sebep": "CAC değeri 0."}
+
+        ratio = round(ltv_val / cac_val, 2)
+        durum = ("🟢 Sağlıklı" if ratio >= 3.0 else
+                 "🟡 Dikkat"   if ratio >= 1.0 else
+                 "🔴 Zayıf")
+        return {
+            "hesaplandi": True,
+            "ltv":         ltv_val,
+            "cac":         cac_val,
+            "ratio":       ratio,
+            "durum":       durum,
+            "referans": (
+                "Sağlıklı iş modeli: LTV/CAC ≥ 3. Geri dönüş süresi: "
+                "CAC / (aylık gelir × brüt marj) ≈ ay."
+            ),
+        }
+
+
+# ─────────────────────────────────────────────
 # ANA MOTOR
 # ─────────────────────────────────────────────
 
@@ -541,6 +737,7 @@ class CustomerEngine:
         self.product  = ProductAnalysis(df)
         self.rfm      = RFMAnalysis(df)
         self.churn    = ChurnRiskAnalysis(df)
+        self.cac_ltv  = CACLTVAnalysis(df)
 
     @property
     def has_real_customers(self) -> bool:
@@ -555,7 +752,11 @@ class CustomerEngine:
         urun_list = self.df["Ürün"].unique()
         return len(urun_list) > 1
 
-    def full_report(self) -> Dict[str, Any]:
+    def full_report(self, brut_marj_pct: Optional[float] = None) -> Dict[str, Any]:
+        """
+        brut_marj_pct: LTV hesabında kullanılacak brüt marj (%).
+                       Verilmezse LTV üst-sınır (marj %100) hesabı yapılır.
+        """
         return {
             "musteri_ozet":     self.customer.summary(),
             "urun_ozet":        self.product.summary(),
@@ -568,6 +769,7 @@ class CustomerEngine:
             "rfm_segment":      self.rfm.segment_summary(),
             "churn_risk":       self.churn.calculate_risk(),
             "konsantrasyon":    self.customer.customer_concentration(),
+            "cac_ltv":          self.cac_ltv.cac_ltv_ratio(brut_marj_pct),
             "has_customers":    self.has_real_customers,
             "has_products":     self.has_real_products,
         }
