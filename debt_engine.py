@@ -36,23 +36,42 @@ class DebtType(str, Enum):
 
 @dataclass
 class Debt:
-    """Tekil borç kalemi."""
+    """
+    Tekil borç kalemi.
+
+    TR-özel vergiler:
+      bsmv_orani: Banka ve Sigorta Muameleleri Vergisi (TL kredide standart %5)
+      kkdf_orani: Kaynak Kullanımını Destekleme Fonu (TL ticari nakit kredide
+                  standart %15; yatırım kredisi ve leasing genellikle muaf)
+
+    Efektif faiz = nominal × (1 + bsmv_orani + kkdf_orani).
+    Örn. %35 nominal + %5 BSMV + %15 KKDF → %42 efektif.
+
+    FX borçlarında para_birimi != "TRY" ve kur_baslangic set edilirse
+    fx_yenidenle(guncel_kur) ile TL karşılığı güncellenir; fx_stress_test()
+    kur artışına karşı toplam TL yükü tahmin eder.
+    """
     ad:              str
-    anapara:         float         # Kalan anapara (₺)
-    faiz_orani:      float         # Yıllık faiz oranı (0.35 = %35)
+    anapara:         float         # Kalan anapara (para_birimi cinsinden)
+    faiz_orani:      float         # Yıllık nominal faiz oranı (0.35 = %35)
     vade_ay:         int           # Kalan vade (ay)
     aylik_odeme:     float = 0.0   # Aylık taksit (0 ise hesaplanır)
     borc_turu:       str   = DebtType.BANKA_KREDISI
     para_birimi:     str   = "TRY"
     teminat:         str   = ""
     aciklama:        str   = ""
+    bsmv_orani:      float = 0.0   # 0.05 = %5 (TR default TL kredide %5)
+    kkdf_orani:      float = 0.0   # 0.15 = %15 (TR default TL ticari nakit)
+    kur_baslangic:   float = 1.0   # FX borçlarda başlangıç kuru (TRY/DOV)
 
     def __post_init__(self):
         if self.anapara < 0:
             raise ValueError("Anapara negatif olamaz.")
         if self.faiz_orani < 0:
             raise ValueError("Faiz oranı negatif olamaz.")
-        # Aylık ödeme hesapla (sabit taksitli)
+        if self.bsmv_orani < 0 or self.kkdf_orani < 0:
+            raise ValueError("BSMV/KKDF oranı negatif olamaz.")
+        # Aylık ödeme hesapla (sabit taksitli, nominal faiz üzerinden)
         if self.aylik_odeme == 0 and self.anapara > 0 and self.vade_ay > 0:
             r = self.faiz_orani / 12
             if r == 0:
@@ -61,6 +80,44 @@ class Debt:
                 self.aylik_odeme = round(
                     self.anapara * r * (1 + r) ** self.vade_ay /
                     ((1 + r) ** self.vade_ay - 1), 2)
+
+    # ── TR vergi ve FX yardımcıları ──────────────────────────────────────────
+
+    def efektif_faiz(self) -> float:
+        """
+        Efektif yıllık faiz (BSMV + KKDF dahil).
+        Formül: nominal × (1 + BSMV + KKDF).
+        Basit yaklaşımdır: gerçek yaşamda BSMV/KKDF her taksitte faiz
+        ödemesi üzerine eklenir; bu formül ~aynı toplam maliyeti verir.
+        """
+        return round(self.faiz_orani * (1 + self.bsmv_orani + self.kkdf_orani), 4)
+
+    def fx_yenidenle(self, guncel_kur: float) -> float:
+        """
+        FX borç anaparasının TL karşılığını verilen kurla döndür.
+        TL borçlarda anapara olduğu gibi döner.
+
+        Örn. anapara=100k USD, guncel_kur=35 → 3_500_000 TL.
+        kur_baslangic (kayıt anındaki kur) sadece kur_farki() için kullanılır.
+        """
+        if self.para_birimi == "TRY":
+            return self.anapara
+        if guncel_kur <= 0:
+            raise ValueError("guncel_kur > 0 olmalı.")
+        if self.kur_baslangic <= 0:
+            raise ValueError("kur_baslangic > 0 olmalı (kur_farki için gerekli).")
+        return round(self.anapara * guncel_kur, 2)
+
+    def kur_farki(self, guncel_kur: float) -> float:
+        """
+        Kur farkı = TL karşılığı (güncel) − TL karşılığı (başlangıç).
+        Pozitif = TL değer kaybı → borç arttı.
+        """
+        if self.para_birimi == "TRY":
+            return 0.0
+        try_baslangic = self.anapara * self.kur_baslangic
+        try_guncel    = self.fx_yenidenle(guncel_kur)
+        return round(try_guncel - try_baslangic, 2)
 
 
 # ─────────────────────────────────────────────
@@ -126,13 +183,86 @@ class DebtPortfolio:
         return round(sum(d.aylik_odeme for d in self.debts), 2)
 
     def weighted_avg_rate(self) -> float:
-        """Ağırlıklı ortalama faiz oranı (%)."""
+        """Ağırlıklı ortalama nominal faiz oranı (%)."""
         toplam = self.total_debt()
         if toplam == 0:
             return 0.0
         return round(
             sum(d.anapara * d.faiz_orani for d in self.debts)
             / toplam * 100, 2)
+
+    def weighted_avg_effective_rate(self) -> float:
+        """
+        Ağırlıklı ortalama efektif faiz oranı (%) — BSMV + KKDF dahil.
+        TL nakit kredi ağırlıklı portföyde nominal ile %20+ fark açılabilir.
+        """
+        toplam = self.total_debt()
+        if toplam == 0:
+            return 0.0
+        return round(
+            sum(d.anapara * d.efektif_faiz() for d in self.debts)
+            / toplam * 100, 2)
+
+    def fx_exposure(self) -> Dict[str, Any]:
+        """
+        Yabancı para borç riski özeti.
+        - toplam_fx_borc_baslangic: FX borçların TL karşılığı (giriş kurunda)
+        - fx_pay_pct: FX borçların toplam portföydeki payı (%)
+        - para_birimi_dagilim: {"USD": 1_500_000, "EUR": 500_000, ...}
+        """
+        toplam_try = self.total_debt()
+        fx_debts   = [d for d in self.debts if d.para_birimi != "TRY"]
+        if not fx_debts:
+            return {
+                "fx_borc_sayisi": 0,
+                "toplam_fx_borc_baslangic": 0.0,
+                "fx_pay_pct": 0.0,
+                "para_birimi_dagilim": {},
+            }
+
+        toplam_fx_try_baslangic = round(
+            sum(d.anapara * d.kur_baslangic for d in fx_debts), 2
+        )
+        dagilim: Dict[str, float] = {}
+        for d in fx_debts:
+            dagilim[d.para_birimi] = round(
+                dagilim.get(d.para_birimi, 0.0) + d.anapara, 2
+            )
+        return {
+            "fx_borc_sayisi": len(fx_debts),
+            "toplam_fx_borc_baslangic": toplam_fx_try_baslangic,
+            "fx_pay_pct": round(toplam_fx_try_baslangic / toplam_try * 100, 1)
+                          if toplam_try > 0 else 0.0,
+            "para_birimi_dagilim": dagilim,
+        }
+
+    def fx_stress_test(self, kur_artis_pct: float = 0.10) -> Dict[str, Any]:
+        """
+        Kur şoku simülasyonu — tüm FX borçlarda başlangıç kuru üzerine
+        `kur_artis_pct` kadar artış varsayarak toplam TL borç yükü değişimi.
+
+        Örn. kur_artis_pct=0.20 → tüm dövizlerde %20 kur artışı senaryosu.
+        """
+        toplam_baslangic_try = 0.0
+        toplam_sok_try       = 0.0
+        for d in self.debts:
+            if d.para_birimi == "TRY":
+                toplam_baslangic_try += d.anapara
+                toplam_sok_try       += d.anapara
+            else:
+                sok_kur = d.kur_baslangic * (1 + kur_artis_pct)
+                toplam_baslangic_try += d.anapara * d.kur_baslangic
+                toplam_sok_try       += d.fx_yenidenle(sok_kur)
+
+        delta = toplam_sok_try - toplam_baslangic_try
+        return {
+            "kur_artis_pct": kur_artis_pct,
+            "toplam_borc_baslangic_try": round(toplam_baslangic_try, 2),
+            "toplam_borc_sok_try":       round(toplam_sok_try, 2),
+            "delta_try":                 round(delta, 2),
+            "delta_pct":                 round(delta / toplam_baslangic_try * 100, 2)
+                                         if toplam_baslangic_try > 0 else 0.0,
+        }
 
     def by_type(self) -> pd.DataFrame:
         """Borç türüne göre dağılım."""
@@ -152,8 +282,12 @@ class DebtPortfolio:
             rows.append({
                 "Borç Adı":          d.ad,
                 "Tür":               d.borc_turu,
+                "Para Birimi":       d.para_birimi,
                 "Kalan Anapara":     d.anapara,
                 "Faiz (%)":          round(d.faiz_orani * 100, 1),
+                "Efektif Faiz (%)":  round(d.efektif_faiz() * 100, 2),
+                "BSMV (%)":          round(d.bsmv_orani * 100, 2),
+                "KKDF (%)":          round(d.kkdf_orani * 100, 2),
                 "Vade (Ay)":         d.vade_ay,
                 "Aylık Taksit":      d.aylik_odeme,
                 "Toplam Faiz":       amort.total_interest(),
@@ -440,13 +574,14 @@ class DebtEngine:
             return pd.DataFrame()
         return AmortizationTable(self.portfolio.debts[debt_index]).build()
 
-    def full_report(self) -> Dict[str, Any]:
+    def full_report(self, fx_stres_kur_artis: float = 0.20) -> Dict[str, Any]:
         return {
             "portfolio_ozet":  {
-                "toplam_borc":      self.portfolio.total_debt(),
-                "aylik_taksit":     self.portfolio.total_monthly_payment(),
-                "agirlikli_faiz":   self.portfolio.weighted_avg_rate(),
-                "borc_sayisi":      len(self.portfolio.debts),
+                "toplam_borc":               self.portfolio.total_debt(),
+                "aylik_taksit":              self.portfolio.total_monthly_payment(),
+                "agirlikli_faiz":            self.portfolio.weighted_avg_rate(),
+                "agirlikli_efektif_faiz":    self.portfolio.weighted_avg_effective_rate(),
+                "borc_sayisi":               len(self.portfolio.debts),
             },
             "metrikler":       self.metrics.summary(),
             "skor":            self.scorer.calculate(),
@@ -454,4 +589,6 @@ class DebtEngine:
             "ozet_tablo":      self.portfolio.summary_table(),
             "odeme_onceligi":  self.portfolio.payoff_priority(),
             "tur_dagilimi":    self.portfolio.by_type(),
+            "fx_exposure":     self.portfolio.fx_exposure(),
+            "fx_stres_testi":  self.portfolio.fx_stress_test(fx_stres_kur_artis),
         }
