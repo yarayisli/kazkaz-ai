@@ -1199,14 +1199,30 @@ if _sayfa == "genel":
         if _uyarilar or _metodoloji:
             with st.expander("ℹ️ Skor nasıl hesaplandı?", expanded=False):
                 if _metodoloji:
+                    _labels = {
+                        "karlilik_agirlik":      "Karlılık",
+                        "buyume_agirlik":        "Büyüme",
+                        "gider_kontrolu_agirlik": "Gider Kontrolü",
+                        "nakit_agirlik":         "Nakit",
+                        "konsantrasyon_agirlik": "Konsantrasyon Riski",
+                        # Eski key adı için geri uyumluluk
+                        "gider_agirlik":         "Gider Kontrolü",
+                    }
+                    _boyut_sayisi = _metodoloji.get("boyut_sayisi")
+                    _rows = "".join(
+                        f"• {_labels[k]}: <b>%{int(v*100)}</b><br>"
+                        for k, v in _metodoloji.items()
+                        if k in _labels
+                    )
+                    _bilgi = (
+                        f"<b>Boyut sayısı:</b> {_boyut_sayisi}<br>"
+                        if _boyut_sayisi else ""
+                    )
                     st.markdown(
                         f"""
                         <div style='font-size:12.5px;color:#3D4663;line-height:1.7'>
                         <b>Ağırlıklı formül:</b> Σ (alt_skor × ağırlık)<br>
-                        • Karlılık: <b>%{int(_metodoloji.get('karlilik_agirlik', 0.35)*100)}</b><br>
-                        • Büyüme: <b>%{int(_metodoloji.get('buyume_agirlik', 0.25)*100)}</b><br>
-                        • Gider Kontrolü: <b>%{int(_metodoloji.get('gider_agirlik', 0.20)*100)}</b><br>
-                        • Nakit: <b>%{int(_metodoloji.get('nakit_agirlik', 0.20)*100)}</b>
+                        {_bilgi}{_rows}
                         </div>
                         """,
                         unsafe_allow_html=True,

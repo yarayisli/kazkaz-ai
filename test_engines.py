@@ -119,6 +119,98 @@ class TestHealthScore(unittest.TestCase):
 
 
 # ═══════════════════════════════════════════════════════
+# 1b. HEALTH SCORE — 5. Boyut: Konsantrasyon Riski
+# ═══════════════════════════════════════════════════════
+
+class TestHealthScore5Boyut(unittest.TestCase):
+    """
+    Müşteri sütunu verildiğinde HealthScore 5 boyutlu çalışır.
+    5. boyut: konsantrasyon riski (top müşteri gelir payı).
+    """
+
+    def _engine(self, musteri_geliri):
+        """Verilen {musteri: gelir_listesi} sözlüğünden 12 aylık motor kurar."""
+        from financial_engine import FinancialEngine, DataLoader
+        dates = pd.date_range("2024-01-01", periods=12, freq="MS")
+        rows = []
+        for musteri, gelirler in musteri_geliri.items():
+            for d, g in zip(dates, gelirler):
+                rows.append({
+                    "Tarih": d, "Kategori": "Satış",
+                    "Gelir": g, "Gider": g * 0.8, "Müşteri": musteri,
+                })
+        df = pd.DataFrame(rows)
+        df = DataLoader.from_dataframe(df)
+        return FinancialEngine(df)
+
+    def test_musteri_yoksa_4_boyut_geri_uyum(self):
+        """Müşteri sütunu yoksa eski 4 boyutlu davranış korunur."""
+        from financial_engine import FinancialEngine, DataLoader
+        dates = pd.date_range("2024-01-01", periods=12, freq="MS")
+        df = pd.DataFrame({
+            "Tarih": dates, "Kategori": ["Satış"]*12,
+            "Gelir": [100_000]*12, "Gider": [80_000]*12,
+        })
+        df = DataLoader.from_dataframe(df)
+        engine = FinancialEngine(df)
+        rapor = engine.full_report()
+        alt = rapor["saglik_skoru"]["alt_skorlar"]
+        self.assertNotIn("konsantrasyon", alt)
+        self.assertEqual(len(alt), 4)
+        self.assertEqual(rapor["saglik_skoru"]["metodoloji"]["boyut_sayisi"], 4)
+
+    def test_musteri_varsa_5_boyut_devrede(self):
+        """Müşteri sütunu varsa konsantrasyon boyutu eklenir."""
+        engine = self._engine({
+            f"Musteri_{i}": [10_000]*12 for i in range(1, 11)
+        })
+        rapor = engine.full_report()
+        alt = rapor["saglik_skoru"]["alt_skorlar"]
+        self.assertIn("konsantrasyon", alt)
+        self.assertEqual(len(alt), 5)
+        self.assertEqual(rapor["saglik_skoru"]["metodoloji"]["boyut_sayisi"], 5)
+
+    def test_dagilmis_musteri_yuksek_skor(self):
+        """10 eşit müşteri → konsantrasyon skoru yüksek (>=80)."""
+        engine = self._engine({
+            f"Musteri_{i}": [10_000]*12 for i in range(1, 11)
+        })
+        alt = engine.full_report()["saglik_skoru"]["alt_skorlar"]
+        self.assertGreaterEqual(alt["konsantrasyon"], 80.0,
+            f"Dağılmış müşteri tabanı yüksek skor almalı, alınan {alt['konsantrasyon']}")
+
+    def test_tek_musteri_dusuk_skor(self):
+        """Tek müşteri (yapısal tekilik) → konsantrasyon skoru düşük (<=30)."""
+        engine = self._engine({"TekMusteri": [100_000]*12})
+        alt = engine.full_report()["saglik_skoru"]["alt_skorlar"]
+        self.assertLessEqual(alt["konsantrasyon"], 30.0,
+            f"Tek müşteri düşük skor almalı, alınan {alt['konsantrasyon']}")
+
+    def test_dominant_musteri_riskli(self):
+        """1 büyük + 4 küçük müşteri (%80+ pay) → riskli (<40)."""
+        engine = self._engine({
+            "Buyuk":  [80_000]*12,
+            "Kucuk1": [5_000]*12, "Kucuk2": [5_000]*12,
+            "Kucuk3": [5_000]*12, "Kucuk4": [5_000]*12,
+        })
+        alt = engine.full_report()["saglik_skoru"]["alt_skorlar"]
+        self.assertLess(alt["konsantrasyon"], 40.0,
+            f"Dominant müşteri riskli skor almalı, alınan {alt['konsantrasyon']}")
+
+    def test_agirliklar_5d_toplami_1(self):
+        """5 boyut ağırlıkları tam olarak 1.0'a toplanmalı."""
+        from financial_engine import HealthScore
+        toplam = sum(HealthScore.WEIGHTS_5D.values())
+        self.assertAlmostEqual(toplam, 1.0, places=6)
+
+    def test_agirliklar_4d_toplami_1(self):
+        """4 boyut ağırlıkları tam olarak 1.0'a toplanmalı."""
+        from financial_engine import HealthScore
+        toplam = sum(HealthScore.WEIGHTS_4D.values())
+        self.assertAlmostEqual(toplam, 1.0, places=6)
+
+
+# ═══════════════════════════════════════════════════════
 # 2. AMORTIZATION TABLE — Kredi Hesabı Testleri
 # ═══════════════════════════════════════════════════════
 
