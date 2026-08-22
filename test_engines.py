@@ -214,6 +214,181 @@ class TestHealthScore5Boyut(unittest.TestCase):
 # 2. AMORTIZATION TABLE — Kredi Hesabı Testleri
 # ═══════════════════════════════════════════════════════
 
+class TestLLMCache(unittest.TestCase):
+    """
+    P1.6: LLM response cache — deterministik key, TTL, stats, backend swap.
+    """
+
+    def test_key_deterministic(self):
+        from llm_cache import LLMCache
+        k1 = LLMCache._key("u1", "prompt", {"model": "x"})
+        k2 = LLMCache._key("u1", "prompt", {"model": "x"})
+        self.assertEqual(k1, k2)
+
+    def test_key_context_order_bagimsiz(self):
+        """Context sözlüğü aynı içerikte farklı sıraya girse bile aynı key."""
+        from llm_cache import LLMCache
+        k1 = LLMCache._key("u1", "p", {"a": 1, "b": 2})
+        k2 = LLMCache._key("u1", "p", {"b": 2, "a": 1})
+        self.assertEqual(k1, k2)
+
+    def test_key_farkli_user_farkli_hash(self):
+        from llm_cache import LLMCache
+        k1 = LLMCache._key("u1", "aynı prompt", None)
+        k2 = LLMCache._key("u2", "aynı prompt", None)
+        self.assertNotEqual(k1, k2)
+
+    def test_key_prefix_user_id(self):
+        """Key formatı user:{uid}:{hash} — per-user silme için."""
+        from llm_cache import LLMCache
+        k = LLMCache._key("uid_abc", "x", None)
+        self.assertTrue(k.startswith("user:uid_abc:"))
+
+    def test_get_miss_none(self):
+        from llm_cache import LLMCache
+        c = LLMCache()
+        self.assertIsNone(c.get("u1", "yok", None))
+        self.assertEqual(c.stats()["misses"], 1)
+
+    def test_set_get_hit(self):
+        from llm_cache import LLMCache
+        c = LLMCache()
+        c.set("u1", "p", {"m": "llama"}, "cevap")
+        self.assertEqual(c.get("u1", "p", {"m": "llama"}), "cevap")
+        self.assertEqual(c.stats()["hits"], 1)
+
+    def test_ttl_sona_erince_miss(self):
+        """TTL 0.001s → hemen expire."""
+        from llm_cache import LLMCache, InMemoryCacheBackend
+        import time
+        c = LLMCache(InMemoryCacheBackend(), ttl_hours=1)
+        c.ttl_seconds = 0.01
+        c.set("u1", "p", None, "cevap")
+        time.sleep(0.05)
+        self.assertIsNone(c.get("u1", "p", None))
+
+    def test_stats_hit_rate(self):
+        from llm_cache import LLMCache
+        c = LLMCache()
+        c.set("u1", "p1", None, "a")
+        c.get("u1", "p1", None)   # hit
+        c.get("u1", "p2", None)   # miss
+        c.get("u1", "p3", None)   # miss
+        s = c.stats()
+        self.assertEqual(s["hits"], 1)
+        self.assertEqual(s["misses"], 2)
+        self.assertAlmostEqual(s["hit_rate_pct"], 33.3, delta=0.5)
+
+    def test_clear_all(self):
+        from llm_cache import LLMCache
+        c = LLMCache()
+        c.set("u1", "p1", None, "a")
+        c.set("u2", "p2", None, "b")
+        n = c.clear()
+        self.assertEqual(n, 2)
+        self.assertIsNone(c.get("u1", "p1", None))
+
+    def test_clear_per_user(self):
+        from llm_cache import LLMCache, InMemoryCacheBackend
+        b = InMemoryCacheBackend()
+        c = LLMCache(b)
+        c.set("u1", "p1", None, "a")
+        c.set("u1", "p2", None, "b")
+        c.set("u2", "p3", None, "c")
+        n = c.clear(user_id="u1")
+        self.assertEqual(n, 2)
+        # u2 hala mevcut
+        self.assertEqual(c.get("u2", "p3", None), "c")
+
+    def test_bos_value_cache_edilmez(self):
+        from llm_cache import LLMCache
+        c = LLMCache()
+        c.set("u1", "p", None, "")
+        self.assertIsNone(c.get("u1", "p", None))
+
+    def test_ttl_hours_negatif_hata(self):
+        from llm_cache import LLMCache
+        with self.assertRaises(ValueError):
+            LLMCache(ttl_hours=0)
+
+    def test_firestore_backend_mock(self):
+        """FirestoreCacheBackend mock client ile set/get."""
+        from llm_cache import LLMCache, FirestoreCacheBackend
+        import time
+
+        # Basit Firestore mock
+        class _Doc:
+            def __init__(self, exists=False, data=None, ref=None):
+                self.exists = exists
+                self._data = data or {}
+                self.reference = ref
+            def to_dict(self): return self._data
+        class _DocRef:
+            def __init__(self, store, key):
+                self._s, self._k = store, key
+            def set(self, data):
+                self._s[self._k] = data
+            def get(self):
+                if self._k not in self._s:
+                    return _Doc(exists=False)
+                return _Doc(exists=True, data=self._s[self._k], ref=self)
+            def delete(self):
+                self._s.pop(self._k, None)
+        class _Col:
+            def __init__(self, s): self._s = s
+            def document(self, k): return _DocRef(self._s, k)
+            def stream(self):
+                for k, v in list(self._s.items()):
+                    yield _Doc(exists=True, data=v, ref=_DocRef(self._s, k))
+            def where(self, field, op, value):
+                filtered = {k: v for k, v in self._s.items()
+                            if v.get(field) == value and op == "=="}
+                sub = _Col(filtered)
+                return sub
+        class _Client:
+            def __init__(self): self._store = {}
+            def collection(self, name): return _Col(self._store)
+
+        client = _Client()
+        c = LLMCache(FirestoreCacheBackend(client), ttl_hours=1)
+        c.set("u1", "p", {"m": "llama"}, "cache_val")
+        self.assertEqual(c.get("u1", "p", {"m": "llama"}), "cache_val")
+
+
+class TestGeminiEngineCacheHit(unittest.TestCase):
+    """P1.6: GeminiEngine._call cache hit → LLM'e gitmemeli."""
+
+    def test_ikinci_cagri_llm_atlanir(self):
+        from types import SimpleNamespace
+        from llm_cache import LLMCache
+        from gemini_engine import GeminiEngine
+
+        # Bir kez cevap veren mock client
+        call_counter = {"n": 0}
+        def _fake_create(**kwargs):
+            call_counter["n"] += 1
+            return SimpleNamespace(choices=[SimpleNamespace(
+                message=SimpleNamespace(content="ilk cevap")
+            )])
+
+        # GeminiEngine._init_client'ı bypass etmek için direkt inşa
+        engine = GeminiEngine.__new__(GeminiEngine)
+        engine.provider = "groq"
+        engine.user_id = "u1"
+        engine.guardrail = None
+        engine.cache = LLMCache(ttl_hours=1)
+        engine._model = "mock"
+        engine._client = SimpleNamespace(
+            chat=SimpleNamespace(completions=SimpleNamespace(create=_fake_create))
+        )
+
+        a = engine._call("prompt X")
+        b = engine._call("prompt X")
+        self.assertEqual(a, b)
+        self.assertEqual(call_counter["n"], 1)  # ikinci çağrı cache'ten geldi
+        self.assertEqual(engine.cache.stats()["hits"], 1)
+
+
 class TestCFOAgentFunctionCalling(unittest.TestCase):
     """
     P1.5: CFO Agent function-calling agent döngüsü + onay kuyruğu.

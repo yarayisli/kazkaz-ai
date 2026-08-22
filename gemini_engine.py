@@ -27,6 +27,11 @@ except Exception:   # guardrail modülü yoksa bile motor çalışsın
     class GuardrailError(Exception):
         pass
 
+try:
+    from llm_cache import LLMCache
+except Exception:   # cache modülü yoksa bile motor çalışsın
+    LLMCache = None
+
 
 SYSTEM_PROMPT = """
 Sen KazKaz AI'nın finansal analiz asistanısın. Adın "KazKaz".
@@ -58,11 +63,14 @@ class GeminiEngine:
         provider: str = "groq",
         guardrail: Optional["Guardrail"] = None,
         user_id: Optional[str] = None,
+        cache: Optional["LLMCache"] = None,
     ):
         """
         guardrail: opsiyonel LLM guardrail (llm_guardrail.Guardrail).
                    None ise geri uyumluluk için hiçbir kontrol yapılmaz.
-        user_id  : rate-limit ve usage metering için kimlik.
+        user_id  : rate-limit, usage metering ve cache anahtarı için kimlik.
+        cache    : opsiyonel LLM response cache (llm_cache.LLMCache).
+                   None ise her çağrı LLM'e gider.
         """
         self.api_key      = api_key
         self.provider     = provider.lower()
@@ -70,6 +78,7 @@ class GeminiEngine:
         self._client      = None
         self.guardrail    = guardrail
         self.user_id      = user_id
+        self.cache        = cache
         self._init_client()
 
     # ── Guardrail yardımcıları ──────────────────────────────────────────────
@@ -122,11 +131,19 @@ class GeminiEngine:
     # ─────────────────────────────────────────────────────────────────────────
 
     def _call(self, prompt: str, max_tokens: int = 1500) -> str:
-        """Provider'a göre tam yanıt döner (bloke eder). Guardrail sarmalıyla."""
+        """Provider'a göre tam yanıt döner (bloke eder). Guardrail + cache sarmalıyla."""
         try:
             prompt = self._guard_pre(prompt)
         except GuardrailError as ge:
             return f"⚠️ İstek reddedildi: {ge}"
+
+        cache_ctx = {"model": self._model, "provider": self.provider,
+                     "max_tokens": max_tokens, "system": "default"}
+        if self.cache is not None:
+            cached = self.cache.get(self.user_id, prompt, cache_ctx)
+            if cached is not None:
+                self._guard_post(prompt, cached)
+                return cached
 
         result = ""
         try:
@@ -148,6 +165,9 @@ class GeminiEngine:
 
         except Exception as e:
             return f"⚠️ AI yanıt üretemedi: {str(e)}"
+
+        if self.cache is not None and result and not result.startswith("⚠️"):
+            self.cache.set(self.user_id, prompt, cache_ctx, result)
 
         self._guard_post(prompt, result)
         return result
