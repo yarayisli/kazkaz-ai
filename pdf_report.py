@@ -65,7 +65,7 @@ def _try_download_font(filename: str) -> Optional[str]:
     try:
         tmp = os.path.join(tempfile.gettempdir(), filename)
         if not os.path.exists(tmp) or os.path.getsize(tmp) < 1000:
-            urllib.request.urlretrieve(url, tmp)
+            urllib.request.urlretrieve(url, tmp)  # nosec B310 - hardcoded GitHub font URL, no user input
         if os.path.getsize(tmp) > 1000:
             return tmp
     except Exception:

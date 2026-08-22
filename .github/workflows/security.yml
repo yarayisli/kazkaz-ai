@@ -1,0 +1,32 @@
+name: security
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  bandit:
+    name: bandit (kod taraması)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - run: pip install "bandit[toml]==1.7.9"
+      - name: Bandit taraması
+        run: bandit -r . -x ./landing,./.venv,./venv,./tests -ll -ii
+
+  pip-audit:
+    name: pip-audit (bağımlılık zafiyetleri)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - run: pip install pip-audit==2.7.3
+      - name: requirements-2.txt taraması
+        run: pip-audit -r requirements-2.txt --strict
