@@ -153,6 +153,17 @@ class ForecastEngine:
             changepoint_prior_scale=changepoint_prior_scale,
             interval_width=0.90,
         )
+        # TR resmi tatil regressörü: dini bayramlar (Ramazan, Kurban) her yıl
+        # ~11 gün kayar; ulusal tatiller sabit. Prophet'a bunları öğreterek
+        # aylık gelirdeki bayram öncesi/sonrası sıçramaları yakalarız.
+        # En az 12 ay veri şart — kısa serilerde regressör aşırı-öğrenme yapar.
+        self._tr_holidays_active = False
+        if len(data) >= 12:
+            try:
+                self._model.add_country_holidays(country_name="TR")
+                self._tr_holidays_active = True
+            except Exception:
+                pass
         self._model.fit(data)
 
     def _train_statsmodels(self, data):
@@ -176,16 +187,63 @@ class ForecastEngine:
 
     # ── Tahmin ────────────────────────────────────────────────────────────────
 
-    def forecast(self, ay: int = 3) -> Dict[str, Any]:
+    def forecast(
+        self,
+        ay: int = 3,
+        enflasyon_yillik: Optional[float] = None,
+    ) -> Dict[str, Any]:
+        """
+        Tahmin döndürür.
+
+        enflasyon_yillik: opsiyonel yıllık enflasyon oranı (ör. 0.35 = %35).
+            Verilirse tahmin tablosuna reel (bugünkü satın alma gücüne göre
+            deflate edilmiş) sütunlar eklenir. Nominal sütunlar korunur.
+        """
         if not self._trained:
             self.train()
 
         if PROPHET_AVAILABLE:
-            return self._forecast_prophet(ay)
+            result = self._forecast_prophet(ay)
         elif STATSMODELS_AVAILABLE:
-            return self._forecast_statsmodels(ay)
+            result = self._forecast_statsmodels(ay)
         else:
-            return self._forecast_linear(ay)
+            result = self._forecast_linear(ay)
+
+        if enflasyon_yillik is not None and enflasyon_yillik > 0:
+            result = self._apply_deflator(result, enflasyon_yillik)
+
+        return result
+
+    @staticmethod
+    def _apply_deflator(result: Dict[str, Any], enflasyon_yillik: float) -> Dict[str, Any]:
+        """
+        Nominal tahmini reel değere çevir (bugünkü satın alma gücü).
+        Aylık deflatör: (1 + yıllık)^(1/12) - 1
+        t. ay için: reel_t = nominal_t / (1 + aylık_infl)^t
+        """
+        tahmin_df = result["tahmin_tablosu"].copy()
+        aylik_infl = (1 + enflasyon_yillik) ** (1 / 12) - 1
+
+        deflators = [1 / (1 + aylik_infl) ** (t + 1) for t in range(len(tahmin_df))]
+        tahmin_df["Tahmin (Reel ₺)"] = [
+            round(v * d, 0) for v, d in zip(tahmin_df["Tahmin"], deflators)
+        ]
+        tahmin_df["Alt Sınır (Reel ₺)"] = [
+            round(v * d, 0) for v, d in zip(tahmin_df["Alt Sınır"], deflators)
+        ]
+        tahmin_df["Üst Sınır (Reel ₺)"] = [
+            round(v * d, 0) for v, d in zip(tahmin_df["Üst Sınır"], deflators)
+        ]
+
+        result["tahmin_tablosu"] = tahmin_df
+        result["enflasyon_uygulandi"] = enflasyon_yillik
+        result["toplam_tahmin_reel"] = float(tahmin_df["Tahmin (Reel ₺)"].sum())
+        result["metodoloji_notu"] = (
+            f"Tahmin nominal ₺'dir. Reel sütunlar yıllık %{enflasyon_yillik*100:.1f} "
+            "enflasyon deflatörü ile bugünkü satın alma gücüne çevrilmiştir. "
+            "Reel büyüme = nominal büyüme − enflasyon."
+        )
+        return result
 
     def _forecast_prophet(self, ay: int) -> Dict[str, Any]:
         future = self._model.make_future_dataframe(periods=ay, freq="MS")
@@ -261,7 +319,8 @@ class ForecastEngine:
         elif ACTIVE_BACKEND == "statsmodels":
             guven_notu = "Güven aralığı istatistiksel değil, ±%15 sabit tahminidir."
         else:
-            guven_notu = "Güven aralığı %90 (Prophet default)."
+            tr_ek = " TR resmi tatil regressörü aktif." if getattr(self, "_tr_holidays_active", False) else ""
+            guven_notu = f"Güven aralığı %90 (Prophet default).{tr_ek}"
 
         return {
             "tahmin_tablosu":    tahmin_df,

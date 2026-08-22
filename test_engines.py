@@ -566,6 +566,74 @@ class TestForecast(unittest.TestCase):
         with self.assertRaises(ValueError):
             fc.forecast(ay=3)
 
+    def test_deflator_uygulaniyor(self):
+        """Enflasyon verildiğinde tahmin tablosuna reel sütunlar eklenir."""
+        from forecast_engine import ForecastEngine
+        dates = pd.date_range("2024-01-01", periods=12, freq="MS")
+        df = pd.DataFrame({
+            "YilAy": [d.strftime("%Y-%m") for d in dates],
+            "Gelir": [100_000] * 12,
+        })
+        fc = ForecastEngine(df)
+        result = fc.forecast(ay=6, enflasyon_yillik=0.35)
+        cols = result["tahmin_tablosu"].columns.tolist()
+        self.assertIn("Tahmin (Reel ₺)", cols)
+        self.assertIn("Alt Sınır (Reel ₺)", cols)
+        self.assertIn("Üst Sınır (Reel ₺)", cols)
+        self.assertEqual(result["enflasyon_uygulandi"], 0.35)
+        self.assertIn("toplam_tahmin_reel", result)
+
+    def test_deflator_yoksa_eski_davranis(self):
+        """Enflasyon verilmezse reel sütun oluşmaz — geri uyumluluk."""
+        from forecast_engine import ForecastEngine
+        dates = pd.date_range("2024-01-01", periods=6, freq="MS")
+        df = pd.DataFrame({
+            "YilAy": [d.strftime("%Y-%m") for d in dates],
+            "Gelir": [100_000] * 6,
+        })
+        fc = ForecastEngine(df)
+        result = fc.forecast(ay=3)
+        self.assertNotIn("Tahmin (Reel ₺)", result["tahmin_tablosu"].columns)
+        self.assertNotIn("enflasyon_uygulandi", result)
+
+    def test_deflator_formul_dogru(self):
+        """
+        Yıllık %100 enflasyon → 12. ayda deflatör = 0.5.
+        Aylık infl = 2^(1/12) - 1, deflator_12 = 1/(1+aylik)^12 = 1/2.
+        """
+        from forecast_engine import ForecastEngine
+        # 12 sabit tahmin ile test — statsmodels/prophet backend olmadan
+        # doğrudan _apply_deflator'ü test edelim
+        import pandas as pd
+        base_df = pd.DataFrame({
+            "Dönem":     [f"2025-{i:02d}" for i in range(1, 13)],
+            "Tahmin":    [1000.0] * 12,
+            "Alt Sınır": [900.0] * 12,
+            "Üst Sınır": [1100.0] * 12,
+        })
+        result_in = {"tahmin_tablosu": base_df}
+        result_out = ForecastEngine._apply_deflator(result_in, enflasyon_yillik=1.0)
+        reel_son = result_out["tahmin_tablosu"]["Tahmin (Reel ₺)"].iloc[-1]
+        # 12. ayda 1000 * (1/2) = 500 civarı
+        self.assertAlmostEqual(reel_son, 500.0, delta=1.0)
+
+    def test_deflator_ay1_yakin_nominal(self):
+        """Kısa vadede (1. ay) reel ≈ nominal."""
+        from forecast_engine import ForecastEngine
+        base_df = pd.DataFrame({
+            "Dönem":     ["2025-01"],
+            "Tahmin":    [1000.0],
+            "Alt Sınır": [900.0],
+            "Üst Sınır": [1100.0],
+        })
+        result = ForecastEngine._apply_deflator(
+            {"tahmin_tablosu": base_df}, enflasyon_yillik=0.20
+        )
+        # 1 ay için %20 yıllık ≈ %1.53 aylık, reel = 1000/1.0153 ≈ 985
+        reel_1 = result["tahmin_tablosu"]["Tahmin (Reel ₺)"].iloc[0]
+        self.assertGreater(reel_1, 970.0)
+        self.assertLess(reel_1, 990.0)
+
 
 # ═══════════════════════════════════════════════════════
 # 9. MÜŞTERİ KARLILIĞI — Regresyon (yanlış yöntem)
