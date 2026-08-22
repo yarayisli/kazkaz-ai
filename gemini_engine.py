@@ -20,6 +20,13 @@ Kullanım:
 from typing import Dict, Any, List, Optional, Generator
 import json
 
+try:
+    from llm_guardrail import Guardrail, GuardrailError
+except Exception:   # guardrail modülü yoksa bile motor çalışsın
+    Guardrail = None
+    class GuardrailError(Exception):
+        pass
+
 
 SYSTEM_PROMPT = """
 Sen KazKaz AI'nın finansal analiz asistanısın. Adın "KazKaz".
@@ -45,12 +52,38 @@ class GeminiEngine:
     Her metod hem bloke hem streaming modunda çalışabilir.
     """
 
-    def __init__(self, api_key: str, provider: str = "groq"):
+    def __init__(
+        self,
+        api_key: str,
+        provider: str = "groq",
+        guardrail: Optional["Guardrail"] = None,
+        user_id: Optional[str] = None,
+    ):
+        """
+        guardrail: opsiyonel LLM guardrail (llm_guardrail.Guardrail).
+                   None ise geri uyumluluk için hiçbir kontrol yapılmaz.
+        user_id  : rate-limit ve usage metering için kimlik.
+        """
         self.api_key      = api_key
         self.provider     = provider.lower()
         self.chat_history: List[Dict[str, str]] = []
         self._client      = None
+        self.guardrail    = guardrail
+        self.user_id      = user_id
         self._init_client()
+
+    # ── Guardrail yardımcıları ──────────────────────────────────────────────
+
+    def _guard_pre(self, prompt: str) -> str:
+        """Guardrail varsa prompt'u temizle/onayla; yoksa aynen döndür."""
+        if self.guardrail is None:
+            return prompt
+        return self.guardrail.pre_call(self.user_id, prompt)
+
+    def _guard_post(self, prompt: str, response: str) -> None:
+        """Guardrail varsa token metering yaz."""
+        if self.guardrail is not None:
+            self.guardrail.post_call(self.user_id, prompt, response)
 
     def _init_client(self):
         if self.provider == "groq":
@@ -89,7 +122,13 @@ class GeminiEngine:
     # ─────────────────────────────────────────────────────────────────────────
 
     def _call(self, prompt: str, max_tokens: int = 1500) -> str:
-        """Provider'a göre tam yanıt döner (bloke eder)."""
+        """Provider'a göre tam yanıt döner (bloke eder). Guardrail sarmalıyla."""
+        try:
+            prompt = self._guard_pre(prompt)
+        except GuardrailError as ge:
+            return f"⚠️ İstek reddedildi: {ge}"
+
+        result = ""
         try:
             if self.provider in ("groq", "openai"):
                 response = self._client.chat.completions.create(
@@ -101,14 +140,17 @@ class GeminiEngine:
                     max_tokens=max_tokens,
                     temperature=0.7,
                 )
-                return response.choices[0].message.content
+                result = response.choices[0].message.content
 
             elif self.provider == "gemini":
                 response = self._client.generate_content(prompt)
-                return response.text
+                result = response.text
 
         except Exception as e:
             return f"⚠️ AI yanıt üretemedi: {str(e)}"
+
+        self._guard_post(prompt, result)
+        return result
 
     # ─────────────────────────────────────────────────────────────────────────
     # DÜŞÜK SEVİYE ÇAĞRI — Streaming generator
@@ -183,6 +225,18 @@ class GeminiEngine:
             ph = st.empty()
             tam_yorum = ai._stream_to_placeholder(prompt, ph)
         """
+        try:
+            prompt = self._guard_pre(prompt)
+        except GuardrailError as ge:
+            mesaj = f"⚠️ İstek reddedildi: {ge}"
+            placeholder.markdown(
+                f'<div style="background:#FEF2F2;border:1px solid #FECACA;'
+                f'border-radius:12px;padding:16px 20px;color:#991B1B;">'
+                f'{mesaj}</div>',
+                unsafe_allow_html=True,
+            )
+            return mesaj
+
         toplam = prefix
         for chunk in self._stream(prompt, max_tokens):
             toplam += chunk
@@ -201,6 +255,7 @@ class GeminiEngine:
             f'{toplam}</div>',
             unsafe_allow_html=True,
         )
+        self._guard_post(prompt, toplam)
         return toplam
 
     # ─────────────────────────────────────────────────────────────────────────
