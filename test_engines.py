@@ -214,6 +214,210 @@ class TestHealthScore5Boyut(unittest.TestCase):
 # 2. AMORTIZATION TABLE — Kredi Hesabı Testleri
 # ═══════════════════════════════════════════════════════
 
+class TestCFOAgentFunctionCalling(unittest.TestCase):
+    """
+    P1.5: CFO Agent function-calling agent döngüsü + onay kuyruğu.
+    """
+
+    def _fake_rapor(self):
+        """Minimal ama tutarlı bir fin_rapor sözlüğü."""
+        return {
+            "gelir":       {"toplam_gelir": 1_200_000,
+                            "ortalama_aylik_gelir": 100_000,
+                            "ortalama_buyume_orani": 8},
+            "gider":       {"toplam_gider": 900_000, "sabit_gider_orani": 55},
+            "karlilik":    {"toplam_net_kar": 300_000, "kar_marji": 25,
+                            "kar_trendi": "Artış"},
+            "saglik_skoru":{"skor": 72, "kategori": "İyi"},
+        }
+
+    def _mk_agent(self, ai_engine=None):
+        from cfo_agent import CFOAgent
+        if ai_engine is None:
+            ai_engine = self._mock_ai(responses=[])
+        return CFOAgent(ai_engine, self._fake_rapor(), sirket_adi="TestCo")
+
+    def _mock_ai(self, responses):
+        """Groq client'ının chat.completions.create arayüzünü taklit et."""
+        from types import SimpleNamespace
+
+        class _Completions:
+            def __init__(self, resp_list):
+                self._resp = list(resp_list)
+                self._i = 0
+                self.calls_seen = []
+            def create(self, **kwargs):
+                self.calls_seen.append(kwargs)
+                r = self._resp[min(self._i, len(self._resp) - 1)]
+                self._i += 1
+                return r
+
+        class _ChatNs:
+            def __init__(self, completions):
+                self.completions = completions
+
+        class _Client:
+            def __init__(self, completions):
+                self.chat = _ChatNs(completions)
+
+        completions = _Completions(responses)
+        client = _Client(completions)
+        return SimpleNamespace(
+            provider="groq", _client=client, _model="mock-model",
+            _completions=completions,
+        )
+
+    @staticmethod
+    def _resp(content="", tool_calls=None):
+        """OpenAI/Groq benzeri response objesi."""
+        from types import SimpleNamespace
+        msg = SimpleNamespace(content=content, tool_calls=tool_calls)
+        return SimpleNamespace(choices=[SimpleNamespace(message=msg)])
+
+    @staticmethod
+    def _tc(cid, name, args_json="{}"):
+        from types import SimpleNamespace
+        return SimpleNamespace(
+            id=cid,
+            function=SimpleNamespace(name=name, arguments=args_json),
+        )
+
+    # ── tool_specs ────────────────────────────────────────────────────────
+
+    def test_tool_specs_5_arac(self):
+        agent = self._mk_agent()
+        specs = agent.tool_specs()
+        self.assertEqual(len(specs), 5)
+        names = {s["function"]["name"] for s in specs}
+        self.assertEqual(names, {
+            "get_financial_health",
+            "get_cash_flow_alerts",
+            "get_investment_advice",
+            "get_debt_advice",
+            "generate_report",
+        })
+
+    def test_tool_specs_json_serialize(self):
+        """LLM'e gönderilecek şema JSON serializable olmalı."""
+        import json as _json
+        agent = self._mk_agent()
+        _json.dumps(agent.tool_specs())  # raise etmezse OK
+
+    # ── dispatch_tool ─────────────────────────────────────────────────────
+
+    def test_dispatch_get_financial_health(self):
+        import json as _json
+        agent = self._mk_agent()
+        out = agent.dispatch_tool("get_financial_health", {})
+        data = _json.loads(out)
+        self.assertIn("ozet", data)
+        self.assertEqual(data["ozet"]["skor"], 72)
+
+    def test_dispatch_get_investment_advice(self):
+        import json as _json
+        agent = self._mk_agent()
+        out = agent.dispatch_tool("get_investment_advice", {})
+        data = _json.loads(out)
+        self.assertIn("risk_profili", data)
+        self.assertIn("oneriler", data)
+
+    def test_dispatch_unknown_tool(self):
+        import json as _json
+        agent = self._mk_agent()
+        out = agent.dispatch_tool("bilinmeyen_arac", {})
+        data = _json.loads(out)
+        self.assertIn("hata", data)
+
+    def test_dispatch_cash_flow_veri_yoksa(self):
+        import json as _json
+        agent = self._mk_agent()   # cf_rapor verilmedi
+        out = agent.dispatch_tool("get_cash_flow_alerts", {})
+        data = _json.loads(out)
+        self.assertIn("hata", data)
+
+    # ── chat_with_tools agent döngüsü ────────────────────────────────────
+
+    def test_agent_dogrudan_yanit(self):
+        """LLM ilk turda tool çağırmadan yanıt verirse döngü 1 turda biter."""
+        ai = self._mock_ai(responses=[
+            self._resp(content="Sağlığınız iyi görünüyor."),
+        ])
+        agent = self._mk_agent(ai)
+        r = agent.chat_with_tools("Nasılım?")
+        self.assertEqual(r["turns"], 1)
+        self.assertEqual(r["cevap"], "Sağlığınız iyi görünüyor.")
+        self.assertEqual(r["tool_calls"], [])
+        self.assertFalse(r["kesildi"])
+
+    def test_agent_tek_tool_call(self):
+        """LLM 1 tool çağırır, sonra final yanıt üretir."""
+        ai = self._mock_ai(responses=[
+            self._resp(tool_calls=[
+                self._tc("call_1", "get_financial_health", "{}")
+            ]),
+            self._resp(content="Sağlığınız 72/100 → İyi."),
+        ])
+        agent = self._mk_agent(ai)
+        r = agent.chat_with_tools("Sağlığım nasıl?")
+        self.assertEqual(r["turns"], 2)
+        self.assertEqual(len(r["tool_calls"]), 1)
+        self.assertEqual(r["tool_calls"][0]["name"], "get_financial_health")
+        self.assertIn("72", r["cevap"])
+
+    def test_agent_max_turns_kesim(self):
+        """LLM sürekli tool çağırırsa max_turns'te güvenli kesim."""
+        # 10 tur tool çağrısı üretsin — 3 turda kesilmeli
+        ai = self._mock_ai(responses=[
+            self._resp(tool_calls=[
+                self._tc(f"c{i}", "get_financial_health", "{}")
+            ]) for i in range(10)
+        ])
+        agent = self._mk_agent(ai)
+        r = agent.chat_with_tools("test", max_turns=3)
+        self.assertTrue(r["kesildi"])
+        self.assertEqual(r["turns"], 3)
+
+    def test_agent_gemini_fallback(self):
+        """Gemini provider'da function-calling desteklenmiyor → düz chat'e düşer."""
+        from types import SimpleNamespace
+        # ai.provider = "gemini"; chat metodu bir string döner
+        class _MockGemini:
+            provider = "gemini"
+            def chat(self, *a, **kw): return "Gemini düz chat cevabı"
+            # CFOAgent.chat çağırıyor: ai._call kullanıyor
+            def _call(self, prompt): return "Gemini düz chat cevabı"
+        ai = _MockGemini()
+        agent = self._mk_agent(ai)
+        r = agent.chat_with_tools("test")
+        self.assertEqual(r["turns"], 0)
+        self.assertIn("fallback", r)
+
+    # ── Pending action kuyruğu ───────────────────────────────────────────
+
+    def test_pending_action_enqueue(self):
+        agent = self._mk_agent()
+        pa = agent.enqueue_pending_action(
+            tur="e-posta_gonder",
+            payload={"to": "user@x.com", "subject": "Test"},
+            aciklama="Aylık raporu maille",
+        )
+        from cfo_agent import PendingActionStatus
+        self.assertEqual(pa.status, PendingActionStatus.BEKLIYOR)
+        self.assertEqual(len(agent.memory.pending_actions), 1)
+
+    def test_pending_action_onay_ve_red(self):
+        from cfo_agent import PendingActionStatus
+        agent = self._mk_agent()
+        agent.enqueue_pending_action("a", {}, "aciklama 1")
+        agent.enqueue_pending_action("b", {}, "aciklama 2")
+        agent.approve_pending(0, "admin@x.com")
+        agent.reject_pending(1, "admin@x.com")
+        summary = agent.pending_summary()
+        self.assertEqual(summary["onaylandi"], 1)
+        self.assertEqual(summary["reddedildi"], 1)
+        self.assertEqual(summary["bekliyor"], 0)
+
+
 class TestLLMGuardrail(unittest.TestCase):
     """
     P1.4: LLM guardrail — PII scrub, prompt injection, rate limit, metering.

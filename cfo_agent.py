@@ -55,7 +55,35 @@ class AgentMemory:
     son_analiz:   Optional[Dict] = None
     uyarilar:     List[Alert] = field(default_factory=list)
     karar_gecmisi:List[Dict] = field(default_factory=list)
+    pending_actions: List["PendingAction"] = field(default_factory=list)
     oturum_baslangic: str = field(default_factory=lambda: datetime.now().isoformat())
+
+
+# ─────────────────────────────────────────────
+# ONAY KUYRUĞU (P1.5 foundation)
+# ─────────────────────────────────────────────
+
+class PendingActionStatus(str, Enum):
+    BEKLIYOR   = "bekliyor"
+    ONAYLANDI  = "onaylandi"
+    REDDEDILDI = "reddedildi"
+    UYGULANDI  = "uygulandi"
+
+
+@dataclass
+class PendingAction:
+    """
+    Bir agent'ın "yapmak istediği" ama henüz insan onayı beklediği eylem.
+    Şu an tüm tool'lar salt-okunur — bu tip write/yan-etkili eylemler
+    için hazırlanmış temel. Kullanım: cache invalidate, e-posta gönder,
+    borç ödeme rezervi ayır, vs.
+    """
+    tur:         str                    # ör. "e-posta_gonder", "cache_invalidate"
+    payload:     Dict[str, Any]
+    aciklama:    str
+    onerilen_zamanı: str = field(default_factory=lambda: datetime.now().isoformat())
+    status:      PendingActionStatus = PendingActionStatus.BEKLIYOR
+    onay_veren:  Optional[str] = None
 
 
 # ─────────────────────────────────────────────
@@ -612,6 +640,331 @@ Yatırım Profili: {analiz['inv']['risk_profili']}
 
     def reset_chat(self):
         self.memory.mesajlar = []
+
+    # ─────────────────────────────────────────
+    # FUNCTION-CALLING (P1.5)
+    # ─────────────────────────────────────────
+
+    def tool_specs(self) -> List[Dict[str, Any]]:
+        """
+        Groq / OpenAI function-calling şemasında araç tanımları.
+        LLM bu listeyi görür ve hangi araçları çağıracağına kendisi karar verir.
+        """
+        return [
+            {
+                "type": "function",
+                "function": {
+                    "name": "get_financial_health",
+                    "description": (
+                        "Şirketin finansal sağlık skorunu (0-100), kategorisini "
+                        "ve tüm sağlık uyarılarını döner. Kullanıcı sağlık, "
+                        "skor, kar marjı veya genel durum sorduğunda çağır."
+                    ),
+                    "parameters": {"type": "object", "properties": {}, "required": []},
+                },
+            },
+            {
+                "type": "function",
+                "function": {
+                    "name": "get_cash_flow_alerts",
+                    "description": (
+                        "Nakit akışı uyarılarını, runway'i, verimlilik oranını "
+                        "ve cari oranı döner. Kullanıcı nakit, likidite veya "
+                        "borç ödeme kapasitesi sorduğunda çağır."
+                    ),
+                    "parameters": {"type": "object", "properties": {}, "required": []},
+                },
+            },
+            {
+                "type": "function",
+                "function": {
+                    "name": "get_investment_advice",
+                    "description": (
+                        "Şirketin risk profiline (Muhafazakâr/Dengeli/Büyüme) "
+                        "göre 2-3 yatırım önerisi döner. Kullanıcı yatırım, "
+                        "genişleme, teknoloji yatırımı veya nakdi nereye "
+                        "koyayım sorduğunda çağır."
+                    ),
+                    "parameters": {"type": "object", "properties": {}, "required": []},
+                },
+            },
+            {
+                "type": "function",
+                "function": {
+                    "name": "get_debt_advice",
+                    "description": (
+                        "Mevcut borç yükü ve faiz oranına göre refinansman, "
+                        "borç azaltma veya stratejik borçlanma önerisi. "
+                        "Borç, kredi, faiz konularında çağır."
+                    ),
+                    "parameters": {"type": "object", "properties": {}, "required": []},
+                },
+            },
+            {
+                "type": "function",
+                "function": {
+                    "name": "generate_report",
+                    "description": (
+                        "Tam bir finansal dönem raporu üretir (Markdown). "
+                        "Kullanıcı 'rapor', 'özet çıkar', 'dönemsel değerlendirme' "
+                        "gibi talepler yaptığında çağır."
+                    ),
+                    "parameters": {
+                        "type": "object",
+                        "properties": {
+                            "periyot": {
+                                "type": "string",
+                                "enum": ["Aylık", "Çeyreklik", "Yıllık"],
+                                "description": "Rapor dönemi",
+                            }
+                        },
+                        "required": [],
+                    },
+                },
+            },
+        ]
+
+    def dispatch_tool(self, name: str, arguments: Dict[str, Any]) -> str:
+        """
+        Verilen adı taşıyan aracı çalıştırır ve LLM'e döndürmek üzere JSON
+        string sonuç verir. Bilinmeyen ad için nazik hata mesajı döner
+        (LLM'in retry veya alternatif tool denemesi için).
+        """
+        try:
+            if name == "get_financial_health":
+                ozet, alerts = self.health_tool.run(self.fin_rapor)
+                return json.dumps({
+                    "ozet": ozet,
+                    "uyarilar": [
+                        {"seviye": a.seviye, "baslik": a.baslik,
+                         "mesaj": a.mesaj, "oneri": a.oneri}
+                        for a in alerts
+                    ],
+                }, ensure_ascii=False, default=str)
+
+            if name == "get_cash_flow_alerts":
+                if not self.cf_rapor:
+                    return json.dumps({
+                        "hata": "Nakit akışı verisi yok. Kullanıcı önce "
+                                "nakit akışı sekmesinden veri girmeli."
+                    }, ensure_ascii=False)
+                cf_data = {
+                    **self.cf_rapor.get("nakit_ozet", {}),
+                    **self.cf_rapor.get("likidite", {}),
+                    **self.cf_rapor.get("burn_rate", {}),
+                }
+                ozet, alerts = self.cf_tool.run(cf_data)
+                return json.dumps({
+                    "ozet": ozet,
+                    "uyarilar": [
+                        {"seviye": a.seviye, "baslik": a.baslik,
+                         "mesaj": a.mesaj, "oneri": a.oneri}
+                        for a in alerts
+                    ],
+                }, ensure_ascii=False, default=str)
+
+            if name == "get_investment_advice":
+                nakit = self.cf_rapor.get("nakit_ozet", {}).get(
+                    "son_nakit_pozisyon", 0) if self.cf_rapor else 0
+                return json.dumps(
+                    self.inv_tool.run(self.fin_rapor, nakit),
+                    ensure_ascii=False, default=str,
+                )
+
+            if name == "get_debt_advice":
+                toplam_borc = 0
+                faiz_orani  = 0.40
+                if self.debt_rapor:
+                    ozet = self.debt_rapor.get("portfolio_ozet", {})
+                    toplam_borc = ozet.get("toplam_borc", 0)
+                    faiz_orani  = ozet.get("agirlikli_faiz", 40) / 100
+                return json.dumps(
+                    self.debt_tool.run(self.fin_rapor, toplam_borc, faiz_orani),
+                    ensure_ascii=False, default=str,
+                )
+
+            if name == "generate_report":
+                periyot = arguments.get("periyot", "Aylık")
+                if not self.memory.son_analiz:
+                    self.analyze()
+                return self.report_tool.run(
+                    self.fin_rapor, self.memory.uyarilar,
+                    sirket=self.sirket, periyot=periyot,
+                )
+
+            return json.dumps({
+                "hata": f"Bilinmeyen araç: {name}. Kullanılabilir araçlar için "
+                        "tool_specs()'e bak.",
+            }, ensure_ascii=False)
+
+        except Exception as e:
+            return json.dumps({
+                "hata": f"{name} çalıştırılırken hata: {e}",
+            }, ensure_ascii=False)
+
+    def chat_with_tools(
+        self,
+        kullanici_mesaji: str,
+        max_turns: int = 5,
+    ) -> Dict[str, Any]:
+        """
+        Function-calling agent döngüsü.
+
+        1. LLM'e mesaj + tool specs verilir
+        2. LLM tool_calls döndürürse, her biri dispatch edilir, sonuçlar
+           mesaj listesine 'tool' rolüyle eklenir, LLM tekrar çağrılır
+        3. LLM final text döndürürse döngü biter
+        4. max_turns aşılırsa güvenli kesim
+
+        Döner: {
+            "cevap":        final metin,
+            "tool_calls":   [{name, arguments, result_preview}...],
+            "turns":        kaç tur döndü,
+            "kesildi":      max_turns aşıldıysa True,
+        }
+
+        Kullandığı LLM istemcisi self.ai._client (GeminiEngine wrapper); Groq
+        veya OpenAI olmalı — Gemini function-calling şeması farklı olduğu için
+        şu sürümde desteklenmez, o durumda düz chat'e düşer.
+        """
+        provider = getattr(self.ai, "provider", "groq")
+        if provider not in ("groq", "openai"):
+            # Gemini function-calling şeması farklı; şu sürümde düz chat'e düş
+            return {
+                "cevap":      self.chat(kullanici_mesaji),
+                "tool_calls": [],
+                "turns":      0,
+                "kesildi":    False,
+                "fallback":   f"{provider} için function-calling desteklenmiyor, düz chat kullanıldı.",
+            }
+
+        if not self.memory.son_analiz:
+            self.analyze()
+
+        messages = [
+            {"role": "system", "content": (
+                f"Sen {self.sirket} şirketinin CFO asistanısın. "
+                "Kullanıcı sorularını yanıtlamadan önce, sana sağlanan araçlarla "
+                "gerekli veriyi topla, sonra Türkçe, net, uygulanabilir bir "
+                "cevap ver. Aynı aracı gereksiz yere iki kez çağırma. "
+                "Sağlığa yanıt vermek için önce get_financial_health, nakit için "
+                "get_cash_flow_alerts, yatırım için get_investment_advice, borç "
+                "için get_debt_advice, rapor için generate_report kullan."
+            )},
+            {"role": "user", "content": kullanici_mesaji},
+        ]
+
+        tool_calls_log: List[Dict[str, Any]] = []
+        tools = self.tool_specs()
+        client = self.ai._client
+        model  = self.ai._model
+
+        for turn in range(1, max_turns + 1):
+            try:
+                resp = client.chat.completions.create(
+                    model=model,
+                    messages=messages,
+                    tools=tools,
+                    tool_choice="auto",
+                    max_tokens=1500,
+                )
+            except Exception as e:
+                return {
+                    "cevap": f"⚠️ Ajan çağrısı başarısız: {e}",
+                    "tool_calls": tool_calls_log,
+                    "turns": turn,
+                    "kesildi": False,
+                    "hata": str(e),
+                }
+
+            choice = resp.choices[0].message
+            calls = getattr(choice, "tool_calls", None) or []
+
+            if not calls:
+                # LLM cevap üretti → dön
+                cevap = choice.content or ""
+                self.memory.mesajlar.append(
+                    {"role": "user", "content": kullanici_mesaji})
+                self.memory.mesajlar.append(
+                    {"role": "assistant", "content": cevap})
+                return {
+                    "cevap":      cevap,
+                    "tool_calls": tool_calls_log,
+                    "turns":      turn,
+                    "kesildi":    False,
+                }
+
+            # Tool çağrılarını mesaja ekle
+            messages.append({
+                "role": "assistant",
+                "content": choice.content,
+                "tool_calls": [
+                    {"id": c.id, "type": "function",
+                     "function": {"name": c.function.name,
+                                  "arguments": c.function.arguments}}
+                    for c in calls
+                ],
+            })
+
+            for c in calls:
+                name = c.function.name
+                try:
+                    args = json.loads(c.function.arguments or "{}")
+                except Exception:
+                    args = {}
+                result = self.dispatch_tool(name, args)
+                tool_calls_log.append({
+                    "name": name,
+                    "arguments": args,
+                    "result_preview": (result[:200] + "…") if len(result) > 200 else result,
+                })
+                messages.append({
+                    "role":         "tool",
+                    "tool_call_id": c.id,
+                    "content":      result,
+                })
+
+        return {
+            "cevap":      "⚠️ Ajan yanıt döngüsü tamamlanamadı (max turns).",
+            "tool_calls": tool_calls_log,
+            "turns":      max_turns,
+            "kesildi":    True,
+        }
+
+    # ─────────────────────────────────────────
+    # ONAY KUYRUĞU YÖNETİMİ (P1.5 foundation)
+    # ─────────────────────────────────────────
+
+    def enqueue_pending_action(
+        self, tur: str, payload: Dict[str, Any], aciklama: str,
+    ) -> PendingAction:
+        """
+        Bir write/yan-etkili eylemi onay kuyruğuna al.
+        LLM veya tool bir aksiyon önerdiğinde bu metod çağrılır;
+        insan onayı gelene kadar uygulanmaz.
+        """
+        pa = PendingAction(tur=tur, payload=payload, aciklama=aciklama)
+        self.memory.pending_actions.append(pa)
+        return pa
+
+    def approve_pending(self, index: int, onay_veren: str) -> PendingAction:
+        pa = self.memory.pending_actions[index]
+        pa.status = PendingActionStatus.ONAYLANDI
+        pa.onay_veren = onay_veren
+        return pa
+
+    def reject_pending(self, index: int, onay_veren: str) -> PendingAction:
+        pa = self.memory.pending_actions[index]
+        pa.status = PendingActionStatus.REDDEDILDI
+        pa.onay_veren = onay_veren
+        return pa
+
+    def pending_summary(self) -> Dict[str, int]:
+        """Kaç aksiyon hangi statüde?"""
+        s = {v.value: 0 for v in PendingActionStatus}
+        for pa in self.memory.pending_actions:
+            s[pa.status.value] += 1
+        return s
 
     # ─────────────────────────────────────────
     # KOMPAKt DURUM ÖZETİ
