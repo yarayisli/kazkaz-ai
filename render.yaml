@@ -1,0 +1,56 @@
+services:
+  - type: web
+    name: kazkaz-ai-v1
+    runtime: docker
+    dockerfilePath: ./Dockerfile
+    healthCheckPath: /api/health
+    autoDeploy: false
+    envVars:
+      - key: APP_ENV
+        value: production
+      - key: KAZKAZ_AUTH_DISABLED
+        value: "false"
+      - key: ENFORCE_PLAN_LIMITS
+        value: "true"
+      - key: CORS_ORIGINS
+        value: https://supermantarik.com,https://www.supermantarik.com
+      - key: ALLOWED_HOSTS
+        value: supermantarik.com,www.supermantarik.com,*.onrender.com
+      - key: ENFORCE_HTTPS
+        value: "true"
+      - key: AI_RATE_LIMIT_PER_MINUTE
+        value: "20"
+      - key: PUBLIC_PERFORMANCE_MIN_SAMPLES
+        value: "30"
+      - key: FIREBASE_PROJECT_ID
+        sync: false
+      - key: FIREBASE_SERVICE_ACCOUNT_JSON
+        sync: false
+      - key: GOOGLE_SHEETS_SERVICE_ACCOUNT_JSON
+        sync: false
+      - key: NVIDIA_API_KEY
+        sync: false
+      - key: GROQ_API_KEY
+        sync: false
+      - key: GEMINI_API_KEY
+        sync: false
+      - key: PAYMENT_PROVIDER
+        sync: false
+      - key: SENTRY_DSN
+        sync: false
+      - key: FIRESTORE_BACKUP_BUCKET
+        sync: false
+      - key: DATA_RETENTION_DAYS
+        value: "365"
+      - key: REPORT_RETENTION_DAYS
+        value: "365"
+      - key: FIRESTORE_RULES_DEPLOYED
+        value: "false"
+      - key: TENANT_ISOLATION_TEST_PASSED
+        value: "false"
+      - key: FINANCIAL_METHODOLOGY_APPROVED
+        value: "false"
+      - key: KVKK_REVIEW_APPROVED
+        value: "false"
+      - key: BACKUP_RESTORE_TESTED_AT
+        sync: false

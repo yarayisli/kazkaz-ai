@@ -3,9 +3,11 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex,nofollow">
 <script src="./support.js"></script>
 </head>
 <body>
+<div style="position:fixed;z-index:99999;left:12px;right:12px;top:12px;padding:9px 14px;border-radius:9px;background:#047857;color:#fff;text-align:center;font:700 11px Arial,sans-serif">KONSEPT SAYFA · Fon/VC özellikleri ve entegrasyonlar erken erişim hedefidir.</div>
 <x-dc>
 <helmet>
 <title>KazKaz for Investors — Portföy izleme ve yönetim platformu</title>
@@ -226,10 +228,10 @@ button:focus-visible,a:focus-visible{outline:2px solid #059669;outline-offset:3p
         <div style="display:flex;align-items:center;gap:10px;font:500 13px 'Hanken Grotesk',sans-serif;color:#3D4663"><span style="color:#059669;font-weight:700;flex:none">✓</span>Risk alarm sistemi (tüm portföy)</div>
         <div style="display:flex;align-items:center;gap:10px;font:500 13px 'Hanken Grotesk',sans-serif;color:#3D4663"><span style="color:#059669;font-weight:700;flex:none">✓</span>API erişimi &amp; webhook entegrasyonu</div>
         <div style="display:flex;align-items:center;gap:10px;font:500 13px 'Hanken Grotesk',sans-serif;color:#3D4663"><span style="color:#059669;font-weight:700;flex:none">✓</span>Özel hesap yöneticisi</div>
-        <div style="display:flex;align-items:center;gap:10px;font:500 13px 'Hanken Grotesk',sans-serif;color:#3D4663"><span style="color:#059669;font-weight:700;flex:none">✓</span>SLA garantisi &amp; öncelikli destek</div>
+        <div style="display:flex;align-items:center;gap:10px;font:500 13px 'Hanken Grotesk',sans-serif;color:#3D4663"><span style="color:#059669;font-weight:700;flex:none">✓</span>Sözleşmeye bağlı SLA hedefi &amp; öncelikli destek</div>
       </div>
       <button onClick="{{ goWaitlist }}" style="width:100%;background:linear-gradient(135deg,#059669,#2563EB);color:#fff;border:none;border-radius:12px;padding:16px;font:700 15px 'Hanken Grotesk',sans-serif;cursor:pointer;box-shadow:0 8px 24px rgba(5,150,105,.28)">İletişime geç →</button>
-      <div style="display:flex;justify-content:center;gap:14px;font:500 11px 'Hanken Grotesk',sans-serif;color:#A9B0C0;margin-top:12px"><span>✓ SLA garantisi</span><span>✓ API erişimi</span><span>✓ KVKK uyumlu</span></div>
+      <div style="display:flex;justify-content:center;gap:14px;font:500 11px 'Hanken Grotesk',sans-serif;color:#A9B0C0;margin-top:12px"><span>✓ Erken erişim</span><span>✓ API hedefi</span><span>✓ Uyum hazırlığı</span></div>
     </div>
   </div>
 </section>
@@ -365,7 +367,7 @@ class Component extends DCLogic {
 
     const rawFaqs = [
       { q:'Portföy şirketlerim KazKaz kullanmak zorunda mı?', a:'Hayır. Yatırımcı dashboardı için portföy şirketlerinin KazKaz kullanması tercih edilir; ancak veri paylaşımı şirket onayıyla gerçekleşir. Şirket kullanmıyorsa manuel veri yükleme de desteklenir.' },
-      { q:'Veri gizliliği nasıl sağlanıyor?', a:'Her portföy şirketinin verisi tamamen izole edilmiş tenants\'ta tutulur. Şirket, yalnızca onayladığı metrikleri yatırımcıyla paylaşır. Veri erişim logları KVKK uyumlu şekilde tutulur.' },
+      { q:'Veri gizliliği nasıl sağlanacak?', a:'Hedeflenen model şirket kapsamlı üyelik, rol kontrolü ve ayrı kayıt yollarıdır. İzolasyon ve erişim kayıtları pilot güvenlik testleri tamamlanmadan üretim özelliği olarak sunulmayacaktır.' },
       { q:'LP raporları otomatik mi üretiliyor?', a:'Evet. Tek tıkla tüm portföy için çeyreklik LP raporu üretilebilir. Şablon özelleştirilebilir — sektör performansı, risk özeti, büyüme trendi ve AI yorumları dahil edilebilir.' },
       { q:'API ile kendi sistemimize entegre edebilir miyiz?', a:'Evet. REST API ve webhook desteği Fon/VC paketinde mevcuttur. Kendi portföy yönetim sisteminize, BI araçlarınıza (Tableau, Power BI) veya LP portalınıza bağlanabilirsiniz.' },
     ];

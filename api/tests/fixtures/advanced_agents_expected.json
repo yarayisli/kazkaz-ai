@@ -1,0 +1,30 @@
+{
+  "mizan": {
+    "mizan_farki": 0.0,
+    "esleme_kapsami": 100.0,
+    "bilanco_farki": 0.0
+  },
+  "nakit": {
+    "hafta_sayisi": 13,
+    "donem_sonu_nakit": 740.0,
+    "ilk_esik_alti_tarih": "2026-03-17"
+  },
+  "alacak": {
+    "acik_alacak": 950.0,
+    "vadesi_gelmemis": 400.0,
+    "0_30": 100.0,
+    "61_90": 150.0,
+    "90_plus": 300.0
+  },
+  "borc": {
+    "toplam_borc_servisi": 218.0,
+    "dscr": 2.0
+  },
+  "butce": {
+    "toplam_butce": 300.0,
+    "toplam_gerceklesen": 320.0,
+    "sapma": 20.0,
+    "yil_sonu_tahmini": 1280.0,
+    "mape": 12.29
+  }
+}

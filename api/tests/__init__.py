@@ -1,0 +1,1 @@
+"""KazKaz AI API testleri."""

@@ -99,12 +99,12 @@ class FinancialHealthTool:
         g = rapor.get("gelir", {})
         e = rapor.get("gider", {})
 
-        skor     = s.get("skor", 0)
-        kategori = s.get("kategori", "")
+        skor     = s.get("skor")
+        kategori = s.get("kategori", "Hesaplanmadı")
         uyarilar = []
 
         # Kritik sağlık skoru
-        if skor < 35:
+        if skor is not None and skor < 35:
             uyarilar.append(Alert(
                 seviye=AlertLevel.KRITIK,
                 baslik="Finansal Sağlık Kritik",
@@ -112,7 +112,7 @@ class FinancialHealthTool:
                 oneri="Acil gider kısıtlaması ve gelir artırıcı önlemler alınmalı.",
                 araç="FinancialHealthTool", deger=skor
             ))
-        elif skor < 50:
+        elif skor is not None and skor < 50:
             uyarilar.append(Alert(
                 seviye=AlertLevel.DIKKAT,
                 baslik="Finansal Sağlık Zayıf",
@@ -141,8 +141,8 @@ class FinancialHealthTool:
             ))
 
         # Büyüme uyarısı
-        buyume = g.get("ortalama_buyume_orani", 0)
-        if buyume > 20:
+        buyume = g.get("ortalama_buyume_orani")
+        if buyume is not None and buyume > 20:
             uyarilar.append(Alert(
                 seviye=AlertLevel.POZITIF,
                 baslik="Güçlü Büyüme",
@@ -150,7 +150,7 @@ class FinancialHealthTool:
                 oneri="Büyümeyi sürdürmek için operasyonel kapasiteyi artırın.",
                 araç="FinancialHealthTool", deger=buyume
             ))
-        elif buyume < 0:
+        elif buyume is not None and buyume < 0:
             uyarilar.append(Alert(
                 seviye=AlertLevel.DIKKAT,
                 baslik="Negatif Büyüme",
@@ -160,8 +160,8 @@ class FinancialHealthTool:
             ))
 
         # Gider oranı
-        gider_oran = e.get("sabit_gider_orani", 0)
-        if gider_oran > 70:
+        gider_oran = e.get("sabit_gider_orani")
+        if gider_oran is not None and gider_oran > 70:
             uyarilar.append(Alert(
                 seviye=AlertLevel.DIKKAT,
                 baslik="Yüksek Sabit Gider Oranı",
@@ -186,13 +186,13 @@ class CashFlowAlertTool:
 
     def run(self, rapor: Dict) -> Tuple[Dict, List[Alert]]:
         uyarilar = []
-        ncf = rapor.get("operasyonel_ncf", 0)
-        ncf_marji = rapor.get("ncf_marji", 0)
+        ncf = rapor.get("operasyonel_ncf")
+        ncf_marji = rapor.get("ncf_marji")
         runway = rapor.get("runway_ay")
         burn   = rapor.get("nakit_yakilip_yakilmiyor", False)
-        verim  = rapor.get("verimlilik_orani", 1)
+        verim  = rapor.get("verimlilik_orani")
         cari   = rapor.get("cari_oran")
-        ccc    = rapor.get("nakit_donusum_gun", 30)
+        ccc    = rapor.get("nakit_donusum_gun")
 
         # Runway uyarısı
         if runway is not None:
@@ -201,7 +201,7 @@ class CashFlowAlertTool:
                     seviye=AlertLevel.KRITIK,
                     baslik="Kritik Runway",
                     mesaj=f"Mevcut gidişle nakit {runway:.0f} ayda tükeniyor.",
-                    oneri="Acil finansman arayın veya giderleri %30+ azaltın.",
+                    oneri="13 haftalık nakit planını güncelleyip finansman ve gider senaryolarını CFO onayına sunun.",
                     araç="CashFlowAlertTool", deger=runway
                 ))
             elif runway < 6:
@@ -209,27 +209,27 @@ class CashFlowAlertTool:
                     seviye=AlertLevel.DIKKAT,
                     baslik="Kısa Runway",
                     mesaj=f"Nakit {runway:.0f} ay içinde tükenebilir.",
-                    oneri="Gelir artırma planı ve yedek kredi limiti hazırlayın.",
+                    oneri="Tahsilat, ödeme vadesi ve finansman alternatiflerini senaryo bazında inceleyin.",
                     araç="CashFlowAlertTool", deger=runway
                 ))
 
         # Verimlilik uyarısı
-        if verim < 1:
+        if verim is not None and verim < 1:
             uyarilar.append(Alert(
                 seviye=AlertLevel.KRITIK,
                 baslik="Nakit Yakılıyor",
                 mesaj=f"Nakit verimliliği {verim:.2f} — giderler geliri aşıyor.",
-                oneri="Her gider kalemi tek tek gözden geçirilmeli.",
+                oneri="Negatif nakit etkisi yaratan gider ve tahsilat kalemlerini doğrulayın.",
                 araç="CashFlowAlertTool", deger=verim
             ))
 
         # CCC uyarısı
-        if ccc > 60:
+        if ccc is not None and ccc > 60:
             uyarilar.append(Alert(
                 seviye=AlertLevel.DIKKAT,
                 baslik="Uzun Nakit Dönüşüm Döngüsü",
                 mesaj=f"Nakit dönüşüm döngüsü {ccc} gün — likidite riski var.",
-                oneri="Alacak tahsilini hızlandırın, stok yönetimini optimize edin.",
+                oneri="Alacak, stok ve ödeme günlerini ayrı ayrı doğrulayıp etki senaryosu oluşturun.",
                 araç="CashFlowAlertTool", deger=ccc
             ))
 
@@ -239,7 +239,7 @@ class CashFlowAlertTool:
                 seviye=AlertLevel.KRITIK,
                 baslik="Cari Oran Kritik",
                 mesaj=f"Cari oran {cari} — kısa vadeli borçlar karşılanamıyor.",
-                oneri="Kısa vadeli borçları yapılandırın veya nakit artırın.",
+                oneri="Kısa vadeli ödeme planını ve kullanılabilir likidite kaynaklarını CFO ile inceleyin.",
                 araç="CashFlowAlertTool", deger=cari
             ))
         elif cari is not None and cari < 1.5:
@@ -247,16 +247,16 @@ class CashFlowAlertTool:
                 seviye=AlertLevel.DIKKAT,
                 baslik="Düşük Cari Oran",
                 mesaj=f"Cari oran {cari} — likidite sıkışıklığı riski var.",
-                oneri="Dönen varlıkları artırın veya kısa vadeli borçları azaltın.",
+                oneri="Dönen varlık kalitesi ile kısa vadeli ödeme takvimini birlikte doğrulayın.",
                 araç="CashFlowAlertTool", deger=cari
             ))
 
-        if ncf > 0 and not burn:
+        if ncf is not None and ncf > 0 and not burn:
             uyarilar.append(Alert(
                 seviye=AlertLevel.POZITIF,
                 baslik="Pozitif Nakit Akışı",
                 mesaj=f"Operasyonel nakit akışı pozitif — şirket nakit üretiyor.",
-                oneri="Fazla nakdi verimli yatırımlara yönlendirin.",
+                oneri="Minimum nakit eşiği ve onaylı fon kullanım politikası sonrasında kullanım senaryosu hazırlayın.",
                 araç="CashFlowAlertTool", deger=ncf
             ))
 
@@ -264,7 +264,11 @@ class CashFlowAlertTool:
 
 
 class InvestmentAdvisorTool:
-    """Yatırım önerisi motoru."""
+    """Yatırım için doğrulanabilir iş vakası hazırlık motoru.
+
+    Kaynaksız ROI, gelir yüzdesi veya yatırım limiti üretmez. Nihai yatırım
+    kararı her zaman insan onayı gerektirir.
+    """
 
     def run(self, fin_rapor: Dict, nakit_pozisyon: float = 0) -> Dict:
         g = fin_rapor.get("gelir", {})
@@ -273,84 +277,46 @@ class InvestmentAdvisorTool:
 
         skor       = s.get("skor", 0)
         kar_marji  = k.get("kar_marji", 0)
-        buyume     = g.get("ortalama_buyume_orani", 0)
-        aylik_gelir= g.get("ortalama_aylik_gelir", 0)
-        yillik_gelir = aylik_gelir * 12
+        buyume = g.get("ortalama_buyume_orani")
+        donem_geliri = g.get("toplam_gelir", 0)
 
-        oneriler = []
-        risk_profili = "Dengeli"
+        risk_profili = "Veri onayı gerekli"
+        if skor is not None and buyume is not None:
+            risk_profili = "İncelemeye uygun" if skor >= 50 and kar_marji > 0 else "Likidite öncelikli"
 
-        # Risk profili belirle
-        if skor >= 70 and kar_marji >= 15 and buyume >= 10:
-            risk_profili = "Büyüme Odaklı"
-        elif skor < 50 or kar_marji < 5:
-            risk_profili = "Muhafazakâr"
-
-        # Yatırım önerileri
-        if risk_profili == "Büyüme Odaklı":
-            oneriler = [
-                {"tip": "Kapasite Genişleme",
-                 "oran": "%15-20 yıllık gelir",
-                 "tutar": round(yillik_gelir * 0.18, 0),
-                 "sure": "12-24 ay",
-                 "beklenen_roi": "%25-35",
-                 "oncelik": "Yüksek"},
-                {"tip": "Teknoloji & Dijitalleşme",
-                 "oran": "%5-8 yıllık gelir",
-                 "tutar": round(yillik_gelir * 0.06, 0),
-                 "sure": "6-12 ay",
-                 "beklenen_roi": "%20-40",
-                 "oncelik": "Yüksek"},
-                {"tip": "Pazarlama & Müşteri Edinimi",
-                 "oran": "%8-10 yıllık gelir",
-                 "tutar": round(yillik_gelir * 0.09, 0),
-                 "sure": "3-6 ay",
-                 "beklenen_roi": "%15-25",
-                 "oncelik": "Orta"},
-            ]
-        elif risk_profili == "Muhafazakâr":
-            oneriler = [
-                {"tip": "Süreç Optimizasyonu",
-                 "oran": "%3-5 yıllık gelir",
-                 "tutar": round(yillik_gelir * 0.04, 0),
-                 "sure": "3-6 ay",
-                 "beklenen_roi": "%10-20",
-                 "oncelik": "Yüksek"},
-                {"tip": "Nakit Yönetimi İyileştirme",
-                 "oran": "%1-2 yıllık gelir",
-                 "tutar": round(yillik_gelir * 0.015, 0),
-                 "sure": "1-3 ay",
-                 "beklenen_roi": "%15-30",
-                 "oncelik": "Yüksek"},
-            ]
-        else:
-            oneriler = [
-                {"tip": "Verimlilik Yatırımı",
-                 "oran": "%5-10 yıllık gelir",
-                 "tutar": round(yillik_gelir * 0.07, 0),
-                 "sure": "6-12 ay",
-                 "beklenen_roi": "%15-25",
-                 "oncelik": "Yüksek"},
-                {"tip": "Pazar Genişlemesi",
-                 "oran": "%8-12 yıllık gelir",
-                 "tutar": round(yillik_gelir * 0.10, 0),
-                 "sure": "12-18 ay",
-                 "beklenen_roi": "%20-30",
-                 "oncelik": "Orta"},
-                {"tip": "Ar-Ge & İnovasyon",
-                 "oran": "%3-5 yıllık gelir",
-                 "tutar": round(yillik_gelir * 0.04, 0),
-                 "sure": "12-24 ay",
-                 "beklenen_roi": "%30-50",
-                 "oncelik": "Orta"},
-            ]
+        oneriler = [
+            {
+                "tip": "Yatırım iş vakası",
+                "oran": "Politika onayı gerekli",
+                "tutar": 0,
+                "sure": "Proje bazında girilmeli",
+                "beklenen_roi": "Gelir/maliyet tahmini gerekli",
+                "oncelik": "Yüksek",
+                "dayanak": f"Dönem kâr marjı %{kar_marji:.1f}; nakit ₺{nakit_pozisyon:,.0f}",
+                "insan_onayi": True,
+            },
+            {
+                "tip": "Likidite etkisi kontrolü",
+                "oran": "Belirlenmedi",
+                "tutar": 0,
+                "sure": "13 haftalık nakit planıyla",
+                "beklenen_roi": "Hesaplanmadı",
+                "oncelik": "Yüksek",
+                "dayanak": "Yatırım sonrası minimum nakit eşiği henüz tanımlı değil.",
+                "insan_onayi": True,
+            },
+        ]
 
         return {
             "risk_profili":  risk_profili,
-            "yillik_gelir":  yillik_gelir,
+            "yillik_gelir":  0,
+            "donem_geliri":  donem_geliri,
             "nakit":         nakit_pozisyon,
             "oneriler":      oneriler,
-            "max_yatirim":   round(nakit_pozisyon * 0.4, 0) if nakit_pozisyon > 0 else 0,
+            "max_yatirim":   0,
+            "hesaplanabilir": False,
+            "eksik_veriler": ["minimum nakit eşiği", "proje nakit akışları", "iskonto oranı", "yönetim yatırım limiti"],
+            "insan_onayi_gerekli": True,
         }
 
 
@@ -358,49 +324,48 @@ class DebtAdvisorTool:
     """Borç yönetimi öneri motoru."""
 
     def run(self, fin_rapor: Dict, mevcut_borc: float = 0,
-            faiz_orani: float = 0.40) -> Dict:
+            faiz_orani: Optional[float] = None,
+            yillik_borc_servisi: Optional[float] = None,
+            operasyonel_nakit: Optional[float] = None) -> Dict:
         g = fin_rapor.get("gelir", {})
         k = fin_rapor.get("karlilik", {})
 
-        yillik_gelir = g.get("ortalama_aylik_gelir", 0) * 12
-        yillik_kar   = k.get("toplam_net_kar", 0)
-        kar_marji    = k.get("kar_marji", 0)
+        donem_geliri = g.get("toplam_gelir", 0)
+        borc_gelir_orani = mevcut_borc / donem_geliri if donem_geliri > 0 else None
+        dscr = (
+            operasyonel_nakit / yillik_borc_servisi
+            if operasyonel_nakit is not None and yillik_borc_servisi not in (None, 0)
+            else None
+        )
 
-        # Borç kapasitesi (DSCR ≥ 1.25 hedefi)
-        max_yillik_borc_servisi = yillik_kar / 1.25 if yillik_kar > 0 else 0
-
-        # Refinansman önerisi
         oneriler = []
-        if faiz_orani > 0.35:
+        if mevcut_borc > 0:
             oneriler.append({
-                "tip": "Refinansman",
-                "aciklama": f"Mevcut %{faiz_orani*100:.0f} faiz oranı yüksek.",
-                "eylem": "Daha düşük faizli kredi ile mevcut borcu kapatın.",
-                "tasarruf": round(mevcut_borc * (faiz_orani - 0.30), 0),
+                "tip": "Borç koşulları incelemesi",
+                "aciklama": "Anapara, faiz, vade ve teminat koşullarını teklif bazında karşılaştırın.",
+                "eylem": "Refinansman kararı öncesi toplam geri ödeme ve nakit etkisini CFO onayına sunun.",
+                "tasarruf": None,
+                "dayanak": f"Toplam borç ₺{mevcut_borc:,.0f}",
+                "insan_onayi": True,
             })
-
-        if mevcut_borc > yillik_gelir * 2:
+        if dscr is None:
             oneriler.append({
-                "tip": "Borç Azaltma",
-                "aciklama": "Borç/Gelir oranı 2x'i aşıyor — yüksek kaldıraç.",
-                "eylem": "Serbest nakit akışını borç ödemesine yönlendirin.",
-                "tasarruf": 0,
-            })
-
-        if kar_marji > 15 and mevcut_borc < yillik_gelir:
-            oneriler.append({
-                "tip": "Stratejik Borçlanma",
-                "aciklama": "Finansal durum güçlü — büyüme için borç alınabilir.",
-                "eylem": f"Yıllık gelirin %50'sine kadar büyüme kredisi değerlendirin.",
-                "tasarruf": 0,
+                "tip": "DSCR veri tamamlama",
+                "aciklama": "Borç servis karşılama oranı net kârdan hesaplanamaz.",
+                "eylem": "Operasyonel nakit akışı ile dönem anapara ve faiz ödemelerini girin.",
+                "tasarruf": None,
+                "dayanak": "Operasyonel nakit veya borç servisi eksik.",
+                "insan_onayi": True,
             })
 
         return {
             "mevcut_borc":           mevcut_borc,
-            "faiz_orani_pct":        round(faiz_orani * 100, 1),
-            "max_yillik_borc_servis":round(max_yillik_borc_servisi, 0),
+            "faiz_orani_pct":        round(faiz_orani * 100, 1) if faiz_orani is not None else None,
+            "max_yillik_borc_servis":None,
             "oneriler":              oneriler,
-            "borc_gelir_orani":      round(mevcut_borc / yillik_gelir, 2) if yillik_gelir > 0 else 0,
+            "borc_gelir_orani":      round(borc_gelir_orani, 2) if borc_gelir_orani is not None else None,
+            "dscr":                   round(dscr, 2) if dscr is not None else None,
+            "insan_onayi_gerekli":   True,
         }
 
 
@@ -425,8 +390,9 @@ class ReportGeneratorTool:
 ## 💡 Bu Dönem Öncelikli Aksiyonlar
 {aksiyonlar}
 
-## 📈 Gelecek Dönem Tahmini
-- Mevcut trendde devam edilirse: {trend_yorum}
+## 🧭 Veri ve Onay Durumu
+- Otomatik aksiyon yoktur. Ödeme, kredi ve yatırım kararları insan onayı gerektirir.
+- Gelecek dönem tahmini yalnızca doğrulanmış zaman serisiyle ayrıca üretilir.
 
 ---
 *Bu rapor KazKaz AI CFO Agent tarafından otomatik oluşturulmuştur.*
@@ -457,11 +423,11 @@ class ReportGeneratorTool:
         # Trend yorumu
         trend = k.get("kar_trendi", "Stabil")
         if "Artış" in trend:
-            trend_yorum = "Karlılık artış trendini koruması bekleniyor"
+            trend_yorum = "Karlılık artış eğiliminde; tahmin değildir"
         elif "Düşüş" in trend:
-            trend_yorum = "Karlılıkta düşüş riski — önlem alınmalı"
+            trend_yorum = "Karlılık düşüş eğiliminde; neden analizi gerekir"
         else:
-            trend_yorum = "Stabil seyir bekleniyor"
+            trend_yorum = "Tahmin üretmek için yeterli doğrulanmış zaman serisi yok"
 
         return self.RAPOR_SABLONU.format(
             periyot     = periyot,
@@ -544,19 +510,20 @@ class CFOAgent:
 
         # 4. Borç önerileri
         toplam_borc = 0
-        faiz_orani  = 0.40
+        faiz_orani  = None
         if self.debt_rapor:
             toplam_borc = self.debt_rapor.get(
                 "portfolio_ozet", {}).get("toplam_borc", 0)
-            faiz_orani  = self.debt_rapor.get(
-                "portfolio_ozet", {}).get("agirlikli_faiz", 40) / 100
+            agirlikli_faiz = self.debt_rapor.get(
+                "portfolio_ozet", {}).get("agirlikli_faiz")
+            faiz_orani = agirlikli_faiz / 100 if agirlikli_faiz is not None else None
         try:
             debt_oneri = self.debt_tool.run(self.fin_rapor, toplam_borc, faiz_orani)
         except Exception:
             debt_oneri = {
                 "mevcut_borc": 0, "faiz_orani_pct": 0,
-                "max_yillik_borc_servis": 0, "oneriler": [],
-                "borc_gelir_orani": 0,
+                "max_yillik_borc_servis": None, "oneriler": [],
+                "borc_gelir_orani": None, "dscr": None,
             }
 
         # 5. Uyarıları önceliklendir

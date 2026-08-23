@@ -1,0 +1,101 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    function girisYapildi() {
+      return request.auth != null;
+    }
+
+    function kendiKimligi(kullaniciId) {
+      return girisYapildi() && request.auth.uid == kullaniciId;
+    }
+
+    function sirketUyesi(sirketId) {
+      return girisYapildi()
+        && exists(/databases/$(database)/documents/companies/$(sirketId)/members/$(request.auth.uid))
+        && get(/databases/$(database)/documents/companies/$(sirketId)/members/$(request.auth.uid)).data.role
+          in ['admin', 'cfo', 'analyst', 'viewer'];
+    }
+
+    function sirketRolu(sirketId) {
+      return get(/databases/$(database)/documents/companies/$(sirketId)/members/$(request.auth.uid)).data.role;
+    }
+
+    function finansYazabilir(sirketId) {
+      return sirketUyesi(sirketId)
+        && sirketRolu(sirketId) in ['admin', 'cfo', 'analyst'];
+    }
+
+    match /users/{kullaniciId} {
+      allow read: if kendiKimligi(kullaniciId);
+
+      allow create: if kendiKimligi(kullaniciId)
+        && request.resource.data.uid == request.auth.uid
+        && request.resource.data.role == 'member'
+        && request.resource.data.companyId == null;
+
+      allow update: if kendiKimligi(kullaniciId)
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['displayName', 'photoURL']);
+
+      allow delete: if false;
+    }
+
+    match /companies/{sirketId} {
+      allow read: if sirketUyesi(sirketId);
+      allow write: if false;
+
+      match /members/{uyeId} {
+        allow read: if sirketUyesi(sirketId);
+        allow write: if false;
+      }
+
+      match /financialRecords/{kayitId} {
+        allow read: if sirketUyesi(sirketId);
+        allow create: if finansYazabilir(sirketId)
+          && request.resource.data.companyId == sirketId
+          && request.resource.data.userId == request.auth.uid;
+        allow update: if finansYazabilir(sirketId)
+          && resource.data.companyId == sirketId
+          && request.resource.data.companyId == sirketId
+          && request.resource.data.userId == resource.data.userId
+          && (resource.data.userId == request.auth.uid
+            || sirketRolu(sirketId) in ['admin', 'cfo']);
+        allow delete: if sirketUyesi(sirketId)
+          && sirketRolu(sirketId) in ['admin', 'cfo'];
+      }
+
+      match /workspaces/{calismaAlaniId} {
+        // Finansal çalışma alanı yalnız doğrulanmış backend tarafından yazılır.
+        // Böylece rol, boyut, saklama süresi ve denetim kaydı tek noktada uygulanır.
+        allow read, write: if false;
+      }
+
+      match /feedback/{geriBildirimId} {
+        allow read, write: if false;
+      }
+
+      match /auditLogs/{logId} {
+        allow read: if sirketUyesi(sirketId)
+          && sirketRolu(sirketId) in ['admin', 'cfo'];
+        allow write: if false;
+      }
+
+      match /reports/{raporId} {
+        // Rapor girdileri finansal veri içerir ve yalnız doğrulanmış backend'den erişilir.
+        allow read, write: if false;
+      }
+
+      match /invitations/{davetId} {
+        // Davet ve rol ataması yalnız Firebase Admin üzerinden yapılır.
+        allow read, write: if false;
+      }
+    }
+
+    match /invitationIndex/{davetId} {
+      allow read, write: if false;
+    }
+
+    match /financialRecords/{kayitId} {
+      allow read, write: if false;
+    }
+  }
+}

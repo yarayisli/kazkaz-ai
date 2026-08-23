@@ -1,0 +1,23 @@
+{
+  "rapor_tarihi": "2026-04-30",
+  "baslangic_nakdi": 1000000,
+  "minimum_nakit_esigi": 750000,
+  "operasyonel_nakit_akisi": 1200000,
+  "mizan": [
+    {"donem": "2026-03", "hesap_kodu": "100", "hesap_adi": "Kasa", "borc": 1000000, "alacak": 0, "esleme": "aktif"},
+    {"donem": "2026-03", "hesap_kodu": "300", "hesap_adi": "Kısa Vadeli Borç", "borc": 0, "alacak": 400000, "esleme": "pasif"},
+    {"donem": "2026-03", "hesap_kodu": "500", "hesap_adi": "Sermaye", "borc": 0, "alacak": 600000, "esleme": "özkaynak"}
+  ],
+  "haftalik_nakit": [
+    {"hafta": "2026-05-04", "tahsilat": 250000, "nakit_satis": 50000, "diger_giris": 0, "tedarikci": 180000, "personel": 70000, "vergi": 20000, "borc_servisi": 30000, "diger_cikis": 10000}
+  ],
+  "alacak_faturalari": [
+    {"fatura_id": "F-1001", "musteri_id": "M-01", "musteri_adi": "Örnek Müşteri", "fatura_tarihi": "2026-03-01", "vade_tarihi": "2026-03-31", "tutar": 250000, "odenen": 50000}
+  ],
+  "borc_servisi": [
+    {"borc_id": "B-01", "alacakli": "Örnek Banka", "odeme_tarihi": "2026-05-15", "anapara": 200000, "faiz": 25000, "para_birimi": "TRY"}
+  ],
+  "butce": [
+    {"ay": "2026-01-01", "kategori": "Operasyon", "departman": "Genel", "proje": "Genel", "butce": 500000, "gerceklesen": 520000, "onceki_tahmin": 510000}
+  ]
+}

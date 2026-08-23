@@ -1,9 +1,10 @@
 """
-KazKaz AI - AI Analiz Motoru (Groq + Gemini destekli)
+KazKaz AI - AI Analiz Motoru (NVIDIA + Groq + Gemini destekli)
 ======================================================
 v2.1 — Streaming desteği eklendi.
 
-Groq (ücretsiz, hızlı) veya Gemini ile çalışır.
+NVIDIA NIM, Groq veya Gemini ile çalışır.
+NVIDIA varsayılan modeli: openai/gpt-oss-20b (düşük gecikmeli V1 profili)
 Groq modelleri: llama-3.3-70b-versatile, mixtral-8x7b-32768
 
 Kullanım:
@@ -19,6 +20,7 @@ Kullanım:
 
 from typing import Dict, Any, List, Optional, Generator
 import json
+import os
 
 try:
     from llm_guardrail import Guardrail, GuardrailError
@@ -44,16 +46,20 @@ Cevaplarında:
 ✓ Türkçe yaz
 ✓ Yönetici dostu, kısa ve öz ol
 ✓ Somut sayılar ve oranlar kullan
-✓ Her yorumun sonunda 1-2 öneri ekle
+✓ Yalnızca verilen ve doğrulanmış sayıları kullan
+✓ Her önerinin dayandığı metriği açıkça göster
+✓ Eksik veya çelişkili veride kesin hüküm yerine veri ihtiyacını belirt
+✓ İnsan onayı gerektiren aksiyonları açıkça işaretle
 ✗ Teknik jargondan kaçın
-✗ Belirsiz veya genel ifadeler kullanma
+✗ Finansal değer, sektör ortalaması veya tahmin uydurma
+✗ Kullanıcı adına ödeme, kredi, yatırım ya da muhasebe işlemi başlatma
 """
 
 
 class GeminiEngine:
     """
     KazKaz AI için AI motoru.
-    Groq (varsayılan) veya Gemini ile çalışır.
+    NVIDIA NIM, Groq, Gemini veya OpenAI ile çalışır.
     Her metod hem bloke hem streaming modunda çalışabilir.
     """
 
@@ -99,7 +105,7 @@ class GeminiEngine:
             try:
                 from groq import Groq
                 self._client = Groq(api_key=self.api_key)
-                self._model  = "llama-3.3-70b-versatile"
+                self._model  = os.getenv("GROQ_MODEL", "llama-3.3-70b-versatile").strip()
             except ImportError:
                 raise ImportError("groq kurulu değil: pip install groq")
 
@@ -108,10 +114,10 @@ class GeminiEngine:
                 import google.generativeai as genai
                 genai.configure(api_key=self.api_key)
                 self._client = genai.GenerativeModel(
-                    model_name="gemini-2.0-flash",
+                    model_name=os.getenv("GEMINI_MODEL", "gemini-2.0-flash").strip(),
                     system_instruction=SYSTEM_PROMPT,
                 )
-                self._model = "gemini-2.0-flash"
+                self._model = os.getenv("GEMINI_MODEL", "gemini-2.0-flash").strip()
             except ImportError:
                 raise ImportError("google-generativeai kurulu değil")
 
@@ -119,7 +125,25 @@ class GeminiEngine:
             try:
                 from openai import OpenAI
                 self._client = OpenAI(api_key=self.api_key)
-                self._model  = "gpt-4o-mini"
+                self._model  = os.getenv("OPENAI_MODEL", "gpt-4o-mini").strip()
+            except ImportError:
+                raise ImportError("openai kurulu değil: pip install openai")
+
+        elif self.provider == "nvidia":
+            try:
+                from openai import OpenAI
+
+                self._client = OpenAI(
+                    base_url=os.getenv(
+                        "NVIDIA_BASE_URL", "https://integrate.api.nvidia.com/v1"
+                    ).strip().rstrip("/"),
+                    api_key=self.api_key,
+                    timeout=float(os.getenv("NVIDIA_TIMEOUT_SECONDS", "30")),
+                    max_retries=int(os.getenv("NVIDIA_MAX_RETRIES", "0")),
+                )
+                self._model = os.getenv(
+                    "NVIDIA_MODEL", "openai/gpt-oss-20b"
+                ).strip()
             except ImportError:
                 raise ImportError("openai kurulu değil: pip install openai")
 
@@ -129,6 +153,14 @@ class GeminiEngine:
     # ─────────────────────────────────────────────────────────────────────────
     # DÜŞÜK SEVİYE ÇAĞRI — Bloke eden (geriye dönük uyumlu)
     # ─────────────────────────────────────────────────────────────────────────
+
+    def _sampling_options(self) -> Dict[str, Any]:
+        """Sağlayıcının resmi örneğine uygun örnekleme ayarlarını döndürür."""
+        if self.provider == "nvidia" and self._model in {"openai/gpt-oss-20b", "openai/gpt-oss-120b"}:
+            return {"temperature": 1.0, "top_p": 1.0, "reasoning_effort": "low"}
+        if self.provider == "nvidia":
+            return {"temperature": 0.2, "top_p": 0.7}
+        return {"temperature": 0.7}
 
     def _call(self, prompt: str, max_tokens: int = 1500) -> str:
         """Provider'a göre tam yanıt döner (bloke eder). Guardrail + cache sarmalıyla."""
@@ -147,7 +179,7 @@ class GeminiEngine:
 
         result = ""
         try:
-            if self.provider in ("groq", "openai"):
+            if self.provider in ("groq", "openai", "nvidia"):
                 response = self._client.chat.completions.create(
                     model=self._model,
                     messages=[
@@ -155,7 +187,7 @@ class GeminiEngine:
                         {"role": "user",   "content": prompt},
                     ],
                     max_tokens=max_tokens,
-                    temperature=0.7,
+                    **self._sampling_options(),
                 )
                 result = response.choices[0].message.content
 
@@ -172,6 +204,15 @@ class GeminiEngine:
         self._guard_post(prompt, result)
         return result
 
+    def generate(self, prompt: str, max_tokens: int = 1500) -> str:
+        """Sağlayıcıdan metin üretir; API orkestrasyonunun açık giriş noktasıdır."""
+        return self._call(prompt, max_tokens=max_tokens)
+
+    @property
+    def model_name(self) -> str:
+        """Gizli bilgi içermeyen, gözlemlenebilir model adını döndürür."""
+        return self._model
+
     # ─────────────────────────────────────────────────────────────────────────
     # DÜŞÜK SEVİYE ÇAĞRI — Streaming generator
     # ─────────────────────────────────────────────────────────────────────────
@@ -186,7 +227,7 @@ class GeminiEngine:
                 collected += chunk
         """
         try:
-            if self.provider == "groq":
+            if self.provider in ("groq", "openai", "nvidia"):
                 stream = self._client.chat.completions.create(
                     model=self._model,
                     messages=[
@@ -194,8 +235,8 @@ class GeminiEngine:
                         {"role": "user",   "content": prompt},
                     ],
                     max_tokens=max_tokens,
-                    temperature=0.7,
                     stream=True,
+                    **self._sampling_options(),
                 )
                 for chunk in stream:
                     delta = chunk.choices[0].delta.content
@@ -207,21 +248,6 @@ class GeminiEngine:
                 for chunk in response:
                     if chunk.text:
                         yield chunk.text
-
-            elif self.provider == "openai":
-                stream = self._client.chat.completions.create(
-                    model=self._model,
-                    messages=[
-                        {"role": "system", "content": SYSTEM_PROMPT},
-                        {"role": "user",   "content": prompt},
-                    ],
-                    max_tokens=max_tokens,
-                    stream=True,
-                )
-                for chunk in stream:
-                    delta = chunk.choices[0].delta.content
-                    if delta:
-                        yield delta
 
         except Exception as e:
             yield f"\n\n⚠️ Streaming hatası: {str(e)}"
@@ -460,7 +486,7 @@ Her öneri için: ne yapılmalı, neden yapılmalı, beklenen etki.
 
     def _chat_call(self) -> str:
         """Sohbet — bloke eden tam çağrı."""
-        if self.provider in ("groq", "openai"):
+        if self.provider in ("groq", "openai", "nvidia"):
             messages = [{"role": "system", "content": SYSTEM_PROMPT}] + [
                 {"role": m["role"], "content": m["content"]}
                 for m in self.chat_history
@@ -469,6 +495,7 @@ Her öneri için: ne yapılmalı, neden yapılmalı, beklenen etki.
                 model=self._model,
                 messages=messages,
                 max_tokens=1000,
+                **self._sampling_options(),
             )
             return response.choices[0].message.content
 

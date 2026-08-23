@@ -1,0 +1,18 @@
+Tarih,Kategori,Gelir,Gider,Müşteri,Ürün,Gider_Tipi,Vade_Tarihi
+2026-01-05,Satış,120000,0,Atlas AŞ,ERP,,2026-02-05
+2026-01-15,Hammadde,0,45000,,,COGS,
+2026-02-05,Satış,130000,0,Atlas AŞ,ERP,,2026-03-05
+2026-02-18,Satış,70000,0,Bora Ltd,Danışmanlık,,2026-03-18
+2026-02-25,Personel,0,55000,,,OPEX,
+2026-03-03,Satış,145000,0,Atlas AŞ,ERP,,2026-04-03
+2026-03-20,Satış,80000,0,Cem AŞ,CRM,,2026-04-20
+2026-03-27,Kira,0,25000,,,OPEX,
+2026-04-04,Satış,155000,0,Atlas AŞ,ERP,,2026-05-04
+2026-04-17,Satış,90000,0,Bora Ltd,Danışmanlık,,2026-05-17
+2026-04-28,Personel,0,58000,,,OPEX,
+2026-05-06,Satış,170000,0,Atlas AŞ,ERP,,2026-06-06
+2026-05-19,Satış,95000,0,Cem AŞ,CRM,,2026-06-19
+2026-05-30,Hammadde,0,62000,,,COGS,
+2026-06-05,Satış,185000,0,Atlas AŞ,ERP,,2026-07-05
+2026-06-21,Satış,110000,0,Bora Ltd,Danışmanlık,,2026-07-21
+2026-06-29,Personel,0,60000,,,OPEX,

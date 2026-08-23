@@ -1,0 +1,17 @@
+.git
+.env
+.env.*
+!.env.example
+*firebase-adminsdk*.json
+firebase-key.json
+*service-account*.json
+*.pem
+*.key
+.venv
+web/node_modules
+web/dist
+__pycache__
+*.pyc
+outputs
+tmp
+.DS_Store

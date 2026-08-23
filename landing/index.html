@@ -1,691 +1,534 @@
 <!DOCTYPE html>
 <html lang="tr">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>KazKaz AI — Yapay Zeka Destekli Finansal Karar Platformu</title>
-  <meta name="description" content="Türkiye KOBİ'leri için CFO düzeyinde finansal analiz. Logo, Mikro, Netsis entegrasyonu. 30 saniyede analiz.">
-  <style>
-    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-    html { scroll-behavior: smooth; }
-    body {
-      font-family: -apple-system, 'Segoe UI', 'Helvetica Neue', Arial, sans-serif;
-      background: #fff;
-      color: #0F1729;
-      -webkit-font-smoothing: antialiased;
-    }
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>KazKaz AI — Yatırımcıya hazır şirketler için AI CFO platformu</title>
+<meta name="description" content="14 modüllü finansal CFO platformu. KOBİ ve startup'lar için 30 saniyede karar destek, risk analizi ve yatırımcıya hazır raporlar.">
+<meta property="og:title" content="KazKaz AI — Dijital CFO Platformu">
+<meta property="og:description" content="KOBİ ve startup'lar için 30 saniyede CFO düzeyinde finansal analiz. 14 modül, AI yorumları, yatırımcıya hazır raporlar.">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'><circle cx='26' cy='32' r='20' fill='%230F2252'/><circle cx='38' cy='32' r='20' fill='%237C3AED' opacity='.85'/><text x='32' y='40' font-size='22' text-anchor='middle' fill='white'>✦</text></svg>">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Hanken+Grotesk:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+html{scroll-behavior:smooth}
+body{font-family:'Hanken Grotesk',-apple-system,'Segoe UI',sans-serif;background:#F4F6FB;color:#0F1729;-webkit-font-smoothing:antialiased;overflow-x:hidden;font-variant-numeric:tabular-nums}
+a{text-decoration:none;color:inherit}
+button{font-family:inherit;cursor:pointer}
+::-webkit-scrollbar{width:10px;height:10px}
+::-webkit-scrollbar-track{background:transparent}
+::-webkit-scrollbar-thumb{background:#cfd2da;border-radius:5px}
 
-    /* ── NAV ── */
-    .nav {
-      display: flex; align-items: center; justify-content: space-between;
-      padding: 0 48px; height: 64px;
-      border-bottom: 0.5px solid #E2E5EB;
-      background: rgba(255,255,255,.96);
-      position: sticky; top: 0; z-index: 100;
-      backdrop-filter: blur(10px);
-    }
-    .nav-logo { display: flex; align-items: center; gap: 10px; text-decoration: none; }
-    .nav-k {
-      width: 34px; height: 34px; background: #0F2252; border-radius: 8px;
-      display: flex; align-items: center; justify-content: center;
-      font-size: 15px; font-weight: 700; color: #fff;
-    }
-    .nav-name { font-size: 15px; font-weight: 700; color: #0F2252; }
-    .nav-name span { color: #2563EB; }
-    .nav-links { display: flex; gap: 32px; }
-    .nav-links a {
-      font-size: 13px; color: #3D4663; text-decoration: none;
-      font-weight: 500; transition: color .15s;
-    }
-    .nav-links a:hover { color: #0F2252; }
-    .nav-cta { display: flex; gap: 10px; align-items: center; }
-    .btn-ghost {
-      padding: 8px 18px; border-radius: 7px; font-size: 13px;
-      font-weight: 500; color: #0F2252; border: 0.5px solid #E2E5EB;
-      background: #fff; cursor: pointer; transition: background .15s;
-    }
-    .btn-ghost:hover { background: #F4F6FB; }
-    .btn-navy {
-      padding: 8px 20px; border-radius: 7px; font-size: 13px;
-      font-weight: 600; color: #fff; background: #0F2252;
-      border: none; cursor: pointer; transition: background .15s;
-    }
-    .btn-navy:hover { background: #1B3A6B; }
+/* Animations */
+@keyframes kzReveal{from{opacity:0;transform:translateY(22px)}to{opacity:1;transform:none}}
+@keyframes kzPulse{0%,100%{transform:scale(1)}50%{transform:scale(1.06)}}
+@keyframes kzGlow{0%,100%{box-shadow:0 0 0 0 rgba(15,34,82,.35)}60%{box-shadow:0 0 0 14px rgba(15,34,82,0)}}
+@keyframes kzMarquee{from{transform:translateX(0)}to{transform:translateX(-50%)}}
+@keyframes kzBarGrow{from{transform:scaleY(0)}to{transform:scaleY(1)}}
+@keyframes kzDot{0%,100%{opacity:1}50%{opacity:.35}}
+.kz-reveal{opacity:0;transform:translateY(22px)}
+.kz-revealed{opacity:1;transform:none;transition:opacity .55s cubic-bezier(.22,1,.36,1),transform .55s cubic-bezier(.22,1,.36,1)}
+.kz-s1{transition-delay:.07s!important}.kz-s2{transition-delay:.14s!important}
+.kz-s3{transition-delay:.21s!important}.kz-s4{transition-delay:.28s!important}
 
-    /* ── HERO ── */
-    .hero {
-      padding: 96px 48px 80px; text-align: center;
-      background: linear-gradient(180deg, #F4F6FB 0%, #fff 100%);
-      position: relative; overflow: hidden;
-    }
-    .hero::before {
-      content: ''; position: absolute; top: -80px; left: 50%;
-      transform: translateX(-50%); width: 800px; height: 800px;
-      background: radial-gradient(circle, rgba(37,99,235,.07) 0%, transparent 70%);
-      pointer-events: none;
-    }
-    .hero-badge {
-      display: inline-flex; align-items: center; gap: 7px;
-      background: #EEF2FF; border: 0.5px solid #C7D2FE;
-      border-radius: 20px; padding: 5px 16px;
-      font-size: 11px; font-weight: 600; color: #0F2252;
-      letter-spacing: .04em; margin-bottom: 28px;
-    }
-    .hero-badge-dot {
-      width: 7px; height: 7px; border-radius: 50%; background: #2563EB;
-      animation: pulse 2s infinite;
-    }
-    @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:.35} }
-    .hero-title {
-      font-size: 52px; font-weight: 800; color: #0F1729;
-      letter-spacing: -.045em; line-height: 1.08;
-      margin-bottom: 22px; max-width: 760px;
-      margin-left: auto; margin-right: auto;
-    }
-    .hero-title .underline {
-      color: #0F2252; position: relative; display: inline-block;
-    }
-    .hero-title .underline::after {
-      content: ''; position: absolute; bottom: -5px; left: 0; right: 0;
-      height: 4px; background: linear-gradient(90deg, #0F2252, #2563EB);
-      border-radius: 2px;
-    }
-    .hero-sub {
-      font-size: 17px; color: #3D4663; line-height: 1.7;
-      max-width: 540px; margin: 0 auto 40px;
-    }
-    .hero-btns { display: flex; gap: 12px; justify-content: center; margin-bottom: 52px; }
-    .btn-hero-primary {
-      padding: 14px 30px; border-radius: 10px; font-size: 14px; font-weight: 700;
-      color: #fff; background: #0F2252; border: none; cursor: pointer;
-      box-shadow: 0 4px 18px rgba(15,34,82,.28); transition: all .15s;
-    }
-    .btn-hero-primary:hover { background: #1B3A6B; transform: translateY(-1px); box-shadow: 0 6px 22px rgba(15,34,82,.32); }
-    .btn-hero-secondary {
-      padding: 14px 26px; border-radius: 10px; font-size: 14px; font-weight: 600;
-      color: #0F2252; background: #fff; border: 1px solid #E2E5EB; cursor: pointer;
-      transition: all .15s;
-    }
-    .btn-hero-secondary:hover { background: #F4F6FB; }
-    .hero-trust { display: flex; align-items: center; justify-content: center; gap: 22px; flex-wrap: wrap; }
-    .trust-item { display: flex; align-items: center; gap: 6px; font-size: 12px; color: #6B7280; }
-    .trust-check {
-      width: 17px; height: 17px; background: #ECFDF5; border-radius: 50%;
-      display: flex; align-items: center; justify-content: center;
-      font-size: 9px; color: #059669; font-weight: 700; flex-shrink: 0;
-    }
-    .trust-sep { width: 1px; height: 16px; background: #E2E5EB; }
+/* Nav */
+.kz-nav{display:flex;align-items:center;justify-content:space-between;padding:0 40px;height:64px;background:rgba(255,255,255,.72);backdrop-filter:blur(20px) saturate(180%);-webkit-backdrop-filter:blur(20px) saturate(180%);border-bottom:1px solid rgba(15,34,82,.06);position:sticky;top:0;z-index:100}
+.kz-nav-logo{display:flex;align-items:center;gap:10px}
+.kz-nav-mark{position:relative;width:38px;height:28px}
+.kz-nav-c1{position:absolute;left:0;top:2px;width:24px;height:24px;border-radius:50%;background:radial-gradient(circle at 35% 35%,#2A538F,#0F2252)}
+.kz-nav-c2{position:absolute;right:0;top:2px;width:24px;height:24px;border-radius:50%;background:radial-gradient(circle at 65% 35%,#9B6DF2,#7C3AED);mix-blend-mode:multiply}
+.kz-nav-star{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);color:#fff;font-size:11px;z-index:2}
+.kz-nav-name{font:800 19px 'Hanken Grotesk',sans-serif;letter-spacing:-.02em}
+.kz-nav-name span{background:linear-gradient(90deg,#0F2252,#7C3AED);-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent}
+.kz-nav-links{display:flex;gap:22px;align-items:center}
+.kz-nav-links a{font:500 13px 'Hanken Grotesk',sans-serif;color:#3D4663;transition:color .15s;padding:0}
+.kz-nav-links a:hover{color:#0F2252}
+.kz-nav-cta{display:flex;gap:10px;align-items:center}
+.kz-btn{display:inline-flex;align-items:center;gap:6px;border:none;border-radius:9px;transition:all .15s ease}
+.kz-btn-ghost{background:none;border:1px solid #D6DAE2;color:#0F2252;padding:9px 18px;font:600 14px 'Hanken Grotesk',sans-serif}
+.kz-btn-ghost:hover{background:#F7F8FA}
+.kz-btn-navy{background:#0F2252;color:#fff;padding:10px 18px;font:600 14px 'Hanken Grotesk',sans-serif}
+.kz-btn-navy:hover{background:#1B3A6B}
+.kz-btn-hero{background:#0F2252;color:#fff;border:none;border-radius:11px;padding:16px 34px;font:700 15px 'Hanken Grotesk',sans-serif;box-shadow:0 10px 28px rgba(15,34,82,.26);animation:kzGlow 2.2s ease-in-out infinite}
+.kz-btn-hero:hover{background:#1B3A6B;transform:translateY(-2px)}
+.kz-btn-hero:active{transform:scale(.97)}
+.kz-btn-outline-hero{background:none;border:none;color:#8B93A8;font:500 14px 'Hanken Grotesk',sans-serif;text-decoration:underline;text-underline-offset:3px;padding:0}
+.kz-btn-outline-hero:hover{color:#0F2252}
 
-    /* ── PREVIEW ── */
-    .preview-wrap { padding: 0 48px 80px; }
-    .preview-label {
-      text-align: center; font-size: 11px; font-weight: 600;
-      color: #8B93A8; letter-spacing: .12em; text-transform: uppercase;
-      margin-bottom: 18px;
-    }
-    .preview-card {
-      background: #F4F6FB; border: 1px solid #E2E5EB; border-radius: 18px;
-      padding: 22px; box-shadow: 0 8px 48px rgba(15,34,82,.09); overflow: hidden;
-    }
-    .preview-topbar {
-      background: #0F2252; border-radius: 12px 12px 0 0;
-      height: 38px; display: flex; align-items: center; padding: 0 16px; gap: 7px;
-      margin: -22px -22px 18px;
-    }
-    .preview-dot { width: 11px; height: 11px; border-radius: 50%; }
-    .preview-topbar-title {
-      font-size: 11px; color: rgba(255,255,255,.55);
-      margin-left: 8px; flex: 1; text-align: center;
-    }
-    .preview-kpis { display: grid; grid-template-columns: repeat(4,1fr); gap: 10px; margin-bottom: 14px; }
-    .preview-kpi {
-      background: #fff; border: 0.5px solid #E2E5EB; border-radius: 9px;
-      padding: 12px 13px 10px 15px; position: relative; overflow: hidden;
-    }
-    .preview-kpi-acc { position: absolute; left: 0; top: 9px; bottom: 9px; width: 3px; border-radius: 0 2px 2px 0; }
-    .preview-kpi-lbl { font-size: 8px; font-weight: 700; letter-spacing: .1em; text-transform: uppercase; color: #8B93A8; margin-bottom: 5px; }
-    .preview-kpi-val { font-size: 20px; font-weight: 700; color: #0F1729; letter-spacing: -.035em; line-height: 1; }
-    .preview-kpi-d { font-size: 9px; font-weight: 600; padding: 2px 6px; border-radius: 3px; margin-top: 5px; display: inline-block; }
-    .preview-body { display: grid; grid-template-columns: 2fr 1fr; gap: 12px; }
-    .preview-chart-card, .preview-health-card {
-      background: #fff; border: 0.5px solid #E2E5EB; border-radius: 9px; padding: 14px;
-    }
-    .preview-sec { font-size: 8px; font-weight: 700; letter-spacing: .1em; text-transform: uppercase; color: #8B93A8; margin-bottom: 10px; }
-    .preview-bars { display: flex; align-items: flex-end; gap: 4px; height: 70px; }
-    .preview-bar { border-radius: 3px 3px 0 0; flex: 1; }
-    .preview-hbar { margin-bottom: 12px; }
-    .preview-hbar-top { display: flex; justify-content: space-between; margin-bottom: 4px; }
-    .preview-hbar-lbl { font-size: 10px; color: #3D4663; }
-    .preview-hbar-val { font-size: 10px; font-weight: 700; }
-    .preview-hbar-track { background: #F3F5F9; border-radius: 2px; height: 5px; overflow: hidden; }
-    .preview-hbar-fill { height: 100%; border-radius: 2px; }
+/* Hero */
+.kz-hero{padding:52px 48px 44px;background:radial-gradient(ellipse 80% 55% at 50% 0%,#F3F1FE,#fff);display:grid;grid-template-columns:1fr 320px;gap:56px;align-items:center;max-width:1160px;margin:0 auto}
+.kz-hero-avatars{display:flex;align-items:center;gap:10px;margin-bottom:22px}
+.kz-hero-av{width:26px;height:26px;border-radius:50%;border:2px solid #fff;display:flex;align-items:center;justify-content:center;font:700 9px 'Hanken Grotesk',sans-serif;color:#fff;margin-right:-7px;position:relative}
+.kz-hero h1{font:900 48px/1.08 'Hanken Grotesk',sans-serif;letter-spacing:-.035em;color:#0A1628;margin:0 0 20px}
+.kz-hero h1 span{background:linear-gradient(90deg,#0F2252,#7C3AED);-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent;display:inline-block}
+.kz-hero-sub{font:400 17px/1.65 'Hanken Grotesk',sans-serif;color:#3D4663;margin:0 0 28px;max-width:500px}
+.kz-hero-live{display:inline-flex;align-items:center;gap:7px;background:#FEF2F2;border:1px solid #FCA5A5;border-radius:20px;padding:6px 13px;margin-bottom:18px}
+.kz-hero-live-dot{width:8px;height:8px;border-radius:50%;background:#DC2626;flex:none;box-shadow:0 0 0 3px rgba(220,38,38,.2);animation:kzDot 2s infinite}
+.kz-hero-live span{font:600 12.5px 'Hanken Grotesk',sans-serif;color:#DC2626}
+.kz-hero-btns{display:flex;gap:12px;align-items:center;margin-bottom:20px}
+.kz-hero-trust{display:flex;gap:22px;flex-wrap:wrap}
+.kz-trust{font:500 12.5px 'Hanken Grotesk',sans-serif;color:#8B93A8;display:flex;align-items:center;gap:6px}
+.kz-trust-check{width:16px;height:16px;border-radius:50%;background:#ECFDF5;border:1px solid #BBF7D0;display:flex;align-items:center;justify-content:center;font-size:9px;color:#059669;flex:none}
 
-    /* ── STATS ── */
-    .stats {
-      padding: 56px 48px; background: #0F2252;
-      display: grid; grid-template-columns: repeat(4,1fr); gap: 0;
-    }
-    .stat-item { text-align: center; padding: 28px 20px; position: relative; }
-    .stat-item::after {
-      content: ''; position: absolute; right: 0; top: 25%; bottom: 25%;
-      width: 1px; background: rgba(255,255,255,.1);
-    }
-    .stat-item:last-child::after { display: none; }
-    .stat-num { font-size: 40px; font-weight: 800; color: #fff; letter-spacing: -.04em; margin-bottom: 7px; }
-    .stat-num span { color: #60A5FA; }
-    .stat-lbl { font-size: 12px; color: rgba(255,255,255,.5); font-weight: 500; }
+/* Mini Dashboard */
+.kz-mini{background:#fff;border-radius:14px;border:.5px solid #E2E5EB;padding:20px;box-shadow:0 4px 22px rgba(15,34,82,.08)}
+.kz-mini-badge{font:700 9px 'Hanken Grotesk',sans-serif;letter-spacing:.12em;text-transform:uppercase;color:#8B93A8;margin-bottom:13px}
+.kz-mini-cards{display:flex;flex-direction:column;gap:9px}
+.kz-mini-kpi{background:#fff;border:.5px solid #E2E5EB;border-radius:9px;padding:13px 15px;position:relative;overflow:hidden}
+.kz-mini-kpi-acc{position:absolute;left:0;top:0;bottom:0;width:3px}
+.kz-mini-kpi-lbl{font:700 9px 'Hanken Grotesk',sans-serif;letter-spacing:.1em;text-transform:uppercase;color:#8B93A8;margin-bottom:5px}
+.kz-mini-kpi-val{font:800 22px 'Hanken Grotesk',sans-serif;letter-spacing:-.03em;color:#0A1628}
+.kz-mini-kpi-d{font:600 10px 'Hanken Grotesk',sans-serif;margin-top:3px}
+.kz-mini-hint{text-align:center;font:500 11px 'Hanken Grotesk',sans-serif;color:#A9B0C0;padding-top:12px}
 
-    /* ── SECTION COMMONS ── */
-    .section-eyebrow {
-      font-size: 10px; font-weight: 700; letter-spacing: .14em;
-      text-transform: uppercase; color: #2563EB; text-align: center; margin-bottom: 10px;
-    }
-    .section-title {
-      font-size: 36px; font-weight: 800; color: #0F1729; text-align: center;
-      letter-spacing: -.035em; margin-bottom: 12px; line-height: 1.15;
-    }
-    .section-sub {
-      font-size: 15px; color: #3D4663; text-align: center;
-      max-width: 500px; margin: 0 auto 52px; line-height: 1.7;
-    }
+/* Product Preview */
+.kz-preview{padding:0 40px 44px}
+.kz-preview-label{text-align:center;font:600 11px 'Hanken Grotesk',sans-serif;letter-spacing:.12em;text-transform:uppercase;color:#8B93A8;margin-bottom:16px}
+.kz-preview-card{max-width:900px;margin:0 auto;background:#F4F6FB;border:1px solid #E2E5EB;border-radius:18px;padding:22px;box-shadow:0 8px 48px rgba(15,34,82,.11);overflow:hidden}
+.kz-preview-topbar{background:#0F2252;border-radius:10px 10px 0 0;height:38px;display:flex;align-items:center;padding:0 16px;gap:7px;margin:-22px -22px 18px}
+.kz-preview-dot{width:11px;height:11px;border-radius:50%}
+.kz-preview-title{font:600 11px 'Hanken Grotesk',sans-serif;color:rgba(255,255,255,.45);margin-left:8px;flex:1;text-align:center}
+.kz-preview-kpis{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:14px}
+.kz-preview-kpi{background:#fff;border:.5px solid #E2E5EB;border-radius:9px;padding:12px 13px 10px 15px;position:relative;overflow:hidden}
+.kz-preview-kpi-acc{position:absolute;left:0;top:9px;bottom:9px;width:3px;border-radius:0 2px 2px 0}
+.kz-preview-kpi-lbl{font:700 8px 'Hanken Grotesk',sans-serif;letter-spacing:.1em;text-transform:uppercase;color:#8B93A8;margin-bottom:5px}
+.kz-preview-kpi-val{font:700 20px 'Hanken Grotesk',sans-serif;letter-spacing:-.035em;line-height:1}
+.kz-preview-kpi-d{font:600 9px 'Hanken Grotesk',sans-serif;padding:2px 6px;border-radius:3px;margin-top:5px;display:inline-block}
+.kz-preview-body{display:grid;grid-template-columns:2fr 1fr;gap:12px}
+.kz-preview-chart,.kz-preview-health{background:#fff;border:.5px solid #E2E5EB;border-radius:9px;padding:14px}
+.kz-preview-sec{font:700 8px 'Hanken Grotesk',sans-serif;letter-spacing:.1em;text-transform:uppercase;color:#8B93A8;margin-bottom:10px}
+.kz-preview-bars{display:flex;align-items:flex-end;gap:4px;height:70px}
+.kz-preview-bar{border-radius:3px 3px 0 0;flex:1;transform-origin:bottom;animation:kzBarGrow .6s cubic-bezier(.22,1,.36,1) both}
+.kz-preview-hbar{margin-bottom:10px}
+.kz-preview-hbar:last-child{margin-bottom:0}
+.kz-preview-hbar-top{display:flex;justify-content:space-between;margin-bottom:4px}
+.kz-preview-hbar-lbl{font:500 10px 'Hanken Grotesk',sans-serif;color:#3D4663}
+.kz-preview-hbar-val{font:700 10px 'Hanken Grotesk',sans-serif}
+.kz-preview-hbar-track{background:#F3F5F9;border-radius:2px;height:5px;overflow:hidden}
+.kz-preview-hbar-fill{height:100%;border-radius:2px;transition:width 1.2s cubic-bezier(.22,1,.36,1)}
 
-    /* ── FEATURES ── */
-    .features { padding: 80px 48px; background: #fff; }
-    .features-grid { display: grid; grid-template-columns: repeat(3,1fr); gap: 16px; }
-    .feature-card {
-      background: #F9FAFB; border: 0.5px solid #E2E5EB; border-radius: 14px;
-      padding: 24px; transition: box-shadow .2s, transform .2s;
-    }
-    .feature-card:hover { box-shadow: 0 6px 24px rgba(15,34,82,.08); transform: translateY(-2px); }
-    .feature-icon {
-      width: 42px; height: 42px; border-radius: 11px;
-      display: flex; align-items: center; justify-content: center;
-      font-size: 20px; margin-bottom: 16px;
-    }
-    .feature-title { font-size: 15px; font-weight: 700; color: #0F1729; margin-bottom: 8px; }
-    .feature-desc { font-size: 13px; color: #3D4663; line-height: 1.65; }
+/* Segments */
+.kz-segments{padding:56px 40px 52px;background:#F4F6FB}
+.kz-seg-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:16px;max-width:1120px;margin:0 auto}
+.kz-seg-card{background:#fff;border:.5px solid #E2E5EB;border-radius:14px;padding:24px;box-shadow:0 2px 12px rgba(15,34,82,.06);display:flex;flex-direction:column;gap:14px;transition:transform .3s cubic-bezier(.16,1,.3,1),box-shadow .3s cubic-bezier(.16,1,.3,1)}
+.kz-seg-card:hover{transform:translateY(-6px);box-shadow:0 12px 32px rgba(15,34,82,.12),0 4px 12px rgba(124,58,237,.08)}
+.kz-seg-card.soon{opacity:.8;transition:opacity .2s}
+.kz-seg-card.soon:hover{opacity:1}
+.kz-seg-top{display:flex;justify-content:space-between;align-items:center}
+.kz-seg-badge{font:700 9px 'Hanken Grotesk',sans-serif;letter-spacing:.08em;text-transform:uppercase;border-radius:4px;padding:3px 8px}
+.kz-seg-badge.active{background:#ECFDF5;color:#059669;border:1px solid #6EE7B7}
+.kz-seg-badge.coming{background:#FFFBEB;color:#D97706;border:1px solid #FCD34D}
+.kz-seg-ico{font-size:22px}
+.kz-seg-card h3{font:800 18px 'Hanken Grotesk',sans-serif;color:#0A1628;margin-bottom:4px}
+.kz-seg-card .sub{font:400 12.5px 'Hanken Grotesk',sans-serif;color:#8B93A8}
+.kz-seg-feats{display:flex;flex-direction:column;gap:7px}
+.kz-seg-feat{display:flex;align-items:center;gap:8px;font:500 12px 'Hanken Grotesk',sans-serif;color:#3D4663}
+.kz-seg-feat .dot{width:16px;height:16px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:9px;flex:none}
+.kz-seg-feat .dot.g{background:#ECFDF5;color:#059669}
+.kz-seg-feat .dot.m{background:#F3F5F9;color:#A9B0C0}
+.kz-seg-cta{border:none;border-radius:9px;padding:11px 16px;font:700 12.5px 'Hanken Grotesk',sans-serif;text-align:left;transition:all .15s}
+.kz-seg-cta.navy{background:#0F2252;color:#fff}
+.kz-seg-cta.navy:hover{background:#1B3A6B}
+.kz-seg-cta.purple{background:linear-gradient(135deg,#7C3AED,#6D28D9);color:#fff}
+.kz-seg-cta.purple:hover{opacity:.88}
+.kz-seg-cta.outline{background:transparent;color:#8B93A8;border:1px solid #D6DAE2}
+.kz-seg-cta.outline:hover{border-color:#2563EB;color:#2563EB}
 
-    /* ── HOW ── */
-    .how { padding: 80px 48px; background: #F4F6FB; }
-    .how-grid {
-      display: grid; grid-template-columns: 1fr auto 1fr auto 1fr;
-      gap: 0; margin-top: 52px; align-items: start;
-    }
-    .step { text-align: center; padding: 32px 24px; }
-    .step-num {
-      width: 48px; height: 48px; border-radius: 50%; background: #0F2252;
-      color: #fff; font-size: 20px; font-weight: 800;
-      display: flex; align-items: center; justify-content: center; margin: 0 auto 18px;
-      box-shadow: 0 4px 14px rgba(15,34,82,.25);
-    }
-    .step-title { font-size: 16px; font-weight: 700; color: #0F1729; margin-bottom: 10px; }
-    .step-desc { font-size: 13px; color: #3D4663; line-height: 1.65; }
-    .step-arrow { display: flex; align-items: center; padding-top: 48px; color: #C7D2FE; font-size: 28px; }
+/* Section Titles */
+.kz-sec-kicker{text-align:center;font:700 10px 'Hanken Grotesk',sans-serif;letter-spacing:.14em;text-transform:uppercase;margin-bottom:8px}
+.kz-sec-title{text-align:center;font:800 30px 'Hanken Grotesk',sans-serif;letter-spacing:-.025em;color:#0A1628;margin-bottom:6px}
+.kz-sec-sub{text-align:center;font:400 14px 'Hanken Grotesk',sans-serif;color:#8B93A8;margin-bottom:36px}
 
-    /* ── SMMM ── */
-    .smmm {
-      padding: 80px 48px; background: #fff;
-      display: grid; grid-template-columns: 1fr 1fr; gap: 60px; align-items: center;
-    }
-    .smmm-title { font-size: 34px; font-weight: 800; color: #0F1729; letter-spacing: -.03em; line-height: 1.2; margin-bottom: 16px; }
-    .smmm-title span { color: #0F2252; }
-    .smmm-desc { font-size: 14px; color: #3D4663; line-height: 1.7; margin-bottom: 28px; }
-    .smmm-features { display: flex; flex-direction: column; gap: 14px; margin-bottom: 28px; }
-    .smmm-feature { display: flex; align-items: flex-start; gap: 12px; }
-    .smmm-feature-icon {
-      width: 30px; height: 30px; border-radius: 8px; background: #EEF2FF;
-      display: flex; align-items: center; justify-content: center;
-      font-size: 14px; flex-shrink: 0; margin-top: 1px;
-    }
-    .smmm-feature-title { font-size: 13px; font-weight: 600; color: #0F1729; margin-bottom: 3px; }
-    .smmm-feature-desc { font-size: 12px; color: #3D4663; line-height: 1.55; }
-    .smmm-card {
-      background: #F4F6FB; border: 1px solid #E2E5EB; border-radius: 16px;
-      padding: 24px; box-shadow: 0 4px 20px rgba(15,34,82,.07);
-    }
-    .smmm-card-header {
-      background: #0F2252; border-radius: 10px; padding: 14px 16px;
-      margin-bottom: 16px; font-size: 11px; color: rgba(255,255,255,.7);
-      display: flex; align-items: center; justify-content: space-between;
-    }
-    .smmm-card-title { font-size: 13px; font-weight: 600; color: #fff; }
-    .smmm-row {
-      display: flex; align-items: center; justify-content: space-between;
-      padding: 10px 0; border-bottom: 0.5px solid #E8EAEF;
-    }
-    .smmm-row:last-child { border-bottom: none; }
-    .smmm-co { font-size: 12px; font-weight: 600; color: #0F1729; }
-    .smmm-co-sub { font-size: 11px; color: #8B93A8; }
-    .smmm-score { font-size: 11px; font-weight: 700; padding: 2px 8px; border-radius: 4px; }
+/* Features (Zone C style) */
+.kz-features{background:#0A1628;color:#fff;padding:60px 40px}
+.kz-features .kz-sec-kicker{color:rgba(155,109,242,.7)}
+.kz-features .kz-sec-title{color:#fff}
+.kz-features .kz-sec-sub{color:rgba(255,255,255,.5)}
+.kz-feat-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:18px;max-width:1040px;margin:0 auto}
+.kz-feat-card{background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.12);border-radius:16px;padding:26px;transition:transform .18s ease,box-shadow .18s ease}
+.kz-feat-card:hover{transform:translateY(-3px);box-shadow:0 12px 28px rgba(0,0,0,.3)}
+.kz-feat-ico{width:44px;height:44px;border-radius:12px;display:flex;align-items:center;justify-content:center;color:#fff;font-size:20px;margin-bottom:16px}
+.kz-feat-card h3{font:700 17px 'Hanken Grotesk',sans-serif;margin-bottom:8px;color:#fff}
+.kz-feat-card p{font:400 13.5px/1.6 'Hanken Grotesk',sans-serif;color:rgba(255,255,255,.58)}
 
-    /* ── PRICING ── */
-    .pricing { padding: 80px 48px; background: #F4F6FB; }
-    .pricing-grid {
-      display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 18px;
-      max-width: 920px; margin: 0 auto;
-    }
-    .price-card {
-      background: #fff; border: 0.5px solid #E2E5EB; border-radius: 16px;
-      padding: 26px; position: relative;
-    }
-    .price-card.popular {
-      border: 2px solid #0F2252;
-      box-shadow: 0 10px 36px rgba(15,34,82,.12);
-    }
-    .popular-badge {
-      position: absolute; top: -13px; left: 50%; transform: translateX(-50%);
-      background: #0F2252; color: #fff; font-size: 9px; font-weight: 800;
-      letter-spacing: .08em; text-transform: uppercase;
-      padding: 4px 16px; border-radius: 20px; white-space: nowrap;
-    }
-    .price-plan { font-size: 13px; font-weight: 700; color: #0F1729; margin-bottom: 8px; }
-    .price-amount { font-size: 36px; font-weight: 800; color: #0F2252; letter-spacing: -.04em; line-height: 1; margin-bottom: 5px; }
-    .price-period { font-size: 12px; color: #8B93A8; margin-bottom: 20px; }
-    .price-features { list-style: none; margin-bottom: 22px; }
-    .price-features li {
-      font-size: 12px; color: #3D4663; padding: 6px 0;
-      border-bottom: 0.5px solid #F3F5F9;
-      display: flex; align-items: center; gap: 7px;
-    }
-    .price-features li::before { content: '✓'; color: #059669; font-weight: 700; font-size: 11px; flex-shrink: 0; }
-    .price-features li.no::before { content: '✗'; color: #D1D5DB; }
-    .price-features li.no { color: #9CA3AF; }
-    .btn-price-primary {
-      width: 100%; padding: 11px; border-radius: 8px; font-size: 13px;
-      font-weight: 700; background: #0F2252; color: #fff; border: none; cursor: pointer;
-      transition: background .15s;
-    }
-    .btn-price-primary:hover { background: #1B3A6B; }
-    .btn-price-outline {
-      width: 100%; padding: 11px; border-radius: 8px; font-size: 13px;
-      font-weight: 600; background: #fff; color: #0F2252;
-      border: 1px solid #E2E5EB; cursor: pointer; transition: background .15s;
-    }
-    .btn-price-outline:hover { background: #F4F6FB; }
+/* Pricing (Zone F style) */
+.kz-pricing{padding:60px 48px;background:#fff;border-top:1px solid #E2E5EB}
+.kz-pricing .kz-sec-kicker{color:#7C3AED}
+.kz-price-anchor{background:#F8F9FC;border:.5px solid #E2E5EB;border-radius:14px;padding:18px 24px;margin-bottom:28px;display:flex;align-items:center;justify-content:center;gap:0;flex-wrap:wrap;max-width:1080px;margin-left:auto;margin-right:auto}
+.kz-price-anchor-item{flex:1;min-width:160px;text-align:center;padding:8px 20px;border-right:1px solid #E2E5EB}
+.kz-price-anchor-item:last-child{border-right:none}
+.kz-price-anchor-lbl{font:600 11px 'Hanken Grotesk',sans-serif;letter-spacing:.06em;text-transform:uppercase;color:#A9B0C0;margin-bottom:5px}
+.kz-price-anchor-val{font:800 22px 'Hanken Grotesk',sans-serif;letter-spacing:-.03em}
+.kz-price-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:16px;max-width:1080px;margin:0 auto 18px;align-items:start}
+.kz-price-card{border-radius:18px;padding:30px 28px;transition:transform .3s cubic-bezier(.16,1,.3,1),box-shadow .3s cubic-bezier(.16,1,.3,1)}
+.kz-price-card:hover{transform:translateY(-6px);box-shadow:0 12px 32px rgba(15,34,82,.10),0 4px 12px rgba(124,58,237,.06);border-color:#C7D2FE}
+.kz-price-card.std{background:#fff;border:.5px solid #E2E5EB}
+.kz-price-card.pop{background:linear-gradient(160deg,#0F2252,#241452);border:1px solid #7C3AED;box-shadow:0 18px 44px rgba(15,34,82,.24),inset 0 1px 0 rgba(255,255,255,.08);transform:translateY(-4px);position:relative}
+.kz-price-card.pop:hover{transform:translateY(-12px);box-shadow:0 28px 60px rgba(15,34,82,.32),0 10px 28px rgba(124,58,237,.22)}
+.kz-price-pop{position:absolute;top:-12px;left:50%;transform:translateX(-50%);background:linear-gradient(90deg,#F2C14E,#FF7A7A);border-radius:20px;padding:5px 14px;font:800 10px 'Hanken Grotesk',sans-serif;letter-spacing:.08em;color:#3A1D00;white-space:nowrap}
+.kz-price-name{font:700 17px 'Hanken Grotesk',sans-serif;margin-bottom:10px}
+.kz-price-row{display:flex;align-items:baseline;gap:4px;margin-bottom:6px}
+.kz-price-amount{font:900 40px 'Hanken Grotesk',sans-serif;letter-spacing:-.03em}
+.kz-price-period{font:600 14px 'Hanken Grotesk',sans-serif}
+.kz-price-desc{font:500 14px/1.55 'Hanken Grotesk',sans-serif;margin-bottom:22px;min-height:44px}
+.kz-price-saving{border-radius:10px;padding:10px 14px;margin-bottom:18px}
+.kz-price-saving span{font:700 11.5px 'Hanken Grotesk',sans-serif}
+.kz-price-btn{width:100%;border:none;border-radius:11px;padding:13px;font:700 14px 'Hanken Grotesk',sans-serif;transition:all .12s}
+.kz-price-btn:hover{transform:translateY(-2px)}
+.kz-price-btn:active{transform:scale(.97)}
+.kz-risk-band{background:#F0FDF4;border:1px solid #BBF7D0;border-radius:12px;padding:14px 24px;text-align:center;max-width:1080px;margin:0 auto 14px}
+.kz-risk-band span{font:600 13px 'Hanken Grotesk',sans-serif;color:#059669}
+.kz-price-links{display:flex;gap:12px;justify-content:center;flex-wrap:wrap;max-width:1080px;margin:0 auto}
+.kz-price-links a{font:600 13px 'Hanken Grotesk',sans-serif;border-radius:9px;padding:9px 16px;transition:opacity .15s}
+.kz-price-links a:hover{opacity:.8}
 
-    /* ── CTA ── */
-    .cta { padding: 88px 48px; background: #0F2252; text-align: center; position: relative; overflow: hidden; }
-    .cta::before {
-      content: ''; position: absolute; top: 50%; left: 50%;
-      transform: translate(-50%,-50%); width: 600px; height: 600px;
-      background: radial-gradient(circle, rgba(37,99,235,.15) 0%, transparent 70%);
-      pointer-events: none;
-    }
-    .cta-title { font-size: 42px; font-weight: 800; color: #fff; letter-spacing: -.04em; margin-bottom: 16px; line-height: 1.15; }
-    .cta-sub { font-size: 15px; color: rgba(255,255,255,.6); margin-bottom: 36px; line-height: 1.7; }
-    .cta-btns { display: flex; gap: 14px; justify-content: center; }
-    .btn-cta-white {
-      padding: 14px 30px; border-radius: 10px; font-size: 14px; font-weight: 700;
-      background: #fff; color: #0F2252; border: none; cursor: pointer;
-      transition: all .15s; box-shadow: 0 4px 14px rgba(0,0,0,.15);
-    }
-    .btn-cta-white:hover { transform: translateY(-1px); box-shadow: 0 6px 20px rgba(0,0,0,.2); }
-    .btn-cta-outline {
-      padding: 14px 26px; border-radius: 10px; font-size: 14px; font-weight: 600;
-      color: #fff; background: rgba(255,255,255,.1); border: 1px solid rgba(255,255,255,.2);
-      cursor: pointer; transition: background .15s;
-    }
-    .btn-cta-outline:hover { background: rgba(255,255,255,.15); }
+/* Bottom CTA */
+.kz-cta{background:#0F2252;padding:60px 40px 52px;text-align:center}
+.kz-cta-inner{max-width:760px;margin:0 auto}
+.kz-cta-kicker{font:700 11px 'Hanken Grotesk',sans-serif;letter-spacing:.14em;text-transform:uppercase;color:rgba(155,109,242,.7);margin-bottom:14px}
+.kz-cta h2{font:800 36px 'Hanken Grotesk',sans-serif;letter-spacing:-.025em;color:#fff;margin-bottom:10px;line-height:1.2}
+.kz-cta-sub{font:400 15px 'Hanken Grotesk',sans-serif;color:rgba(255,255,255,.45);margin-bottom:30px}
+.kz-cta-btns{display:flex;gap:12px;justify-content:center}
+.kz-btn-cta-main{background:linear-gradient(135deg,#1B3A6B,#7C3AED);color:#fff;border:none;border-radius:12px;padding:16px 34px;font:700 15px 'Hanken Grotesk',sans-serif;box-shadow:0 12px 32px rgba(124,58,237,.35);transition:transform .12s}
+.kz-btn-cta-main:hover{transform:translateY(-2px)}
+.kz-btn-cta-main:active{transform:scale(.97)}
+.kz-btn-cta-ghost{background:rgba(255,255,255,.08);color:rgba(255,255,255,.85);border:1px solid rgba(255,255,255,.18);border-radius:12px;padding:16px 28px;font:700 15px 'Hanken Grotesk',sans-serif;transition:background .15s}
+.kz-btn-cta-ghost:hover{background:rgba(255,255,255,.13)}
 
-    /* ── FOOTER ── */
-    .footer {
-      padding: 36px 48px; border-top: 0.5px solid #E2E5EB;
-      display: flex; align-items: center; justify-content: space-between;
-      background: #fff; flex-wrap: wrap; gap: 16px;
-    }
-    .footer-logo { font-size: 14px; font-weight: 700; color: #0F2252; }
-    .footer-logo span { color: #2563EB; }
-    .footer-links { display: flex; gap: 28px; }
-    .footer-links a { font-size: 12px; color: #8B93A8; text-decoration: none; transition: color .15s; }
-    .footer-links a:hover { color: #0F2252; }
-    .footer-copy { font-size: 12px; color: #8B93A8; }
-  </style>
+/* Footer */
+.kz-footer{background:#0F2252;border-top:1px solid rgba(255,255,255,.08);padding:48px 40px 0}
+.kz-footer-trust{text-align:center;margin-bottom:32px;font:500 11px 'Hanken Grotesk',sans-serif;color:rgba(255,255,255,.5)}
+.kz-footer-grid{display:grid;grid-template-columns:1.6fr 1fr 1fr 1fr 1fr;gap:32px;margin-bottom:38px;max-width:1140px;margin-left:auto;margin-right:auto}
+.kz-footer-brand{display:flex;align-items:center;gap:8px;margin-bottom:12px}
+.kz-footer-brand-k{width:28px;height:28px;border-radius:7px;background:#fff;display:flex;align-items:center;justify-content:center;font:700 13px 'Hanken Grotesk',sans-serif;color:#0F2252}
+.kz-footer-brand-name{font:700 15px 'Hanken Grotesk',sans-serif;color:#fff}
+.kz-footer-tagline{font:600 14px 'Hanken Grotesk',sans-serif;color:rgba(255,255,255,.7);margin-bottom:8px}
+.kz-footer-about{font:400 13px/1.65 'Hanken Grotesk',sans-serif;color:rgba(255,255,255,.5);max-width:280px}
+.kz-footer-col-title{font:700 10px 'Hanken Grotesk',sans-serif;letter-spacing:.12em;text-transform:uppercase;color:#C4B5FD;margin-bottom:14px}
+.kz-footer-col a{display:block;font:500 13px 'Hanken Grotesk',sans-serif;color:rgba(255,255,255,.65);padding:4.5px 0;transition:color .15s}
+.kz-footer-col a:hover{color:#fff}
+.kz-footer-bottom{border-top:1px solid rgba(255,255,255,.08);padding:24px 0;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:14px;max-width:1140px;margin:0 auto}
+.kz-footer-copy{font:500 12px 'Hanken Grotesk',sans-serif;color:rgba(255,255,255,.4)}
+.kz-footer-social{display:flex;gap:16px}
+.kz-footer-social a{color:rgba(255,255,255,.5);transition:color .15s}
+.kz-footer-social a:hover{color:rgba(255,255,255,.9)}
+
+/* Responsive */
+@media(max-width:1024px){
+  .kz-nav{padding:0 20px}.kz-nav-links{display:none}
+  .kz-hero{grid-template-columns:1fr;gap:32px;padding:40px 24px}
+  .kz-hero h1{font-size:36px}
+  .kz-seg-grid{grid-template-columns:repeat(2,1fr)}
+  .kz-feat-grid{grid-template-columns:repeat(2,1fr)}
+  .kz-preview-kpis{grid-template-columns:repeat(2,1fr)}
+  .kz-preview-body{grid-template-columns:1fr}
+  .kz-price-grid{grid-template-columns:1fr;max-width:400px}
+  .kz-price-card.pop{transform:none}
+  .kz-footer-grid{grid-template-columns:1fr 1fr;gap:24px}
+  .kz-cta h2{font-size:28px}
+  .kz-price-anchor{flex-direction:column;gap:12px}
+  .kz-price-anchor-item{border-right:none;border-bottom:1px solid #E2E5EB;padding:12px 0}
+  .kz-price-anchor-item:last-child{border-bottom:none}
+}
+@media(max-width:640px){
+  .kz-hero h1{font-size:30px}
+  .kz-hero-btns{flex-direction:column;align-items:flex-start}
+  .kz-hero-trust{flex-direction:column;gap:8px}
+  .kz-seg-grid{grid-template-columns:1fr}
+  .kz-feat-grid{grid-template-columns:1fr}
+  .kz-cta-btns{flex-direction:column;align-items:center}
+  .kz-footer-grid{grid-template-columns:1fr}
+}
+</style>
 </head>
 <body>
 
 <!-- NAV -->
-<nav class="nav">
-  <a href="#" class="nav-logo">
-    <div class="nav-k">K</div>
-    <div class="nav-name">KazKaz <span>AI</span></div>
+<nav class="kz-nav">
+  <a href="#" class="kz-nav-logo">
+    <div class="kz-nav-mark"><div class="kz-nav-c1"></div><div class="kz-nav-c2"></div><div class="kz-nav-star">✦</div></div>
+    <div class="kz-nav-name">KazKaz <span>AI</span></div>
   </a>
-  <div class="nav-links">
+  <div class="kz-nav-links">
     <a href="#ozellikler">Özellikler</a>
-    <a href="#nasil">Nasıl Çalışır</a>
+    <a href="#segmentler">Kimler İçin</a>
     <a href="#fiyat">Fiyatlandırma</a>
-    <a href="#smmm">SMMM</a>
   </div>
-  <div class="nav-cta">
-    <button class="btn-ghost">Giriş Yap</button>
-    <button class="btn-navy">Ücretsiz Başla →</button>
+  <div class="kz-nav-cta">
+    <button class="kz-btn kz-btn-ghost" onclick="location.href='#'">Giriş Yap</button>
+    <button class="kz-btn kz-btn-navy" onclick="location.href='#'">Ücretsiz Başla →</button>
   </div>
 </nav>
 
 <!-- HERO -->
-<section class="hero">
-  <div class="hero-badge">
-    <div class="hero-badge-dot"></div>
-    Yapay Zeka Destekli · Türkiye'ye Özel
+<section class="kz-hero">
+  <div>
+    <div class="kz-hero-avatars">
+      <div class="kz-hero-av" style="background:#0F2252;z-index:4">AK</div>
+      <div class="kz-hero-av" style="background:#7C3AED;z-index:3">MT</div>
+      <div class="kz-hero-av" style="background:#059669;z-index:2">SY</div>
+      <div class="kz-hero-av" style="background:#D97706;z-index:1">+</div>
+      <span style="font:600 12.5px 'Hanken Grotesk',sans-serif;color:#3D4663;margin-left:4px"><strong style="color:#0F2252">Pilot sürüm</strong> · kontrollü kullanıcı kabulü</span>
+    </div>
+    <h1>Yatırımcıya hazır<br><span>yapay zeka CFO'su</span></h1>
+    <p class="kz-hero-sub">14 modüllü CFO platformu. Verinizi yükleyin — kâr fırsatlarını, risk uyarılarını ve yatırımcıya hazır raporlarınızı 30 saniyede alın.</p>
+    <div class="kz-hero-live">
+      <span class="kz-hero-live-dot"></span>
+      <span>Şu an <strong id="kz-live-num">47</strong> KOBİ sahibi inceliyor</span>
+    </div>
+    <div class="kz-hero-btns">
+      <button class="kz-btn kz-btn-hero" onclick="location.href='#'">Ücretsiz Başla →</button>
+      <button class="kz-btn kz-btn-outline-hero" onclick="location.href='#'">▶ 60 saniyelik demo izle</button>
+    </div>
+    <div class="kz-hero-trust">
+      <span class="kz-trust"><span class="kz-trust-check">✓</span>Kredi kartı gerekmez</span>
+      <span class="kz-trust"><span class="kz-trust-check">✓</span>Kredi kartı gerekmez</span>
+      <span class="kz-trust"><span class="kz-trust-check">✓</span>Güvenlik ve KVKK hazırlığı sürüyor</span>
+    </div>
   </div>
-  <h1 class="hero-title">
-    Her KOBİ'nin bir<br><span class="underline">CFO'ya ihtiyacı var</span>
-  </h1>
-  <p class="hero-sub">
-    Finansal verinizi yükleyin. 30 saniyede kurumsal düzeyde analiz,
-    AI destekli öneriler ve 90 günlük aksiyon planı alın.
-  </p>
-  <div class="hero-btns">
-    <button class="btn-hero-primary">Ücretsiz Deneyin — Kredi Kartı Yok</button>
-    <button class="btn-hero-secondary">▶ Demo İzle</button>
-  </div>
-  <div class="hero-trust">
-    <div class="trust-item"><div class="trust-check">✓</div>Logo · Mikro · Netsis entegrasyonu</div>
-    <div class="trust-sep"></div>
-    <div class="trust-item"><div class="trust-check">✓</div>BIST sektör benchmark</div>
-    <div class="trust-sep"></div>
-    <div class="trust-item"><div class="trust-check">✓</div>Türkçe AI yorum</div>
-    <div class="trust-sep"></div>
-    <div class="trust-item"><div class="trust-check">✓</div>KVKK uyumlu</div>
+
+  <!-- Mini Dashboard -->
+  <div class="kz-mini">
+    <div class="kz-mini-badge">Canlı Dashboard Önizlemesi</div>
+    <div class="kz-mini-cards">
+      <div class="kz-mini-kpi"><div class="kz-mini-kpi-acc" style="background:#DC2626"></div>
+        <div class="kz-mini-kpi-lbl">Vadesi Geçen Alacak</div>
+        <div class="kz-mini-kpi-val">1,2M ₺</div>
+        <div class="kz-mini-kpi-d" style="color:#DC2626">DSO +8 gün uzadı</div>
+      </div>
+      <div class="kz-mini-kpi"><div class="kz-mini-kpi-acc" style="background:#D97706"></div>
+        <div class="kz-mini-kpi-lbl">Nakit Yakma Hızı</div>
+        <div class="kz-mini-kpi-val">380K ₺</div>
+        <div class="kz-mini-kpi-d" style="color:#D97706">4,2 ay runway kaldı</div>
+      </div>
+      <div class="kz-mini-kpi"><div class="kz-mini-kpi-acc" style="background:#059669"></div>
+        <div class="kz-mini-kpi-lbl">Sağlık Skoru</div>
+        <div class="kz-mini-kpi-val">72/100</div>
+        <div class="kz-mini-kpi-d" style="color:#059669">Sektörden +9 puan üstte</div>
+      </div>
+    </div>
+    <div class="kz-mini-hint">↑ Gerçek verilerinizle dolacak</div>
   </div>
 </section>
 
-<!-- DASHBOARD PREVIEW -->
-<section class="preview-wrap">
-  <p class="preview-label">Gerçek Platform Görünümü</p>
-  <div class="preview-card">
-    <div class="preview-topbar">
-      <div class="preview-dot" style="background:#FF5F57"></div>
-      <div class="preview-dot" style="background:#FEBC2E"></div>
-      <div class="preview-dot" style="background:#28C840"></div>
-      <div class="preview-topbar-title">KazKaz AI — TechNova A.Ş. · CFO Dashboard</div>
+<!-- PRODUCT PREVIEW -->
+<section class="kz-preview kz-reveal">
+  <div class="kz-preview-label">Gerçek Platform Görünümü</div>
+  <div class="kz-preview-card">
+    <div class="kz-preview-topbar">
+      <div class="kz-preview-dot" style="background:#FF5F57"></div>
+      <div class="kz-preview-dot" style="background:#FEBC2E"></div>
+      <div class="kz-preview-dot" style="background:#28C840"></div>
+      <div class="kz-preview-title">KazKaz AI — TechNova A.Ş. · CFO Dashboard</div>
     </div>
-    <div class="preview-kpis">
-      <div class="preview-kpi">
-        <div class="preview-kpi-acc" style="background:#059669"></div>
-        <div class="preview-kpi-lbl">Toplam Gelir</div>
-        <div class="preview-kpi-val">3.2M ₺</div>
-        <div class="preview-kpi-d" style="background:#ECFDF5;color:#059669">+ %12 büyüme</div>
-      </div>
-      <div class="preview-kpi">
-        <div class="preview-kpi-acc" style="background:#059669"></div>
-        <div class="preview-kpi-lbl">Net Kar</div>
-        <div class="preview-kpi-val">576K ₺</div>
-        <div class="preview-kpi-d" style="background:#ECFDF5;color:#059669">%18 marj</div>
-      </div>
-      <div class="preview-kpi">
-        <div class="preview-kpi-acc" style="background:#D97706"></div>
-        <div class="preview-kpi-lbl">Gider / Gelir</div>
-        <div class="preview-kpi-val">%74</div>
-        <div class="preview-kpi-d" style="background:#FFFBEB;color:#D97706">Hedefte</div>
-      </div>
-      <div class="preview-kpi">
-        <div class="preview-kpi-acc" style="background:#2563EB"></div>
-        <div class="preview-kpi-lbl">Sağlık Skoru</div>
-        <div class="preview-kpi-val">74/100</div>
-        <div class="preview-kpi-d" style="background:#EEF2FF;color:#0F2252">İyi</div>
-      </div>
+    <div class="kz-preview-kpis">
+      <div class="kz-preview-kpi"><div class="kz-preview-kpi-acc" style="background:#059669"></div><div class="kz-preview-kpi-lbl">Toplam Gelir</div><div class="kz-preview-kpi-val">48,2M ₺</div><div class="kz-preview-kpi-d" style="background:#ECFDF5;color:#059669">+%12,4 büyüme</div></div>
+      <div class="kz-preview-kpi"><div class="kz-preview-kpi-acc" style="background:#059669"></div><div class="kz-preview-kpi-lbl">Net Kar</div><div class="kz-preview-kpi-val">9,6M ₺</div><div class="kz-preview-kpi-d" style="background:#ECFDF5;color:#059669">%19,9 marj</div></div>
+      <div class="kz-preview-kpi"><div class="kz-preview-kpi-acc" style="background:#D97706"></div><div class="kz-preview-kpi-lbl">Nakit Pozisyonu</div><div class="kz-preview-kpi-val">10,1M ₺</div><div class="kz-preview-kpi-d" style="background:#FFFBEB;color:#D97706">7,2 ay runway</div></div>
+      <div class="kz-preview-kpi"><div class="kz-preview-kpi-acc" style="background:#2563EB"></div><div class="kz-preview-kpi-lbl">Sağlık Skoru</div><div class="kz-preview-kpi-val">72/100</div><div class="kz-preview-kpi-d" style="background:#EEF2FF;color:#0F2252">İyi</div></div>
     </div>
-    <div class="preview-body">
-      <div class="preview-chart-card">
-        <div class="preview-sec">Aylık Finansal Performans</div>
-        <div class="preview-bars">
-          <div class="preview-bar" style="height:45%;background:#0F2252;opacity:.8"></div>
-          <div class="preview-bar" style="height:52%;background:#0F2252;opacity:.8"></div>
-          <div class="preview-bar" style="height:48%;background:#0F2252;opacity:.8"></div>
-          <div class="preview-bar" style="height:62%;background:#0F2252;opacity:.8"></div>
-          <div class="preview-bar" style="height:57%;background:#0F2252;opacity:.8"></div>
-          <div class="preview-bar" style="height:70%;background:#0F2252;opacity:.8"></div>
-          <div class="preview-bar" style="height:65%;background:#0F2252;opacity:.8"></div>
-          <div class="preview-bar" style="height:78%;background:#0F2252;opacity:.8"></div>
-          <div class="preview-bar" style="height:75%;background:#0F2252;opacity:.8"></div>
-          <div class="preview-bar" style="height:86%;background:#0F2252;opacity:.8"></div>
-          <div class="preview-bar" style="height:83%;background:#0F2252;opacity:.8"></div>
-          <div class="preview-bar" style="height:100%;background:#2563EB"></div>
+    <div class="kz-preview-body">
+      <div class="kz-preview-chart">
+        <div class="kz-preview-sec">Aylık Finansal Performans</div>
+        <div class="kz-preview-bars">
+          <div class="kz-preview-bar" style="height:45%;background:#0F2252;opacity:.75;animation-delay:.1s"></div>
+          <div class="kz-preview-bar" style="height:52%;background:#0F2252;opacity:.75;animation-delay:.14s"></div>
+          <div class="kz-preview-bar" style="height:48%;background:#0F2252;opacity:.75;animation-delay:.18s"></div>
+          <div class="kz-preview-bar" style="height:62%;background:#0F2252;opacity:.8;animation-delay:.22s"></div>
+          <div class="kz-preview-bar" style="height:57%;background:#0F2252;opacity:.8;animation-delay:.26s"></div>
+          <div class="kz-preview-bar" style="height:70%;background:#0F2252;opacity:.85;animation-delay:.3s"></div>
+          <div class="kz-preview-bar" style="height:65%;background:#0F2252;opacity:.85;animation-delay:.34s"></div>
+          <div class="kz-preview-bar" style="height:78%;background:#0F2252;opacity:.9;animation-delay:.38s"></div>
+          <div class="kz-preview-bar" style="height:75%;background:#0F2252;opacity:.9;animation-delay:.42s"></div>
+          <div class="kz-preview-bar" style="height:86%;background:#0F2252;animation-delay:.46s"></div>
+          <div class="kz-preview-bar" style="height:83%;background:#0F2252;animation-delay:.5s"></div>
+          <div class="kz-preview-bar" style="height:100%;background:#2563EB;animation-delay:.54s"></div>
         </div>
       </div>
-      <div class="preview-health-card">
-        <div class="preview-sec">Finansal Sağlık</div>
-        <div class="preview-hbar">
-          <div class="preview-hbar-top"><span class="preview-hbar-lbl">Karlılık</span><span class="preview-hbar-val" style="color:#059669">78</span></div>
-          <div class="preview-hbar-track"><div class="preview-hbar-fill" style="width:78%;background:#059669"></div></div>
-        </div>
-        <div class="preview-hbar">
-          <div class="preview-hbar-top"><span class="preview-hbar-lbl">Büyüme</span><span class="preview-hbar-val" style="color:#059669">82</span></div>
-          <div class="preview-hbar-track"><div class="preview-hbar-fill" style="width:82%;background:#059669"></div></div>
-        </div>
-        <div class="preview-hbar">
-          <div class="preview-hbar-top"><span class="preview-hbar-lbl">Gider Kontrolü</span><span class="preview-hbar-val" style="color:#D97706">65</span></div>
-          <div class="preview-hbar-track"><div class="preview-hbar-fill" style="width:65%;background:#D97706"></div></div>
-        </div>
-        <div class="preview-hbar">
-          <div class="preview-hbar-top"><span class="preview-hbar-lbl">Nakit</span><span class="preview-hbar-val" style="color:#059669">71</span></div>
-          <div class="preview-hbar-track"><div class="preview-hbar-fill" style="width:71%;background:#059669"></div></div>
-        </div>
+      <div class="kz-preview-health" id="kz-health">
+        <div class="kz-preview-sec">Finansal Sağlık</div>
+        <div class="kz-preview-hbar"><div class="kz-preview-hbar-top"><span class="kz-preview-hbar-lbl">Karlılık</span><span class="kz-preview-hbar-val" style="color:#059669">78</span></div><div class="kz-preview-hbar-track"><div class="kz-preview-hbar-fill" style="width:0%;background:#059669" data-w="78%"></div></div></div>
+        <div class="kz-preview-hbar"><div class="kz-preview-hbar-top"><span class="kz-preview-hbar-lbl">Büyüme</span><span class="kz-preview-hbar-val" style="color:#059669">84</span></div><div class="kz-preview-hbar-track"><div class="kz-preview-hbar-fill" style="width:0%;background:#059669" data-w="84%"></div></div></div>
+        <div class="kz-preview-hbar"><div class="kz-preview-hbar-top"><span class="kz-preview-hbar-lbl">Gider Kontrolü</span><span class="kz-preview-hbar-val" style="color:#D97706">65</span></div><div class="kz-preview-hbar-track"><div class="kz-preview-hbar-fill" style="width:0%;background:#D97706" data-w="65%"></div></div></div>
+        <div class="kz-preview-hbar"><div class="kz-preview-hbar-top"><span class="kz-preview-hbar-lbl">Nakit</span><span class="kz-preview-hbar-val" style="color:#059669">71</span></div><div class="kz-preview-hbar-track"><div class="kz-preview-hbar-fill" style="width:0%;background:#059669" data-w="71%"></div></div></div>
       </div>
     </div>
   </div>
 </section>
 
-<!-- STATS -->
-<section class="stats">
-  <div class="stat-item">
-    <div class="stat-num">4<span>M+</span></div>
-    <div class="stat-lbl">Türkiye'de KOBİ</div>
-  </div>
-  <div class="stat-item">
-    <div class="stat-num">30<span>sn</span></div>
-    <div class="stat-lbl">İlk analize kadar</div>
-  </div>
-  <div class="stat-item">
-    <div class="stat-num">10<span>+</span></div>
-    <div class="stat-lbl">Analiz modülü</div>
-  </div>
-  <div class="stat-item">
-    <div class="stat-num">₺<span>0</span></div>
-    <div class="stat-lbl">Başlamak için gerekli</div>
+<!-- SEGMENTS -->
+<section class="kz-segments" id="segmentler">
+  <div style="max-width:1120px;margin:0 auto">
+    <div class="kz-sec-kicker kz-reveal" style="color:#7C3AED">KİMLER İÇİN?</div>
+    <div class="kz-sec-title kz-reveal kz-s1">4 segment, tek platform</div>
+    <div class="kz-sec-sub kz-reveal kz-s2">KazKaz farklı ihtiyaçlar için tasarlandı</div>
+    <div class="kz-seg-grid">
+      <div class="kz-seg-card kz-reveal kz-s1">
+        <div class="kz-seg-top"><span class="kz-seg-badge active">ŞU AN AKTİF</span><span class="kz-seg-ico">🏢</span></div>
+        <div><h3>KOBİ'ler</h3><div class="sub">Kurumsallaşma ve büyüme yolculuğu</div></div>
+        <div class="kz-seg-feats">
+          <div class="kz-seg-feat"><span class="dot g">✓</span>CFO maaşı ödemeden CFO analizi</div>
+          <div class="kz-seg-feat"><span class="dot g">✓</span>14 modüllü tek panel</div>
+          <div class="kz-seg-feat"><span class="dot g">✓</span>30 saniyede karar destek</div>
+        </div>
+        <button class="kz-seg-cta navy" onclick="location.href='#'">KOBİ olarak başla →</button>
+      </div>
+      <div class="kz-seg-card kz-reveal kz-s2">
+        <div class="kz-seg-top"><span class="kz-seg-badge active">ŞU AN AKTİF</span><span class="kz-seg-ico">🚀</span></div>
+        <div><h3>Startup'lar</h3><div class="sub">Yatırımcıya hazır olun</div></div>
+        <div class="kz-seg-feats">
+          <div class="kz-seg-feat"><span class="dot g">✓</span>Cap table ve burn rate yönetimi</div>
+          <div class="kz-seg-feat"><span class="dot g">✓</span>Pitch deck için hazır metrikler</div>
+          <div class="kz-seg-feat"><span class="dot g">✓</span>Due diligence raporu</div>
+        </div>
+        <button class="kz-seg-cta purple" onclick="location.href='startup.html'">Startup olarak başla →</button>
+      </div>
+      <div class="kz-seg-card soon kz-reveal kz-s3">
+        <div class="kz-seg-top"><span class="kz-seg-badge coming">Q4 2025</span><span class="kz-seg-ico">🏛️</span></div>
+        <div><h3>Kurumsal</h3><div class="sub">ESG ve risk raporlama otomasyonu</div></div>
+        <div class="kz-seg-feats">
+          <div class="kz-seg-feat"><span class="dot m">·</span>GRI/SASB uyumlu ESG raporu</div>
+          <div class="kz-seg-feat"><span class="dot m">·</span>IFRS finansal raporlama</div>
+          <div class="kz-seg-feat"><span class="dot m">·</span>Çoklu şirket yönetimi</div>
+        </div>
+        <button class="kz-seg-cta outline" onclick="location.href='kurumsal.html'">Daha fazla bilgi →</button>
+      </div>
+      <div class="kz-seg-card soon kz-reveal kz-s4">
+        <div class="kz-seg-top"><span class="kz-seg-badge coming">Q1 2026</span><span class="kz-seg-ico">💼</span></div>
+        <div><h3>Yatırımcı / Fon</h3><div class="sub">Portföyünüzü tek panelden izleyin</div></div>
+        <div class="kz-seg-feats">
+          <div class="kz-seg-feat"><span class="dot m">·</span>Portföy şirketleri dashboard</div>
+          <div class="kz-seg-feat"><span class="dot m">·</span>Şirket karşılaştırma</div>
+          <div class="kz-seg-feat"><span class="dot m">·</span>CFO Kompozit Skor karşılaştırma</div>
+        </div>
+        <button class="kz-seg-cta outline" onclick="location.href='yatirimci.html'">Daha fazla bilgi →</button>
+      </div>
+    </div>
   </div>
 </section>
 
 <!-- FEATURES -->
-<section class="features" id="ozellikler">
-  <div class="section-eyebrow">Özellikler</div>
-  <h2 class="section-title">Kurumsal analiz,<br>KOBİ fiyatına</h2>
-  <p class="section-sub">Büyük şirketlerin CFO'larının kullandığı araçları artık siz de kullanabilirsiniz.</p>
-  <div class="features-grid">
-    <div class="feature-card">
-      <div class="feature-icon" style="background:#EEF2FF">📊</div>
-      <div class="feature-title">10 Finansal Analiz Modülü</div>
-      <div class="feature-desc">Gelir, gider, karlılık, nakit akışı, borç, bütçe, müşteri, yatırım, sektör benchmark ve sağlık skoru — hepsi tek platformda.</div>
-    </div>
-    <div class="feature-card">
-      <div class="feature-icon" style="background:#ECFDF5">🤖</div>
-      <div class="feature-title">AI CFO Agent</div>
-      <div class="feature-desc">Groq + Gemini destekli Türkçe finansal yorum. "Bu ay ne yapmalıyım?" sorusuna somut, rakamsal cevap alın.</div>
-    </div>
-    <div class="feature-card">
-      <div class="feature-icon" style="background:#F5F3FF">📈</div>
-      <div class="feature-title">Gelir Tahmini</div>
-      <div class="feature-desc">Prophet ile 12 aya kadar güven aralıklı gelir projeksiyonu. Optimistik, baz ve pesimistik senaryo karşılaştırması.</div>
-    </div>
-    <div class="feature-card">
-      <div class="feature-icon" style="background:#FFFBEB">🏭</div>
-      <div class="feature-title">Türkiye'ye Özel</div>
-      <div class="feature-desc">Logo Tiger, Mikro, Zirve, Netsis entegrasyonu. BIST sektör benchmark verileri. Türkçe muhasebe formatı desteği.</div>
-    </div>
-    <div class="feature-card">
-      <div class="feature-icon" style="background:#FEF2F2">⚡</div>
-      <div class="feature-title">Risk & Alarm Merkezi</div>
-      <div class="feature-desc">Otomatik risk tespiti, öncelik sıralaması ve 90 günlük CFO aksiyon planı. Kritik durumlar anında uyarı.</div>
-    </div>
-    <div class="feature-card">
-      <div class="feature-icon" style="background:#ECFDF5">📄</div>
-      <div class="feature-title">PDF Rapor</div>
-      <div class="feature-desc">Bankaya, yatırımcıya, ortağa sunulabilir kurumsal raporlar. Tek tıkla üret, anında indir.</div>
-    </div>
-  </div>
-</section>
-
-<!-- HOW IT WORKS -->
-<section class="how" id="nasil">
-  <div class="section-eyebrow">Nasıl Çalışır</div>
-  <h2 class="section-title">3 adımda başlayın</h2>
-  <div class="how-grid">
-    <div class="step">
-      <div class="step-num">1</div>
-      <div class="step-title">Veriyi Yükle</div>
-      <div class="step-desc">CSV, Excel veya Logo/Mikro'dan direkt bağlanın. 5 dakika kurulum, sıfır teknik bilgi gerekli.</div>
-    </div>
-    <div class="step-arrow">→</div>
-    <div class="step">
-      <div class="step-num">2</div>
-      <div class="step-title">AI Analiz Et</div>
-      <div class="step-desc">30 saniyede 10 modül analiz edilir. Sağlık skoru, riskler ve fırsatlar otomatik tespit edilir.</div>
-    </div>
-    <div class="step-arrow">→</div>
-    <div class="step">
-      <div class="step-num">3</div>
-      <div class="step-title">Karar Ver</div>
-      <div class="step-desc">CFO Agent'tan aksiyon planı alın, PDF rapor indirin, yatırım kararını güvenle verin.</div>
-    </div>
-  </div>
-</section>
-
-<!-- SMMM -->
-<section class="smmm" id="smmm">
-  <div>
-    <div class="section-eyebrow" style="text-align:left">SMMM & Muhasebeciler</div>
-    <h2 class="smmm-title">50 müşteriyi<br><span>tek panelden</span> yönetin</h2>
-    <p class="smmm-desc">Muhasebeciler için özel ajans paneli. Tüm müşterilerinizin finansal sağlığını tek ekrandan izleyin, raporlayın, karşılaştırın.</p>
-    <div class="smmm-features">
-      <div class="smmm-feature">
-        <div class="smmm-feature-icon">👥</div>
-        <div>
-          <div class="smmm-feature-title">Müşteri portföyü</div>
-          <div class="smmm-feature-desc">Tüm müşterilerin sağlık skoru, gelir trendi ve risk durumunu tek listede görün.</div>
-        </div>
-      </div>
-      <div class="smmm-feature">
-        <div class="smmm-feature-icon">📊</div>
-        <div>
-          <div class="smmm-feature-title">Toplu rapor</div>
-          <div class="smmm-feature-desc">Seçili müşterilere tek tıkla aylık PDF rapor üretin ve gönderin.</div>
-        </div>
-      </div>
-      <div class="smmm-feature">
-        <div class="smmm-feature-icon">⚠️</div>
-        <div>
-          <div class="smmm-feature-title">Kritik uyarılar</div>
-          <div class="smmm-feature-desc">Hangi müşterinizde nakit sıkışıklığı, zarar riski var? Anında görün.</div>
-        </div>
-      </div>
-    </div>
-    <button class="btn-navy" style="padding:12px 24px;font-size:14px">SMMM Planını İncele →</button>
-  </div>
-  <div class="smmm-card">
-    <div class="smmm-card-header">
-      <div class="smmm-card-title">Müşteri Portföyü</div>
-      <div>5 müşteri · 2 uyarı</div>
-    </div>
-    <div class="smmm-row">
-      <div><div class="smmm-co">TechNova A.Ş.</div><div class="smmm-co-sub">Yazılım · 12 ay</div></div>
-      <div class="smmm-score" style="background:#ECFDF5;color:#059669">74 İyi</div>
-    </div>
-    <div class="smmm-row">
-      <div><div class="smmm-co">Anadolu Tekstil</div><div class="smmm-co-sub">Tekstil · 8 ay</div></div>
-      <div class="smmm-score" style="background:#FFFBEB;color:#D97706">52 Orta</div>
-    </div>
-    <div class="smmm-row">
-      <div><div class="smmm-co">Delta İnşaat</div><div class="smmm-co-sub">İnşaat · 24 ay</div></div>
-      <div class="smmm-score" style="background:#FEF2F2;color:#DC2626">31 Kritik</div>
-    </div>
-    <div class="smmm-row">
-      <div><div class="smmm-co">Güneş Market</div><div class="smmm-co-sub">Perakende · 6 ay</div></div>
-      <div class="smmm-score" style="background:#EEF2FF;color:#2563EB">68 İyi</div>
-    </div>
-    <div class="smmm-row">
-      <div><div class="smmm-co">Mavi Lojistik</div><div class="smmm-co-sub">Lojistik · 18 ay</div></div>
-      <div class="smmm-score" style="background:#FFFBEB;color:#D97706">45 Orta</div>
-    </div>
+<section class="kz-features" id="ozellikler">
+  <div class="kz-sec-kicker kz-reveal">NEDEN KAZKAZ AI</div>
+  <div class="kz-sec-title kz-reveal kz-s1" style="color:#fff">Kurumsal analiz, KOBİ fiyatına</div>
+  <div class="kz-sec-sub kz-reveal kz-s2">Büyük şirketlerin CFO'larının kullandığı araçlar, artık herkes için erişilebilir.</div>
+  <div class="kz-feat-grid">
+    <div class="kz-feat-card kz-reveal kz-s1"><div class="kz-feat-ico" style="background:linear-gradient(135deg,#1B3A6B,#7C3AED)">✦</div><h3>14 Finansal Modül</h3><p>Gelir, gider, karlılık, nakit akışı, borç, bütçe, müşteri, yatırım, sektör benchmark ve sağlık skoru — hepsi tek platformda.</p></div>
+    <div class="kz-feat-card kz-reveal kz-s2"><div class="kz-feat-ico" style="background:rgba(255,255,255,.15)">⚡</div><h3>30 Saniyede Analiz</h3><p>CSV veya Excel yükleyin, 30 saniyede kurumsal düzeyde finansal analiz, AI destekli öneriler ve 90 günlük aksiyon planı alın.</p></div>
+    <div class="kz-feat-card kz-reveal kz-s3"><div class="kz-feat-ico" style="background:rgba(124,58,237,.4)">💬</div><h3>AI CFO Agent</h3><p>Groq + Gemini destekli Türkçe finansal yorum. "Bu ay ne yapmalıyım?" sorusuna somut, rakamsal cevap alın.</p></div>
+    <div class="kz-feat-card kz-reveal kz-s1"><div class="kz-feat-ico" style="background:rgba(5,150,105,.3)">📈</div><h3>Gelir Tahmini</h3><p>Prophet ile 12 aya kadar güven aralıklı gelir projeksiyonu. Optimistik, baz ve pesimistik senaryo karşılaştırması.</p></div>
+    <div class="kz-feat-card kz-reveal kz-s2"><div class="kz-feat-ico" style="background:rgba(217,119,6,.3)">🏭</div><h3>Türkiye'ye Özel</h3><p>Logo Tiger, Mikro, Zirve, Netsis entegrasyonu. BIST sektör benchmark verileri. Türkçe muhasebe formatı desteği.</p></div>
+    <div class="kz-feat-card kz-reveal kz-s3"><div class="kz-feat-ico" style="background:rgba(220,38,38,.25)">📄</div><h3>PDF Rapor</h3><p>Bankaya, yatırımcıya, ortağa sunulabilir kurumsal raporlar. Tek tıkla üret, anında indir.</p></div>
   </div>
 </section>
 
 <!-- PRICING -->
-<section class="pricing" id="fiyat">
-  <div class="section-eyebrow">Fiyatlandırma</div>
-  <h2 class="section-title">Büyüklüğünüze uygun plan</h2>
-  <p class="section-sub">Kredi kartı olmadan başlayın. İstediğiniz zaman yükseltin veya iptal edin.</p>
-  <div class="pricing-grid">
-    <div class="price-card">
-      <div class="price-plan">Free</div>
-      <div class="price-amount">₺0</div>
-      <div class="price-period">sonsuza kadar ücretsiz</div>
-      <ul class="price-features">
-        <li>Temel gelir/gider analizi</li>
-        <li>Finansal sağlık skoru</li>
-        <li>Aylık grafikler</li>
-        <li>500 satır veri limiti</li>
-        <li class="no">AI yorumlar</li>
-        <li class="no">Gelecek tahmini</li>
-        <li class="no">PDF rapor</li>
-      </ul>
-      <button class="btn-price-outline">Ücretsiz Başla</button>
+<section class="kz-pricing" id="fiyat">
+  <div class="kz-sec-kicker kz-reveal">FİYATLANDIRMA</div>
+  <div class="kz-sec-title kz-reveal kz-s1">Büyüklüğünüze uygun plan</div>
+  <div class="kz-sec-sub kz-reveal kz-s2" style="margin-bottom:28px">Kredi kartı olmadan başlayın. İstediğiniz zaman yükseltin veya iptal edin.</div>
+
+  <div class="kz-price-anchor kz-reveal">
+    <div class="kz-price-anchor-item"><div class="kz-price-anchor-lbl">CFO İstihdam</div><div class="kz-price-anchor-val" style="color:#C0C6D3;text-decoration:line-through">₺85.000/ay</div></div>
+    <div class="kz-price-anchor-item"><div class="kz-price-anchor-lbl">Danışman</div><div class="kz-price-anchor-val" style="color:#C0C6D3;text-decoration:line-through">₺15.000/ay</div></div>
+    <div class="kz-price-anchor-item" style="border-right:none;display:flex;flex-direction:column;align-items:center;gap:6px"><div class="kz-price-anchor-lbl" style="color:#0F2252">KazKaz AI</div><div class="kz-price-anchor-val" style="color:#0F2252">₺299/ay'dan</div><div style="background:#ECFDF5;border:1px solid #6EE7B7;border-radius:20px;padding:3px 12px;font:700 11px 'Hanken Grotesk',sans-serif;color:#059669">%99,6 daha uygun</div></div>
+  </div>
+
+  <div class="kz-price-grid">
+    <!-- Free -->
+    <div class="kz-price-card std kz-reveal kz-s1">
+      <div class="kz-price-name" style="color:#0F1729">Starter</div>
+      <div class="kz-price-row"><span class="kz-price-amount" style="color:#0F2252">₺0</span><span class="kz-price-period" style="color:#8B93A8">/ ay</span></div>
+      <div class="kz-price-desc" style="color:#3D4663">Finansal sağlığınızı keşfedin. Temel analiz, grafikler ve sağlık skoru.</div>
+      <button class="kz-price-btn" style="background:#fff;color:#0F2252;border:1px solid #D6DAE2" onclick="location.href='#'">Ücretsiz Başla</button>
     </div>
-    <div class="price-card popular">
-      <div class="popular-badge">⭐ En Popüler</div>
-      <div class="price-plan">Pro</div>
-      <div class="price-amount">₺499</div>
-      <div class="price-period">/ ay · KDV dahil</div>
-      <ul class="price-features">
-        <li>50.000 satır veri</li>
-        <li>AI finansal yorumlar</li>
-        <li>AI sohbet (100 mesaj/ay)</li>
-        <li>Gelecek tahmini (Prophet)</li>
-        <li>PDF rapor</li>
-        <li>Senaryo analizi</li>
-        <li class="no">CFO Agent</li>
-      </ul>
-      <button class="btn-price-primary">Pro'ya Geç →</button>
+    <!-- Pro -->
+    <div class="kz-price-card pop kz-reveal kz-s2">
+      <div class="kz-price-pop">⭐ EN POPÜLER</div>
+      <div class="kz-price-name" style="color:#fff">Pro</div>
+      <div class="kz-price-row"><span class="kz-price-amount" style="color:#fff">₺299</span><span class="kz-price-period" style="color:#9AA6C2">/ ay</span></div>
+      <div class="kz-price-desc" style="color:#C7CFE6">AI destekli tam analiz. Senaryo, sohbet ve 5.000 satır veri.</div>
+      <div class="kz-price-saving" style="background:rgba(5,150,105,.18);border:1px solid rgba(110,231,183,.3)"><span style="color:#6EE7B7">CFO tutmak yerine ayda ₺84.700 tasarruf</span></div>
+      <button class="kz-price-btn" style="background:#fff;color:#0F2252" onclick="location.href='#'">Pro'ya Geç →</button>
     </div>
-    <div class="price-card">
-      <div class="price-plan">Uzman</div>
-      <div class="price-amount">₺999</div>
-      <div class="price-period">/ ay · KDV dahil</div>
-      <ul class="price-features">
-        <li>Sınırsız veri</li>
-        <li>CFO Agent (5 araçlı)</li>
-        <li>Sınırsız AI mesaj</li>
-        <li>SMMM çoklu müşteri</li>
-        <li>Öncelikli destek</li>
-        <li>Erken özellik erişimi</li>
-        <li>API erişimi (yakında)</li>
-      </ul>
-      <button class="btn-price-outline">Uzman'a Geç →</button>
+    <!-- Uzman -->
+    <div class="kz-price-card std kz-reveal kz-s3">
+      <div class="kz-price-name" style="color:#0F1729">Uzman / SMMM</div>
+      <div class="kz-price-row"><span class="kz-price-amount" style="color:#0F2252">₺799</span><span class="kz-price-period" style="color:#8B93A8">/ ay</span></div>
+      <div class="kz-price-desc" style="color:#3D4663">Tam CFO Agent, Prophet tahmini, PDF raporlar ve 50.000 satır veri.</div>
+      <div class="kz-price-saving" style="background:#ECFDF5;border:1px solid #6EE7B7"><span style="color:#059669">Sınırsız şirket · Öncelikli destek</span></div>
+      <button class="kz-price-btn" style="background:#0F2252;color:#fff" onclick="location.href='#'">Uzman'a Geç</button>
     </div>
+  </div>
+
+  <div class="kz-risk-band kz-reveal"><span>🛡️ Pilot erişim · Kredi kartı gerekmez · Finansal aksiyonlar insan onayında</span></div>
+  <div class="kz-price-links kz-reveal">
+    <a href="startup.html" style="color:#7C3AED;background:#F5F3FF;border:1px solid #C4B5FD">🚀 Startup mısınız? Özel paket için →</a>
+    <a href="kurumsal.html" style="color:#2563EB;background:#EFF6FF;border:1px solid #BFDBFE">🏛️ Kurumsal mısınız? Enterprise için →</a>
   </div>
 </section>
 
-<!-- CTA -->
-<section class="cta">
-  <h2 class="cta-title">Şirketinizin finansal<br>durumu nerede?</h2>
-  <p class="cta-sub">30 saniye içinde öğrenin. Ücretsiz, kayıt gerektirmeden.</p>
-  <div class="cta-btns">
-    <button class="btn-cta-white">Hemen Dene — Ücretsiz</button>
-    <button class="btn-cta-outline">Demo Randevusu Al</button>
+<!-- BOTTOM CTA -->
+<section class="kz-cta">
+  <div class="kz-cta-inner">
+    <div class="kz-cta-kicker kz-reveal">SON ADIM</div>
+    <h2 class="kz-reveal kz-s1">Şirketinizin finansal<br>geleceğini bugün başlatın</h2>
+    <div class="kz-cta-sub kz-reveal kz-s2">Kredi kartı gerekmez · Pilot erişim · Karar destek ürünü</div>
+    <div class="kz-cta-btns kz-reveal kz-s3">
+      <button class="kz-btn kz-btn-cta-main" onclick="location.href='#'">Ücretsiz Başla →</button>
+      <button class="kz-btn kz-btn-cta-ghost" onclick="location.href='#'">Demo İzle</button>
+    </div>
   </div>
 </section>
 
 <!-- FOOTER -->
-<footer class="footer">
-  <div class="footer-logo">KazKaz <span>AI</span> · Finansal Zeka Platformu</div>
-  <div class="footer-links">
-    <a href="#">Gizlilik Politikası</a>
-    <a href="#">KVKK</a>
-    <a href="#">Kullanım Şartları</a>
-    <a href="#">Destek</a>
-    <a href="#">API</a>
+<footer class="kz-footer">
+  <div class="kz-footer-trust">🔒 Güvenlik kontrolleri geliştiriliyor · 🛡️ ISO 27001 hedefi · 🌱 Barındırma bölgesi henüz seçilmedi</div>
+  <div class="kz-footer-grid">
+    <div>
+      <div class="kz-footer-brand"><div class="kz-footer-brand-k">K</div><span class="kz-footer-brand-name">KazKaz AI</span></div>
+      <div class="kz-footer-tagline">Yapay zeka CFO platformu</div>
+      <div class="kz-footer-about">Yatırımcıya hazır şirketler için. KOBİ, startup, kurumsal ve yatırımcı segmentleri için tek platform.</div>
+    </div>
+    <div class="kz-footer-col"><div class="kz-footer-col-title">Çözümler</div><a href="#">KOBİ</a><a href="startup.html">Startup</a><a href="kurumsal.html">Kurumsal</a><a href="yatirimci.html">Yatırımcı</a></div>
+    <div class="kz-footer-col"><div class="kz-footer-col-title">Ürün</div><a href="#ozellikler">Özellikler</a><a href="#fiyat">Fiyatlandırma</a><a href="#">Yol Haritası</a><a href="#">SSS</a></div>
+    <div class="kz-footer-col"><div class="kz-footer-col-title">Şirket</div><a href="#">Hakkımızda</a><a href="#">Blog</a><a href="#">Basın</a><a href="#">İletişim</a></div>
+    <div class="kz-footer-col"><div class="kz-footer-col-title">Yasal</div><span>KVKK metni hazırlanıyor</span><span>Gizlilik politikası hazırlanıyor</span><span>Kullanım şartları hazırlanıyor</span></div>
   </div>
-  <div class="footer-copy">© 2025 KazKaz AI · Tüm hakları saklıdır</div>
+  <div class="kz-footer-bottom">
+    <div class="kz-footer-copy">© 2025 KazKaz AI · Türkiye'de tasarlandı 🇹🇷</div>
+    <div class="kz-footer-social">
+      <a href="#" aria-label="LinkedIn"><svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M19 3a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h14m-.5 15.5v-5.3a3.26 3.26 0 0 0-3.26-3.26c-.85 0-1.84.52-2.32 1.3v-1.11h-2.79v8.37h2.79v-4.93c0-.77.62-1.4 1.39-1.4a1.4 1.4 0 0 1 1.4 1.4v4.93h2.79M6.88 8.56a1.68 1.68 0 0 0 1.68-1.68c0-.93-.75-1.69-1.68-1.69a1.69 1.69 0 0 0-1.69 1.69c0 .93.76 1.68 1.69 1.68m1.39 9.94v-8.37H5.5v8.37h2.77z"/></svg></a>
+      <a href="#" aria-label="X"><svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M18.9 1.15h3.68l-8.04 9.19L24 22.85h-7.41l-5.8-7.58-6.64 7.58H.46l8.6-9.83L0 1.15h7.59l5.24 6.93 6.07-6.93m-1.29 19.5h2.04L6.48 3.24H4.29L17.61 20.65z"/></svg></a>
+      <a href="#" aria-label="YouTube"><svg width="22" height="22" viewBox="0 0 24 24" fill="currentColor"><path d="M23.5 6.2a3.02 3.02 0 0 0-2.12-2.14C19.5 3.55 12 3.55 12 3.55s-7.5 0-9.38.51A3.02 3.02 0 0 0 .5 6.2C0 8.07 0 12 0 12s0 3.93.5 5.8a3.02 3.02 0 0 0 2.12 2.14c1.88.51 9.38.51 9.38.51s7.5 0 9.38-.51a3.02 3.02 0 0 0 2.12-2.14C24 15.93 24 12 24 12s0-3.93-.5-5.8M9.6 15.6V8.4l6.25 3.6-6.25 3.6z"/></svg></a>
+    </div>
+  </div>
 </footer>
 
+<script>
+(function(){
+  // Scroll reveal
+  var obs = new IntersectionObserver(function(entries){
+    entries.forEach(function(e){ if(e.isIntersecting){ e.target.classList.add('kz-revealed'); obs.unobserve(e.target); }});
+  }, {threshold:.12, rootMargin:'0px 0px -30px 0px'});
+  document.querySelectorAll('.kz-reveal').forEach(function(el){ obs.observe(el); });
+
+  // Health bar fill
+  var hObs = new IntersectionObserver(function(entries){
+    entries.forEach(function(e){ if(e.isIntersecting){
+      e.target.querySelectorAll('.kz-preview-hbar-fill[data-w]').forEach(function(b){ b.style.width = b.dataset.w; });
+      hObs.unobserve(e.target);
+    }});
+  }, {threshold:.3});
+  var h = document.getElementById('kz-health');
+  if(h) hObs.observe(h);
+
+  // Live badge random update
+  var ln = document.getElementById('kz-live-num');
+  if(ln) setInterval(function(){ ln.textContent = 38 + Math.floor(Math.random()*25); }, 4000);
+})();
+</script>
 </body>
 </html>

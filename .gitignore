@@ -6,7 +6,6 @@ __pycache__/
 .Python
 build/
 develop-eggs/
-dist/
 downloads/
 eggs/
 .eggs/
@@ -35,18 +34,37 @@ htmlcov/
 coverage.xml
 *.cover
 
-# IDE
+# IDE / OS
 .vscode/
 .idea/
 *.swp
 *.swo
 .DS_Store
+Thumbs.db
 
-# Streamlit
+# Secrets
+.env
+.env.*
+!.env.example
 .streamlit/secrets.toml
+*firebase-adminsdk*.json
+firebase-key.json
+*service-account*.json
+*.pem
+*.key
+
+# Frontend
+web/node_modules/
+web/dist/
+web/playwright-report/
+web/test-results/
+dist/
+
+# Local outputs
+tmp/
+outputs/
+.freebuff/
+.claude/settings.local.json
 
 # Logs
 *.log
-
-# OS
-Thumbs.db
