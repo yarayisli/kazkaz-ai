@@ -44,10 +44,11 @@ def show_customer_tab(df: pd.DataFrame):
         'Gelir · Karlılık · RFM Segmentasyon · Churn Risk</div>',
         unsafe_allow_html=True)
 
-    # Motor başlat
+    # Motor başlat — brut marj toggle (CAC/LTV için)
+    _marj = st.session_state.get("customer_brut_marj_pct", None)
     try:
         engine = CustomerEngine(df)
-        rapor  = engine.full_report()
+        rapor  = engine.full_report(brut_marj_pct=_marj)
     except Exception as e:
         st.error(f"Müşteri analizi hatası: {e}")
         return
@@ -82,6 +83,68 @@ def show_customer_tab(df: pd.DataFrame):
             f'En büyük %20 müşteriniz toplam gelirin '
             f'<b>%{konc.get("top20_pct_pay",0)}</b>'
             f'ini oluşturuyor. Bu müşterilerin kaybı büyük risk yaratır.</div>',
+            unsafe_allow_html=True)
+
+    # ── CAC / LTV Kartı ───────────────────────────────────────────────────
+    cac_ltv = rapor.get("cac_ltv", {}) or {}
+    if cac_ltv.get("hesaplandi"):
+        _durum_renk = {
+            "🟢 Sağlıklı": "#059669",
+            "🟡 Dikkat":   "#D97706",
+            "🔴 Zayıf":    "#DC2626",
+        }.get(cac_ltv["durum"], "#64748B")
+
+        st.markdown(
+            f'<div style="background:#FFFFFF;border:1px solid #E2E8F0;'
+            f'border-radius:14px;padding:16px 20px;margin:12px 0;'
+            f'position:relative;overflow:hidden;">'
+            f'<div style="position:absolute;left:0;top:0;bottom:0;width:4px;'
+            f'background:{_durum_renk};"></div>'
+            f'<div style="display:flex;justify-content:space-between;align-items:center;'
+            f'margin-bottom:12px;">'
+            f'<span style="font-family:Inter,-apple-system,sans-serif;font-weight:700;'
+            f'color:#0F172A;font-size:1rem;">📊 CAC / LTV Analizi</span>'
+            f'<span style="background:{_durum_renk}22;color:{_durum_renk};'
+            f'font-size:.75rem;font-weight:600;padding:3px 10px;border-radius:20px;">'
+            f'{cac_ltv["durum"]}</span></div>'
+            f'<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:16px;">'
+            f'<div><div style="font-size:.7rem;color:#64748B;text-transform:uppercase;'
+            f'letter-spacing:1.5px;margin-bottom:4px;">CAC</div>'
+            f'<div style="font-size:1.3rem;font-weight:700;color:#0F172A;">'
+            f'{fmt(cac_ltv["cac"])}</div></div>'
+            f'<div><div style="font-size:.7rem;color:#64748B;text-transform:uppercase;'
+            f'letter-spacing:1.5px;margin-bottom:4px;">LTV</div>'
+            f'<div style="font-size:1.3rem;font-weight:700;color:#0F172A;">'
+            f'{fmt(cac_ltv["ltv"])}</div></div>'
+            f'<div><div style="font-size:.7rem;color:#64748B;text-transform:uppercase;'
+            f'letter-spacing:1.5px;margin-bottom:4px;">LTV / CAC</div>'
+            f'<div style="font-size:1.3rem;font-weight:700;color:{_durum_renk};">'
+            f'{cac_ltv["ratio"]}x</div></div>'
+            f'</div>'
+            f'<div style="font-size:.72rem;color:#94A3B8;margin-top:10px;">'
+            f'{cac_ltv["referans"]}</div>'
+            f'</div>',
+            unsafe_allow_html=True)
+
+        # Brut marj toggle (LTV'yi kalibre etmek için)
+        with st.expander("⚙ LTV'yi kalibre et (brüt marj)"):
+            _prev = _marj if _marj is not None else 100
+            yeni_marj = st.slider(
+                "Brüt marj (%) — LTV bu marj üzerinden hesaplanır",
+                min_value=0, max_value=100, value=int(_prev), step=5,
+                key="cac_ltv_marj_slider",
+            )
+            if yeni_marj != _prev:
+                st.session_state["customer_brut_marj_pct"] = float(yeni_marj)
+                st.rerun()
+
+    elif cac_ltv:
+        # Hesaplanamadıysa nazik açıklama
+        _sebep = cac_ltv.get("sebep", "CAC/LTV için ek veri gerekli.")
+        st.markdown(
+            f'<div style="background:#F8FAFC;border:1px solid #E2E8F0;'
+            f'border-radius:10px;padding:12px 16px;margin:8px 0;color:#64748B;'
+            f'font-size:.82rem;">📊 <b>CAC / LTV hesaplanamadı.</b> {_sebep}</div>',
             unsafe_allow_html=True)
 
     st.markdown("---")
