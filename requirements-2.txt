@@ -33,5 +33,9 @@ statsmodels>=0.14.0
 python-dateutil>=2.8.0
 scipy>=1.10.0
 
+# ─── Gözlemlenebilirlik ───────────────────────────────────────────────────────
+# Hata bildirim — SENTRY_DSN secrets'ta yoksa devre dışı, uygulama çalışır.
+sentry-sdk>=2.0.0
+
 # ─── Gelecek (şimdi yorum satırı) ─────────────────────────────────────────────
 # sendgrid>=6.0.0   # e-posta raporu — Faz 5'te aktive edilecek
