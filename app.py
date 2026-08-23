@@ -35,6 +35,18 @@ except ImportError:
     GEMINI_OK = False
 
 try:
+    from llm_guardrail import Guardrail
+    GUARDRAIL_OK = True
+except ImportError:
+    GUARDRAIL_OK = False
+
+try:
+    from llm_cache import LLMCache, InMemoryCacheBackend
+    LLM_CACHE_OK = True
+except ImportError:
+    LLM_CACHE_OK = False
+
+try:
     from forecast_engine import ForecastEngine
     FORECAST_OK = True
 except ImportError:
@@ -123,6 +135,39 @@ FIREBASE_CRED_PATH   = get_secret("FIREBASE_CRED_PATH", "firebase_credentials.js
 FIREBASE_PROJECT_ID  = get_secret("FIREBASE_PROJECT_ID")
 GEMINI_API_KEY_ENV   = get_secret("GEMINI_API_KEY")
 GROQ_API_KEY_ENV     = get_secret("GROQ_API_KEY")
+
+
+# ── LLM guardrail + cache — oturum boyunca tek örnek ─────────────────────────
+
+def _current_user_id() -> str:
+    """Rate-limit ve cache anahtarı için kullanıcı kimliği."""
+    try:
+        user = st.session_state.get("user") or {}
+        return user.get("localId") or "_anon"
+    except Exception:
+        return "_anon"
+
+
+def init_ai_engine(api_key: str, provider: str) -> "GeminiEngine":
+    """
+    GeminiEngine kur — daima session-level guardrail + cache ile.
+    Session state'de tek Guardrail ve tek LLMCache tutulur (paylaşımlı sayaç).
+    """
+    if GUARDRAIL_OK and "llm_guardrail" not in st.session_state:
+        # Free plan için 30 çağrı/60 sn, Pro/Uzman için daha yüksek olabilir
+        st.session_state.llm_guardrail = Guardrail(
+            rate_limit_calls=30, rate_limit_window=60,
+        )
+    if LLM_CACHE_OK and "llm_cache" not in st.session_state:
+        st.session_state.llm_cache = LLMCache(
+            InMemoryCacheBackend(), ttl_hours=24,
+        )
+    kwargs = {"api_key": api_key, "provider": provider, "user_id": _current_user_id()}
+    if GUARDRAIL_OK:
+        kwargs["guardrail"] = st.session_state.llm_guardrail
+    if LLM_CACHE_OK:
+        kwargs["cache"] = st.session_state.llm_cache
+    return GeminiEngine(**kwargs)
 
 # ── CSS — temiz, çakışmasız ───────────────────────────────────────────────────
 inject_css()
@@ -852,6 +897,26 @@ with st.sidebar:
     nav_group("Veri & Rapor")
     nav_item("Veri Girişi",      "veri",    "○")
     nav_item("PDF Rapor",        "pdf",     "○")
+
+    # AI kullanım göstergesi (guardrail + cache aktifse)
+    if st.session_state.get("ai_active") and "llm_guardrail" in st.session_state:
+        _g = st.session_state.llm_guardrail
+        _u = _g.get_usage(_current_user_id())
+        _cache_stats = (st.session_state.llm_cache.stats()
+                        if "llm_cache" in st.session_state else None)
+        st.markdown("<div style='height:8px;'></div>", unsafe_allow_html=True)
+        with st.expander("🤖 AI Kullanım"):
+            st.markdown(
+                f"<div style='font-size:11px;color:#3D4663;line-height:1.7'>"
+                f"<b>Çağrı:</b> {_u.get('calls', 0)}<br>"
+                f"<b>Prompt token (yaklaşık):</b> {_u.get('prompt', 0):,}<br>"
+                f"<b>Cevap token (yaklaşık):</b> {_u.get('response', 0):,}"
+                + (f"<br><b>Cache hit oranı:</b> %{_cache_stats['hit_rate_pct']:.1f} "
+                   f"({_cache_stats['hits']}/{_cache_stats['total']})"
+                   if _cache_stats and _cache_stats['total'] > 0 else "")
+                + "</div>",
+                unsafe_allow_html=True,
+            )
 
     # Örnek veri indirme
     st.markdown("<div style='height:8px;'></div>", unsafe_allow_html=True)
@@ -2145,7 +2210,7 @@ if _sayfa == "ai":
         _auto_provider = "groq" if GROQ_API_KEY_ENV else ("gemini" if GEMINI_API_KEY_ENV else None)
         if _auto_key and _auto_provider:
             try:
-                st.session_state.gemini    = GeminiEngine(api_key=_auto_key, provider=_auto_provider)
+                st.session_state.gemini    = init_ai_engine(_auto_key, _auto_provider)
                 st.session_state.ai_active = True
             except Exception as ex:
                 st.warning(f"AI otomatik başlatılamadı: {ex}")
@@ -2169,7 +2234,7 @@ if _sayfa == "ai":
             chosen  = "gemini"
         if api_key and st.button("🔓 Aktive Et", key="btn_ai_aktif"):
             try:
-                st.session_state.gemini    = GeminiEngine(api_key=api_key, provider=chosen)
+                st.session_state.gemini    = init_ai_engine(api_key, chosen)
                 st.session_state.ai_active = True
                 st.success(f"✅ {provider} aktif!")
                 st.rerun()
