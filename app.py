@@ -135,6 +135,47 @@ FIREBASE_CRED_PATH   = get_secret("FIREBASE_CRED_PATH", "firebase_credentials.js
 FIREBASE_PROJECT_ID  = get_secret("FIREBASE_PROJECT_ID")
 GEMINI_API_KEY_ENV   = get_secret("GEMINI_API_KEY")
 GROQ_API_KEY_ENV     = get_secret("GROQ_API_KEY")
+SENTRY_DSN           = get_secret("SENTRY_DSN")
+APP_ENV              = get_secret("APP_ENV", "production")
+
+
+# ── Sentry — hata bildirim (opsiyonel; SENTRY_DSN yoksa devre dışı) ──────────
+
+def _init_sentry():
+    """
+    Sentry-sdk'yi başlat. SENTRY_DSN secrets'ta yoksa hiçbir şey yapmaz
+    (uygulama aynen çalışır).
+
+    Kurulum:
+      Streamlit → Manage app → Settings → Secrets:
+        SENTRY_DSN = "https://xxxxx@sentry.io/yyyy"
+        APP_ENV    = "production"   # veya "dev", "staging"
+
+    Sentry.io'da ücretsiz plan 5000 event/ay verir; küçük-orta ölçekli
+    KOBİ SaaS için fazlasıyla yeterli.
+    """
+    if not SENTRY_DSN:
+        return False
+    try:
+        import sentry_sdk
+        sentry_sdk.init(
+            dsn=SENTRY_DSN,
+            environment=APP_ENV,
+            # Performans örneklemesi — tüm istekleri değil, %10'unu izle
+            traces_sample_rate=0.10,
+            # PII gizle: kullanıcı IP'si vs. varsayılan olarak gönderilmesin
+            send_default_pii=False,
+            # Streamlit rerun'ları çok event üretir — spam olmasın diye limit
+            max_breadcrumbs=30,
+            release="kazkaz-ai@v2.1",
+        )
+        return True
+    except ImportError:
+        return False
+    except Exception:
+        return False
+
+SENTRY_ACTIVE = _init_sentry()
 
 
 # ── LLM guardrail + cache — oturum boyunca tek örnek ─────────────────────────

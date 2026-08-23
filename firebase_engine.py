@@ -448,12 +448,30 @@ class SessionManager:
         st.session_state["authenticated"] = True
         st.session_state["plan_guard"]    = PlanGuard(profile)
 
+        # Sentry — kullanıcıyı tag'le (hata olduğunda kim etkilendi görülsün)
+        try:
+            import sentry_sdk
+            sentry_sdk.set_user({
+                "id":       user_data.get("localId"),
+                "email":    profile.get("email"),
+                "username": profile.get("email"),
+            })
+            sentry_sdk.set_tag("plan", profile.get("plan", "free"))
+        except Exception:
+            pass
+
     @staticmethod
     def logout():
         import streamlit as st
         for key in ["user", "user_profile", "authenticated", "plan_guard",
                     "engine", "rapor", "df", "ai_active", "gemini", "chat_history"]:
             st.session_state.pop(key, None)
+        # Sentry kullanıcı context'ini temizle
+        try:
+            import sentry_sdk
+            sentry_sdk.set_user(None)
+        except Exception:
+            pass
 
     @staticmethod
     def is_authenticated() -> bool:
