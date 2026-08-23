@@ -402,8 +402,12 @@ class ForecastEngine:
 
     # ── Tam Özet ──────────────────────────────────────────────────────────────
 
-    def summary_report(self, ay: int = 3) -> Dict[str, Any]:
-        fc = self.forecast(ay)
+    def summary_report(
+        self,
+        ay: int = 3,
+        enflasyon_yillik: Optional[float] = None,
+    ) -> Dict[str, Any]:
+        fc = self.forecast(ay, enflasyon_yillik=enflasyon_yillik)
         anomaliler = self.detect_anomalies()
         return {
             **fc,
