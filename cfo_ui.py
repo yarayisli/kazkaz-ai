@@ -381,17 +381,21 @@ def show_cfo_tab(
             with col:
                 if st.button(soru, key=f"cfo_hs_{soru}", use_container_width=True):
                     with st.spinner("CFO düşünüyor..."):
-                        cevap = agent.chat(soru)
+                        r = agent.chat_with_tools(soru)
                     st.session_state["cfo_chat"] = st.session_state.get("cfo_chat", [])
                     st.session_state["cfo_chat"].append({"role":"user","content":soru})
-                    st.session_state["cfo_chat"].append({"role":"cfo","content":cevap})
+                    st.session_state["cfo_chat"].append({
+                        "role":"cfo","content":r["cevap"],
+                        "tool_calls": r.get("tool_calls", []),
+                        "fallback":   r.get("fallback"),
+                    })
                     st.rerun()
 
         st.markdown("---")
 
         # Sohbet geçmişi
         chat_history = st.session_state.get("cfo_chat", [])
-        for msg in chat_history:
+        for i, msg in enumerate(chat_history):
             if msg["role"] == "user":
                 st.markdown(
                     f'<div style="background:#1a2d50;border-radius:12px 12px 4px 12px;'
@@ -405,6 +409,22 @@ def show_cfo_tab(
                     f'padding:10px 14px;margin:6px 60px 6px 0;'
                     f'font-size:.9rem;color:#a8c0e0;">🧠 {msg["content"]}</div>',
                     unsafe_allow_html=True)
+                # Şeffaflık: hangi araçlar çağrıldı?
+                tc = msg.get("tool_calls") or []
+                fb = msg.get("fallback")
+                if tc:
+                    tool_names = ", ".join(f"<code>{t['name']}</code>" for t in tc)
+                    st.markdown(
+                        f'<div style="font-size:.72rem;color:#94A3B8;'
+                        f'margin:-2px 60px 8px 0;padding-left:14px;">'
+                        f'🔧 Araçlar: {tool_names} ({len(tc)} çağrı)</div>',
+                        unsafe_allow_html=True)
+                if fb:
+                    st.markdown(
+                        f'<div style="font-size:.72rem;color:#D97706;'
+                        f'margin:-2px 60px 8px 0;padding-left:14px;">'
+                        f'ℹ️ {fb}</div>',
+                        unsafe_allow_html=True)
 
         # Giriş
         ci, cs = st.columns([5, 1])
@@ -416,9 +436,13 @@ def show_cfo_tab(
         with cs:
             if st.button("➤", use_container_width=True, key="cfo_send") and user_in:
                 with st.spinner("CFO düşünüyor..."):
-                    cevap = agent.chat(user_in)
+                    r = agent.chat_with_tools(user_in)
                 chat_history.append({"role":"user","content":user_in})
-                chat_history.append({"role":"cfo","content":cevap})
+                chat_history.append({
+                    "role":"cfo","content":r["cevap"],
+                    "tool_calls": r.get("tool_calls", []),
+                    "fallback":   r.get("fallback"),
+                })
                 st.session_state["cfo_chat"] = chat_history
                 st.rerun()
 
