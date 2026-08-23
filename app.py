@@ -1912,10 +1912,31 @@ if _sayfa == "tahmin":
             with col_ctrl:
                 render_section("Ayarlar")
                 ay = st.slider("Tahmin Suresi (Ay)", 1, 12, 3, key="fc_ay")
+
+                # Reel tahmin toggle (P1.2 enflasyon deflatörü)
+                reel_aktif = st.checkbox(
+                    "🇹🇷 Reel tahmin (enflasyondan arındır)",
+                    value=st.session_state.get("fc_reel_aktif", False),
+                    key="fc_reel_aktif",
+                    help="İşaretlerseniz nominal ₺ tahminine ek olarak bugünkü "
+                         "satın alma gücüne göre reel sütunlar hesaplanır.",
+                )
+                infl = None
+                if reel_aktif:
+                    infl_pct = st.slider(
+                        "Yıllık enflasyon varsayımı (%)",
+                        min_value=5, max_value=100, value=35, step=1,
+                        key="fc_infl_pct",
+                        help="TÜİK/TCMB projeksiyonu veya kendi tahmininizi girin.",
+                    )
+                    infl = infl_pct / 100
+
                 if st.button("Tahmin Uret", use_container_width=True, key="btn_fc"):
                     with st.spinner("Model egitiliyor..."):
                         try:
-                            sonuc = ForecastEngine(df).summary_report(ay=ay)
+                            sonuc = ForecastEngine(df).summary_report(
+                                ay=ay, enflasyon_yillik=infl,
+                            )
                             st.session_state["forecast"] = sonuc
                             st.success("Hazir!")
                         except Exception as ex:
@@ -1984,16 +2005,26 @@ if _sayfa == "tahmin":
                     _ci_label = "%90" if _backend == "prophet" else "±%15" if _backend == "statsmodels" else "±%20"
                     _ci_delta = "Prophet CI" if _backend == "prophet" else "Holt-Winters" if _backend == "statsmodels" else "Lineer trend"
 
-                    render_kpi_row([
-                        {"label": "Toplam Tahmin",     "value": fmt(sonuc["toplam_tahmin"]),
+                    _kpi_row = [
+                        {"label": "Toplam Tahmin (Nominal)", "value": fmt(sonuc["toplam_tahmin"]),
                          "delta": f'{sonuc["ay_sayisi"]} aylik', "positive": True},
                         {"label": "Aylik Ortalama",    "value": fmt(sonuc["ortalama_tahmin"]),
                          "delta": "Tahmin", "positive": True, "accent_color": "#2563EB"},
                         {"label": "Buyume Beklentisi", "value": f'%{sonuc["buyume_beklentisi"]}',
-                         "delta": "Projeksiyon", "positive": sonuc["buyume_beklentisi"] >= 0},
+                         "delta": "Projeksiyon (nominal)", "positive": sonuc["buyume_beklentisi"] >= 0},
                         {"label": "Guven Araligi",     "value": _ci_label,
                          "delta": _ci_delta, "positive": True, "accent_color": "#7C3AED"},
-                    ], height=118)
+                    ]
+                    # Reel toplam varsa ek KPI
+                    if "toplam_tahmin_reel" in sonuc:
+                        _infl_pct = sonuc.get("enflasyon_uygulandi", 0) * 100
+                        _kpi_row.insert(1, {
+                            "label": "Toplam Tahmin (Reel)",
+                            "value": fmt(sonuc["toplam_tahmin_reel"]),
+                            "delta": f'Enflasyon %{_infl_pct:.1f}',
+                            "positive": True, "accent_color": "#059669",
+                        })
+                    render_kpi_row(_kpi_row, height=118)
 
                     t_df = sonuc["tahmin_tablosu"]
                     mr   = engine.revenue.monthly_revenue()
@@ -2020,11 +2051,17 @@ if _sayfa == "tahmin":
                     fig.update_layout(**_PLOT, height=300)
                     st.plotly_chart(fig, use_container_width=True)
                     render_section("Tahmin Tablosu")
-                    st.dataframe(t_df.style.format({
-                        "Tahmin":    "{:,.0f} ₺",
-                        "Alt Sinir": "{:,.0f} ₺",
-                        "Ust Sinir": "{:,.0f} ₺",
-                    }), use_container_width=True, hide_index=True)
+                    _fmt_map = {
+                        "Tahmin":              "{:,.0f} ₺",
+                        "Alt Sınır":           "{:,.0f} ₺",
+                        "Üst Sınır":           "{:,.0f} ₺",
+                        "Tahmin (Reel ₺)":     "{:,.0f} ₺",
+                        "Alt Sınır (Reel ₺)":  "{:,.0f} ₺",
+                        "Üst Sınır (Reel ₺)":  "{:,.0f} ₺",
+                    }
+                    _active = {k: v for k, v in _fmt_map.items() if k in t_df.columns}
+                    st.dataframe(t_df.style.format(_active),
+                                 use_container_width=True, hide_index=True)
                 else:
                     st.markdown(
                         '<div style="background:#F9FAFB;border:1.5px dashed #D1D5DB;'
