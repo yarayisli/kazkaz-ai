@@ -369,11 +369,12 @@ def show_debt_tab(fin_rapor=None):
             c1,c2,c3 = st.columns(3)
             with c1:
                 ad      = st.text_input("Borç Adı", f"Kredi {i+1}", key=f"d_ad_{i}")
-                anapara = st.number_input("Kalan Anapara (₺)",
+                anapara = st.number_input("Kalan Anapara",
                                           min_value=0, value=500_000, step=10_000,
+                                          help="Anapara borcun para biriminde (TL/USD/EUR)",
                                           key=f"d_ana_{i}")
             with c2:
-                faiz    = st.slider("Yıllık Faiz (%)", 1, 100, 40, key=f"d_faiz_{i}") / 100
+                faiz    = st.slider("Yıllık Nominal Faiz (%)", 1, 100, 40, key=f"d_faiz_{i}") / 100
                 vade    = st.slider("Kalan Vade (Ay)", 1, 120, 24, key=f"d_vade_{i}")
             with c3:
                 tur     = st.selectbox("Borç Türü",
@@ -381,11 +382,55 @@ def show_debt_tab(fin_rapor=None):
                                        key=f"d_tur_{i}")
                 teminat = st.text_input("Teminat (opsiyonel)", "", key=f"d_tem_{i}")
 
+            # TR vergi + döviz alanları (opsiyonel expander)
+            with st.expander("🇹🇷 TR Vergi + Döviz (opsiyonel)"):
+                tc1, tc2, tc3, tc4 = st.columns(4)
+                with tc1:
+                    bsmv = st.number_input(
+                        "BSMV (%)", min_value=0.0, max_value=20.0,
+                        value=5.0 if tur == "Banka Kredisi" else 0.0,
+                        step=0.5,
+                        help="TR TL nakit kredide standart %5. Yatırım kredisi ve leasing genellikle muaf.",
+                        key=f"d_bsmv_{i}",
+                    ) / 100
+                with tc2:
+                    kkdf = st.number_input(
+                        "KKDF (%)", min_value=0.0, max_value=30.0,
+                        value=15.0 if tur == "Banka Kredisi" else 0.0,
+                        step=0.5,
+                        help="TR TL ticari nakit kredide standart %15. Yatırım/leasing muaf.",
+                        key=f"d_kkdf_{i}",
+                    ) / 100
+                with tc3:
+                    pb = st.selectbox(
+                        "Para Birimi",
+                        ["TRY", "USD", "EUR", "GBP"],
+                        index=0,
+                        key=f"d_pb_{i}",
+                    )
+                with tc4:
+                    kur_b = st.number_input(
+                        "Başlangıç Kuru (TL/döviz)",
+                        min_value=0.0, value=1.0 if pb == "TRY" else 30.0,
+                        step=0.1,
+                        disabled=(pb == "TRY"),
+                        help="Sadece FX borçlar için — anaparanın kayıt anındaki TL kuru.",
+                        key=f"d_kur_{i}",
+                    )
+                # Efektif faiz önizleme
+                _eff = faiz * (1 + bsmv + kkdf)
+                st.caption(
+                    f"📊 Efektif yıllık faiz: **%{_eff*100:.2f}** "
+                    f"(nominal %{faiz*100:.1f} × (1+BSMV+KKDF))"
+                )
+
             try:
                 debts.append(Debt(
                     ad=ad, anapara=float(anapara),
                     faiz_orani=faiz, vade_ay=vade,
-                    borc_turu=tur, teminat=teminat
+                    borc_turu=tur, teminat=teminat,
+                    bsmv_orani=bsmv, kkdf_orani=kkdf,
+                    para_birimi=pb, kur_baslangic=float(kur_b),
                 ))
             except Exception as e:
                 st.error(f"Borç {i+1} hata: {e}")
@@ -447,8 +492,14 @@ def show_debt_tab(fin_rapor=None):
     with c2: kpi("Aylık Taksit",   fmt(port["aylik_taksit"]),
                  f'Yıllık: {fmt(port["aylik_taksit"]*12)}',
                  color=C_YELLOW, positive=False)
-    with c3: kpi("Ağ. Faiz Oranı", f'%{port["agirlikli_faiz"]}', delta=f'{port["borc_sayisi"]} borç kalemi', color=C_RED if port["agirlikli_faiz"]>40 else C_YELLOW,
-                 positive=bool(port["agirlikli_faiz"]<=30))
+    _agir_eff = port.get("agirlikli_efektif_faiz", port["agirlikli_faiz"])
+    _fark = _agir_eff - port["agirlikli_faiz"]
+    _delta = (f'Nom: %{port["agirlikli_faiz"]} · Efektif: %{_agir_eff}'
+              if _fark > 0.05 else f'{port["borc_sayisi"]} borç kalemi')
+    with c3: kpi("Ağ. Efektif Faiz", f'%{_agir_eff}',
+                 delta=_delta,
+                 color=C_RED if _agir_eff>40 else C_YELLOW,
+                 positive=bool(_agir_eff<=30))
     with c4: kpi("Borç Skoru", f'{skor["skor"]}/100', delta=skor["kategori"], color=sk_renk,
                  positive=bool(skor["skor"]>=50))
 
@@ -458,10 +509,11 @@ def show_debt_tab(fin_rapor=None):
         f'font-size:.87rem;margin:10px 0;">'
         f'💡 {skor["tavsiye"]}</div>', unsafe_allow_html=True)
 
-    sub1, sub2, sub3 = st.tabs([
+    sub1, sub2, sub3, sub4 = st.tabs([
         "📊 Borç Metrikleri",
         "📋 İtfa Tablosu",
         "💡 Kapasite & Öncelik",
+        "🌍 Döviz Riski",
     ])
 
     # ──────────────────────────────────────────
@@ -618,3 +670,84 @@ def show_debt_tab(fin_rapor=None):
                     subset=["Öncelik"]
                 ),
                 use_container_width=True, hide_index=True)
+
+    # ──────────────────────────────────────────
+    # DÖVİZ RİSKİ (fx_exposure + fx_stres_testi)
+    # ──────────────────────────────────────────
+    with sub4:
+        fx_exp   = rapor.get("fx_exposure", {}) or {}
+        fx_stres = rapor.get("fx_stres_testi", {}) or {}
+
+        if fx_exp.get("fx_borc_sayisi", 0) == 0:
+            st.info(
+                "🇹🇷 Portföyde yabancı para borç yok — döviz riski taşımıyorsunuz. "
+                "FX borç eklemek için borç formunda 'Para Birimi' seçin."
+            )
+        else:
+            sec("🌍 Yabancı Para Borç Pozisyonu")
+            c1, c2, c3 = st.columns(3)
+            with c1:
+                kpi("FX Borç Sayısı", str(fx_exp["fx_borc_sayisi"]),
+                    color=C_YELLOW)
+            with c2:
+                kpi("FX Borç (TL karşılık, başlangıç kuru)",
+                    fmt(fx_exp["toplam_fx_borc_baslangic"]),
+                    color=C_YELLOW)
+            with c3:
+                kpi("FX Payı", f'%{fx_exp["fx_pay_pct"]}',
+                    color=C_RED if fx_exp["fx_pay_pct"] > 40 else C_YELLOW,
+                    positive=bool(fx_exp["fx_pay_pct"] <= 20))
+
+            # Para birimi dağılımı tablosu
+            if fx_exp.get("para_birimi_dagilim"):
+                sec("💱 Para Birimi Dağılımı")
+                dagilim_df = pd.DataFrame(
+                    [{"Para Birimi": pb, "Anapara (döviz cinsinden)": tut}
+                     for pb, tut in fx_exp["para_birimi_dagilim"].items()]
+                )
+                st.dataframe(
+                    dagilim_df.style.format({
+                        "Anapara (döviz cinsinden)": "{:,.2f}",
+                    }),
+                    use_container_width=True, hide_index=True,
+                )
+
+            # Kur şoku stres testi
+            sec("⚡ Kur Şoku Stres Testi")
+            st.markdown(
+                '<div style="color:#64748B;font-size:.8rem;margin-bottom:10px;">'
+                'TCMB kurunda %X artış senaryosunda toplam TL borç yükünüz nasıl değişir?'
+                '</div>',
+                unsafe_allow_html=True)
+
+            _cur_kur_artis = int((fx_stres.get("kur_artis_pct") or 0.20) * 100)
+            kur_artis = st.slider(
+                "Kur artış oranı (%)", min_value=0, max_value=100,
+                value=_cur_kur_artis, step=5, key="d_fx_stres_slider",
+            )
+            # Slider değişince yeniden hesap
+            try:
+                fx_stres = engine.portfolio.fx_stress_test(kur_artis / 100)
+            except Exception:
+                pass
+
+            sc1, sc2, sc3 = st.columns(3)
+            with sc1:
+                kpi("Başlangıç TL Borç", fmt(fx_stres["toplam_borc_baslangic_try"]))
+            with sc2:
+                kpi("Şok Sonrası TL Borç", fmt(fx_stres["toplam_borc_sok_try"]),
+                    color=C_RED, positive=False)
+            with sc3:
+                kpi(f"Δ TL", fmt(fx_stres["delta_try"]),
+                    delta=f'%{fx_stres["delta_pct"]:+.2f}',
+                    color=C_RED, positive=False)
+
+            st.markdown(
+                f'<div style="background:#FFF7F7;border:1px solid #DC262644;'
+                f'border-radius:10px;padding:12px 16px;margin:8px 0;color:#991B1B;'
+                f'font-size:.86rem;">'
+                f'⚠️ Kur %{kur_artis} artarsa toplam TL borç yükünüz '
+                f'<b>{fmt(fx_stres["delta_try"])}</b> ({fx_stres["delta_pct"]:+.2f}%) artar. '
+                f'FAVÖK bu şoku karşılayabilir mi kontrol edin.'
+                f'</div>',
+                unsafe_allow_html=True)
