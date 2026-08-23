@@ -43,43 +43,26 @@ from reportlab.graphics import renderPDF
 
 
 # ─────────────────────────────────────────────
-# FONT KAYIT (Streamlit Cloud uyumlu)
+# FONT KAYIT — offline (repo içi, indirme yok)
 # ─────────────────────────────────────────────
-
-import urllib.request
-import tempfile
 
 FONT_REGISTERED = False
 
-def _try_download_font(filename: str) -> Optional[str]:
-    """Fontu internetten temp klasörüne indirir."""
-    urls = {
-        "DejaVuSans.ttf":
-            "https://github.com/dejavu-fonts/dejavu-fonts/raw/master/ttf/DejaVuSans.ttf",
-        "DejaVuSans-Bold.ttf":
-            "https://github.com/dejavu-fonts/dejavu-fonts/raw/master/ttf/DejaVuSans-Bold.ttf",
-    }
-    url = urls.get(filename)
-    if not url:
-        return None
-    try:
-        tmp = os.path.join(tempfile.gettempdir(), filename)
-        if not os.path.exists(tmp) or os.path.getsize(tmp) < 1000:
-            urllib.request.urlretrieve(url, tmp)  # nosec B310 - hardcoded GitHub font URL, no user input
-        if os.path.getsize(tmp) > 1000:
-            return tmp
-    except Exception:
-        pass
-    return None
+# Repo içi öncelikli konum. Buradaki font dosyaları repo ile birlikte gelir.
+_REPO_ROOT     = os.path.dirname(os.path.abspath(__file__))
+_ASSETS_FONTS  = os.path.join(_REPO_ROOT, "assets", "fonts")
 
 def _find_font(filename: str) -> Optional[str]:
-    """Fontu sırasıyla çeşitli konumlarda arar."""
+    """Fontu öncelikle repo assets'lerinde, sonra OS sistem yollarında ara.
+    İnternet indirmesi YAPMAZ — offline safety + Streamlit Cloud'da hız."""
     candidates = [
+        # Repo (öncelikli)
+        os.path.join(_ASSETS_FONTS, filename),
         # Linux sistem
-        os.path.join("/usr/share/fonts/truetype/dejavu", filename),  # Linux
-        # Proje klasörü
-        os.path.join(os.path.dirname(os.path.abspath(__file__)), "fonts", filename),
-        os.path.join(os.path.dirname(os.path.abspath(__file__)), filename),
+        os.path.join("/usr/share/fonts/truetype/dejavu", filename),
+        # Proje kök (eski konum, geri uyumluluk)
+        os.path.join(_REPO_ROOT, "fonts", filename),
+        os.path.join(_REPO_ROOT, filename),
         # Windows
         os.path.join(os.environ.get("WINDIR", "C:/Windows"), "Fonts", filename),
         # macOS
@@ -89,8 +72,7 @@ def _find_font(filename: str) -> Optional[str]:
     for path in candidates:
         if os.path.exists(path) and os.path.getsize(path) > 1000:
             return path
-    # İnternetten indir
-    return _try_download_font(filename)
+    return None
 
 def register_fonts():
     global FONT_REGISTERED
