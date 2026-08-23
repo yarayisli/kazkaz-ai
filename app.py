@@ -1251,12 +1251,15 @@ if _sayfa == "genel":
 
     with col_side:
         render_section("Finansal Sağlık")
-        render_health_bars({
+        _bars = {
             "Karlılık":       alt.get("karlilik", 0),
             "Büyüme":         alt.get("buyume", 0),
             "Gider Kontrolü": alt.get("gider_kontrolu", 0),
             "Nakit":          alt.get("nakit", 0),
-        })
+        }
+        if "konsantrasyon" in alt:
+            _bars["Konsantrasyon"] = alt["konsantrasyon"]
+        render_health_bars(_bars)
 
         # ── Metodoloji + Uyarılar (yeni) ────────────────────────────────────
         _uyarilar   = s.get("uyarilar", [])
@@ -1509,12 +1512,15 @@ if _sayfa == "risk":
 
     with col_saglik:
         render_section("Finansal Saglik Alt Skorlari")
-        render_health_bars({
+        _bars2 = {
             "Karlilik":       alt.get("karlilik", 0),
             "Buyume":         alt.get("buyume", 0),
             "Gider Kontrolu": alt.get("gider_kontrolu", 0),
             "Nakit":          alt.get("nakit", 0),
-        })
+        }
+        if "konsantrasyon" in alt:
+            _bars2["Konsantrasyon"] = alt["konsantrasyon"]
+        render_health_bars(_bars2)
 
         # Skor ring SVG
         hedef_pct = min(_skor, 100)
