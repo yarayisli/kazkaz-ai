@@ -115,6 +115,14 @@ try:
 except ImportError:
     DATA_ENTRY_OK = False
 
+try:
+    from usage_tracker import UsageTracker
+    from admin_ui import show_admin_tab, is_admin
+    ADMIN_OK = True
+except ImportError:
+    ADMIN_OK = False
+    def is_admin(): return False
+
 # ── Sayfa ayarları ────────────────────────────────────────────────────────────
 st.set_page_config(
     page_title="KazKaz AI",
@@ -176,6 +184,56 @@ def _init_sentry():
         return False
 
 SENTRY_ACTIVE = _init_sentry()
+
+
+# ── Usage tracker — Firestore counter tabanlı ────────────────────────────────
+
+import os as _os
+
+def _get_firestore_client():
+    """
+    firebase_admin ile firestore client döndür. Cred yoksa None.
+    admin_ui bu client'ı kullanarak usage_daily koleksiyonunu okur/yazar.
+    """
+    if not FIREBASE_CRED_PATH or not _os.path.exists(FIREBASE_CRED_PATH):
+        return None
+    try:
+        import firebase_admin
+        from firebase_admin import credentials, firestore
+        if not firebase_admin._apps:
+            firebase_admin.initialize_app(
+                credentials.Certificate(FIREBASE_CRED_PATH)
+            )
+        return firestore.client()
+    except Exception:
+        return None
+
+
+def _get_usage_tracker():
+    """Session-level tek UsageTracker. Firestore yoksa no-op."""
+    if not ADMIN_OK:
+        return None
+    if "usage_tracker" not in st.session_state:
+        fs_client = _get_firestore_client()
+        st.session_state.usage_tracker = UsageTracker(fs_client)
+    return st.session_state.usage_tracker
+
+
+def _track(event: str, page: str = None):
+    """Kısayol: mevcut kullanıcı bilgileri ile track."""
+    tracker = _get_usage_tracker()
+    if not tracker:
+        return
+    try:
+        profile = st.session_state.get("user_profile") or {}
+        tracker.track(
+            event=event,
+            user_id=_current_user_id(),
+            page=page,
+            plan=profile.get("plan", "free"),
+        )
+    except Exception:
+        pass
 
 
 # ── LLM guardrail + cache — oturum boyunca tek örnek ─────────────────────────
@@ -909,6 +967,7 @@ with st.sidebar:
         )
         if clicked:
             st.session_state["nav_sayfa"] = key
+            _track("page_view", page=key)
             st.rerun()
 
     nav_group("Genel Bakış")
@@ -938,6 +997,11 @@ with st.sidebar:
     nav_group("Veri & Rapor")
     nav_item("Veri Girişi",      "veri",    "○")
     nav_item("PDF Rapor",        "pdf",     "○")
+
+    # Admin bölümü — sadece admin listesindeki kullanıcılara görünür
+    if ADMIN_OK and is_admin():
+        nav_group("Admin")
+        nav_item("Admin Dashboard", "admin", "🛠")
 
     # AI kullanım göstergesi (guardrail + cache aktifse)
     if st.session_state.get("ai_active") and "llm_guardrail" in st.session_state:
@@ -1082,6 +1146,14 @@ if st.session_state.rapor is None and st.session_state.get("nav_sayfa") not in (
 # VERİ GİRİŞ SAYFASI — rapor olmasa da açılır
 # ─────────────────────────────────────────────────────────────────────────────
 _sayfa = st.session_state.get("nav_sayfa", "genel")
+
+# Admin sayfa — sadece admin listesindekiler; erken çık, alt sayfaları render etme
+if _sayfa == "admin":
+    if ADMIN_OK and is_admin():
+        show_admin_tab(_get_usage_tracker())
+    else:
+        st.warning("🔒 Bu sayfa yalnızca admin kullanıcılar içindir.")
+    st.stop()
 
 if _sayfa == "veri":
     render_page_header(
