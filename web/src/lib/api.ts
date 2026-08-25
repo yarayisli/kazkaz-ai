@@ -874,18 +874,24 @@ export function cfoAjanAnalizi(
 
 export function gelismisAjanAnalizi(veri: FinancialData, girdiler: GelismisAjanGirdisi = {}) {
   const bugun = new Date().toISOString().slice(0, 10);
+  // NOT: girdiler önce, fallback'ler sonra. Aksi durumda trailing spread
+  // `baslangic_nakdi`, `operasyonel_nakit_akisi`, `rapor_tarihi`'yi
+  // `undefined` ile üstüne yazıyor ve backend'de default 0 alınıyordu →
+  // 13 haftalık nakit projeksiyonu sıfırdan başlıyor, sahte "kritik
+  // runway" uyarıları üretiyordu.
   return apiIstegi<GelismisAjanAnalizi>('/api/v1/cfo/gelismis-ajanlar', {
     finansal_veri: apiFinansalVeri(veri),
-    rapor_tarihi: girdiler.rapor_tarihi || bugun,
-    baslangic_nakdi: girdiler.baslangic_nakdi ?? veri.cashInHand,
-    minimum_nakit_esigi: girdiler.minimum_nakit_esigi,
-    operasyonel_nakit_akisi: girdiler.operasyonel_nakit_akisi ?? veri.operatingCashFlow,
     mizan: [],
     haftalik_nakit: [],
     alacak_faturalari: [],
     borc_servisi: [],
     butce: [],
     ...girdiler,
+    // Fallback alanlar: girdiler'de tanımsız/null ise devreye girer.
+    rapor_tarihi:            girdiler.rapor_tarihi || bugun,
+    baslangic_nakdi:         girdiler.baslangic_nakdi ?? veri.cashInHand,
+    minimum_nakit_esigi:     girdiler.minimum_nakit_esigi,
+    operasyonel_nakit_akisi: girdiler.operasyonel_nakit_akisi ?? veri.operatingCashFlow,
   });
 }
 
