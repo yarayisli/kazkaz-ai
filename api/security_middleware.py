@@ -22,10 +22,30 @@ from starlette.responses import JSONResponse, Response
 _istek_pencereleri: Dict[str, Deque[float]] = defaultdict(deque)
 _kilit = threading.Lock()
 
+# Rate-limit dict'inin şişip OOM olmasını önlemek için periyodik eviction.
+# Public trafikte her farklı IP/token yeni bir key üretir; hiç silinmezse
+# lifetime-unique-clients kadar büyür. Her _EVICTION_ARALIGI istekten sonra
+# boşalmış deque'leri sil (deque zaten süresi geçen timestamp'leri poplar).
+_EVICTION_ARALIGI = 500
+_istek_sayaci = 0
+_MAX_KEY = 10_000  # Aşırı durumda toplu temizlik eşiği
+
 
 def hiz_limitlerini_sifirla() -> None:
     """Test ve kontrollü yeniden yükleme için süreç içi sayaçları temizler."""
+    global _istek_sayaci
     with _kilit:
+        _istek_pencereleri.clear()
+        _istek_sayaci = 0
+
+
+def _bosalmis_anahtarlari_temizle() -> None:
+    """Boş deque tutan anahtarları sil (kilit çağıran tarafından tutulur)."""
+    bos = [k for k, d in _istek_pencereleri.items() if not d]
+    for k in bos:
+        del _istek_pencereleri[k]
+    # Panik senaryosu: bot taraması gibi anormal büyüme
+    if len(_istek_pencereleri) > _MAX_KEY:
         _istek_pencereleri.clear()
 
 
@@ -54,14 +74,23 @@ def _kimlik_anahtari(request: Request) -> str:
 
 
 def _hiz_izni(anahtar: str, limit: int, simdi: float) -> bool:
+    global _istek_sayaci
     pencere_baslangici = simdi - 60
     with _kilit:
         pencere = _istek_pencereleri[anahtar]
         while pencere and pencere[0] <= pencere_baslangici:
             pencere.popleft()
         if len(pencere) >= limit:
+            _istek_sayaci += 1
+            if _istek_sayaci >= _EVICTION_ARALIGI:
+                _bosalmis_anahtarlari_temizle()
+                _istek_sayaci = 0
             return False
         pencere.append(simdi)
+        _istek_sayaci += 1
+        if _istek_sayaci >= _EVICTION_ARALIGI:
+            _bosalmis_anahtarlari_temizle()
+            _istek_sayaci = 0
         return True
 
 
