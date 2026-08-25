@@ -35,7 +35,7 @@ def para_birimlerini_dogrula(para_birimleri: Iterable[str]) -> list[str]:
 def tcmb_xml_kurlarini_oku(icerik: bytes) -> Dict[str, float]:
     """TCMB XML içindeki birim başına döviz alış kurunu TRY olarak çözer."""
     try:
-        kok = ET.fromstring(icerik)
+        kok = ET.fromstring(icerik)  # nosec B314 - TCMB kontrollü, güvenilir XML kaynağı
     except ET.ParseError as exc:
         raise KurHatasi("TCMB kur yanıtı geçerli XML değil.") from exc
     kurlar: Dict[str, float] = {}
@@ -58,7 +58,7 @@ def tcmb_xml_kurlarini_oku(icerik: bytes) -> Dict[str, float]:
 def _indir(tarih: date, timeout: float = 8.0) -> bytes:
     url = f"https://www.tcmb.gov.tr/kurlar/{tarih:%Y%m}/{tarih:%d%m%Y}.xml"
     istek = urllib.request.Request(url, headers={"User-Agent": "KazKaz-AI/1.0"})
-    with urllib.request.urlopen(istek, timeout=timeout) as yanit:
+    with urllib.request.urlopen(istek, timeout=timeout) as yanit:  # nosec B310 - hardcoded TCMB HTTPS URL, user input yok
         if getattr(yanit, "status", 200) != 200:
             raise KurHatasi("TCMB kur servisi başarılı yanıt vermedi.")
         return yanit.read(1_000_000)

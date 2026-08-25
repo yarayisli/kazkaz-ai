@@ -94,6 +94,10 @@ class TestApi(unittest.TestCase):
         self.assertEqual(korunan.headers["x-request-id"], "pilot-test-123")
         self.assertNotEqual(degistirilen.headers["x-request-id"], "uygunsuz kimlik!")
 
+    @unittest.skipUnless(
+        os.path.exists(os.path.join(os.path.dirname(__file__), "..", "..", "web", "dist", "index.html")),
+        "web/dist henüz derlenmedi — CI'da `npm run build` yapıldığında etkinleşir.",
+    )
     def test_web_kabugu_eski_derleme_dosyalarini_onbellekte_tutmaz(self):
         yanit = self.client.get("/")
         self.assertEqual(yanit.status_code, 200)
