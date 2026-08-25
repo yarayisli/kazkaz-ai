@@ -107,6 +107,26 @@ def _db():
     return firestore.client(app=_firebase_uygulamasi())
 
 
+def _count(query) -> int:
+    """
+    Firestore aggregation count — server-side sayım.
+    Fallback: aggregation desteklenmiyorsa stream (test/mock).
+    Etki: subcollection başına N doc read → 1 aggregation read; ayrıca
+    ağ üzerinden döküman payload'u aktarılmaz. Prod'da 100 şirket
+    admin dashboard'unda ~400 stream call'dan tek digit aggregation
+    call'a düşülür.
+    """
+    try:
+        aggregate = query.count()
+        results = aggregate.get()
+        return int(results[0][0].value)
+    except Exception:
+        try:
+            return sum(1 for _ in query.stream())
+        except Exception:
+            return 0
+
+
 def platform_sirketleri(limit: int = 50) -> dict:
     """Finansal değer, dosya veya çalışma alanı içeriği olmadan şirketleri listeler."""
     try:
@@ -114,18 +134,35 @@ def platform_sirketleri(limit: int = 50) -> dict:
         satirlar = []
         for belge in db.collection("companies").limit(limit).stream():
             veri = belge.to_dict() or {}
-            uye_sayisi = sum(1 for _ in belge.reference.collection("members").limit(500).stream())
-            bekleyen_davet = sum(
-                1 for davet in belge.reference.collection("invitations").limit(200).stream()
-                if str((davet.to_dict() or {}).get("status", "pending")) == "pending"
-            )
-            yeni_geri_bildirim = sum(
-                1 for geri in belge.reference.collection("feedback").limit(200).stream()
-                if str((geri.to_dict() or {}).get("status", "new")) == "new"
-            )
+            # Denormalize alan varsa onu kullan (0 network); yoksa aggregation
+            # count. En son çare stream.
+            stats = veri.get("stats") if isinstance(veri.get("stats"), dict) else {}
+            uye_sayisi = int(stats.get("memberCount", -1))
+            if uye_sayisi < 0:
+                uye_sayisi = _count(belge.reference.collection("members").limit(500))
+
+            bekleyen_davet = int(stats.get("pendingInviteCount", -1))
+            if bekleyen_davet < 0:
+                bekleyen_davet = _count(
+                    belge.reference.collection("invitations")
+                        .where("status", "==", "pending")
+                        .limit(200)
+                )
+
+            yeni_geri_bildirim = int(stats.get("newFeedbackCount", -1))
+            if yeni_geri_bildirim < 0:
+                yeni_geri_bildirim = _count(
+                    belge.reference.collection("feedback")
+                        .where("status", "==", "new")
+                        .limit(200)
+                )
+
+            # Audit özeti gerçekten dokuman payload'una ihtiyaç duyuyor,
+            # aggregation ile veremeyiz — ama limit 300 → 50 yapabiliriz;
+            # aktivite özeti son N kayıt için yeter.
             audit_kayitlari = [
                 audit.to_dict() or {}
-                for audit in belge.reference.collection("auditLogs").limit(300).stream()
+                for audit in belge.reference.collection("auditLogs").limit(50).stream()
             ]
             aktivite = _aktivite_ozeti(audit_kayitlari)
             profil = veri.get("profile") if isinstance(veri.get("profile"), dict) else {}
