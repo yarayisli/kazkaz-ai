@@ -174,23 +174,37 @@ def uye_rolunu_guncelle(istek: UyeRolGuncellemeIstegi, kullanici: KimlikBilgisi)
     batch.set(db.collection("users").document(istek.kullanici_id), {"role": istek.rol}, merge=True)
     sirket_verisi = sirket.get().to_dict() or {}
     app = _firebase_uygulamasi()
-    # Özellikle rol düşürmede eski yetkileri taşıyan refresh tokenları geçersiz
-    # kıl; backend her korumalı istekte check_revoked=True kullanır.
-    firebase_auth.revoke_refresh_tokens(istek.kullanici_id, app=app)
     plan = sirket_verisi.get("plan", uye_verisi.get("plan", "free"))
     deneme = sirket_verisi.get("trialEndsAt")
-    _claimleri_guncelle(istek.kullanici_id, str(kullanici.sirket_id), istek.rol, app, plan, deneme)
+
+    # GÜVENLİK: Firestore commit ÖNCE, Firebase Auth custom-claim SONRA.
+    # Aksi sıralamada (claim önce, commit sonra) commit fail olursa Auth'ta
+    # rol yükseltilmiş kalır; kullanıcı ID token yenilerse check_revoked
+    # kapatılan yollarda ~1 saat boyunca yükseltilmiş yetki geçerli olur.
+    # Persistent-truth (Firestore) her zaman önce yazılmalı.
     try:
         batch.commit()
     except Exception as exc:
-        # Firebase Auth ve Firestore tek atomik işlem sunmadığı için Firestore
-        # yazımı başarısızsa claim'i eski güvenli role geri al.
-        _claimleri_guncelle(
-            istek.kullanici_id, str(kullanici.sirket_id), uye_verisi.get("role", "viewer"),
-            app, plan, deneme,
-        )
-        firebase_auth.revoke_refresh_tokens(istek.kullanici_id, app=app)
         raise HTTPException(status_code=503, detail="Rol değişikliği tamamlanamadı; önceki rol korundu.") from exc
+
+    try:
+        # Önce eski refresh token'ları geçersiz kıl (rol düşüşünde kritik),
+        # sonra yeni claim'i yaz.
+        firebase_auth.revoke_refresh_tokens(istek.kullanici_id, app=app)
+        _claimleri_guncelle(istek.kullanici_id, str(kullanici.sirket_id), istek.rol, app, plan, deneme)
+    except Exception as exc:
+        # Auth güncellemesi başarısızsa Firestore'daki yeni rolü geri al —
+        # aksi halde Firestore'da yeni rol var ama Auth token eski hakkı
+        # taşıyor, tutarsızlık oluşur.
+        try:
+            eski_rol = uye_verisi.get("role", "viewer")
+            rollback = db.batch()
+            rollback.set(uye_ref, {"role": eski_rol, "updatedAt": firestore.SERVER_TIMESTAMP, "updatedBy": kullanici.kullanici_id}, merge=True)
+            rollback.set(db.collection("users").document(istek.kullanici_id), {"role": eski_rol}, merge=True)
+            rollback.commit()
+        except Exception:
+            pass  # rollback fail — audit log ile yakalanacak
+        raise HTTPException(status_code=503, detail="Rol değişikliği Auth katmanında tamamlanamadı; önceki rol geri alındı.") from exc
     _audit(db, kullanici, "member.role_update", istek.kullanici_id, {"targetRole": istek.rol})
     return {"durum": "rol_guncellendi", "kullanici_id": istek.kullanici_id, "rol": istek.rol, "token_yenile": True}
 

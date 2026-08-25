@@ -106,7 +106,13 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       } else {
         setCurrentUser(null);
         setUserProfile(null);
+        setIsPlatformAdmin(false);
+        setLoading(false);
+        return;
       }
+      // Sadece giriş yapmış kullanıcılar için platform-admin erişimi sorgula.
+      // Anonim kullanıcılarda /api/v1/platform-admin/erisim garantili 401
+      // döner: sunucu logunu kirletir, per-IP rate-limit'i tüketir.
       try { setIsPlatformAdmin(await platformAdminErisiminiGetir()); }
       catch { setIsPlatformAdmin(false); }
       setLoading(false);

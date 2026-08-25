@@ -111,9 +111,18 @@ export const DataEntryTab: React.FC<DataEntryTabProps> = ({ initialData, onSave,
 
   const handleChange = (field: keyof FinancialData, value: any) => {
     if (isReadOnly) return;
+    // FinancialData'nın sayısal alanları number tipinde tutulmalı.
+    // HTML <input type="number"> her zaman string döner; boş string 0'a
+    // çevrilmeli, yoksa ileride `formData.revenue + formData.costOfGoods`
+    // string concat üretiyordu (örn. "1000" + "200" = "1000200").
+    const prevValue = (formData as unknown as Record<string, unknown>)[field as string];
+    const shouldCoerce = typeof prevValue === 'number' && typeof value !== 'number';
+    const normalized = shouldCoerce
+      ? (value === '' || value === null || value === undefined ? 0 : Number(value))
+      : value;
     setFormData((prev) => ({
       ...prev,
-      [field]: typeof value === 'number' ? value : value,
+      [field]: normalized,
     }));
   };
 
