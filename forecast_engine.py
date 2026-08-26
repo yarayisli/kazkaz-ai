@@ -191,6 +191,8 @@ class ForecastEngine:
         self,
         ay: int = 3,
         enflasyon_yillik: Optional[float] = None,
+        dogrula: bool = False,
+        dogrulama_ay: int = 3,
     ) -> Dict[str, Any]:
         """
         Tahmin döndürür.
@@ -198,6 +200,13 @@ class ForecastEngine:
         enflasyon_yillik: opsiyonel yıllık enflasyon oranı (ör. 0.35 = %35).
             Verilirse tahmin tablosuna reel (bugünkü satın alma gücüne göre
             deflate edilmiş) sütunlar eklenir. Nominal sütunlar korunur.
+        dogrula: True ise son ``dogrulama_ay`` (varsayılan 3) ay holdout
+            olarak ayrılıp motor bu periyoda göre yeniden eğitilir; tahminler
+            gerçek ile karşılaştırılıp MAPE hesaplanır. Prophet için ekstra
+            eğitim maliyeti olduğundan opt-in bırakıldı. Sonuç
+            ``geriye_donuk_mape``, ``mape_holdout_ay`` ve ``guven_seviyesi``
+            alanlarında raporlanır. Yetersiz veride sessizce atlanır ve
+            ``guven_seviyesi="olcuulmedi"`` döner.
         """
         if not self._trained:
             self.train()
@@ -209,10 +218,76 @@ class ForecastEngine:
         else:
             result = self._forecast_linear(ay)
 
+        # Geriye dönük doğrulama (holdout MAPE) — opt-in
+        mape_bilgisi = self._geriye_donuk_mape(dogrulama_ay) if dogrula else None
+        if mape_bilgisi is not None:
+            result.update(mape_bilgisi)
+        else:
+            result.setdefault("geriye_donuk_mape", None)
+            result.setdefault("mape_holdout_ay", dogrulama_ay if dogrula else 0)
+            result.setdefault(
+                "guven_seviyesi",
+                "olculmedi" if not dogrula else "olculmedi_veri_yetersiz",
+            )
+
         if enflasyon_yillik is not None and enflasyon_yillik > 0:
             result = self._apply_deflator(result, enflasyon_yillik)
 
         return result
+
+    def _geriye_donuk_mape(self, holdout_ay: int) -> Optional[Dict[str, Any]]:
+        """Walk-forward doğrulama: son N ay holdout, gerisi eğitim.
+
+        Yeterli veri yoksa None döner (çağıran fallback değeri ayarlar).
+        Aktif backend ile aynı yolu kullanır (Prophet/statsmodels/linear).
+        """
+        data = self._train_data
+        if data is None or len(data) < holdout_ay + 6 or holdout_ay < 1:
+            return None
+
+        train_df = data.iloc[:-holdout_ay].reset_index(drop=True)
+        holdout_df = data.iloc[-holdout_ay:].reset_index(drop=True)
+
+        # Aynı backend'te taze motorla eğit + tahmin et
+        gecici = ForecastEngine(self.df)
+        gecici._train_data = train_df
+        try:
+            if PROPHET_AVAILABLE:
+                gecici._train_prophet(train_df, yearly_seasonality=True, changepoint_prior_scale=0.05)
+                tahmin = gecici._forecast_prophet(holdout_ay)
+            elif STATSMODELS_AVAILABLE:
+                gecici._train_statsmodels(train_df)
+                tahmin = gecici._forecast_statsmodels(holdout_ay)
+            else:
+                gecici._train_linear(train_df)
+                tahmin = gecici._forecast_linear(holdout_ay)
+        except Exception:
+            return None
+
+        tahmin_serisi = list(tahmin["tahmin_tablosu"]["Tahmin"])
+        gercek_serisi = list(holdout_df["y"])
+        if len(tahmin_serisi) < holdout_ay or len(gercek_serisi) < holdout_ay:
+            return None
+
+        hatalar = []
+        for tahmin_v, gercek_v in zip(tahmin_serisi, gercek_serisi):
+            if gercek_v > 0:
+                hatalar.append(abs(tahmin_v - gercek_v) / gercek_v)
+        if not hatalar:
+            return None
+
+        mape = round(sum(hatalar) / len(hatalar) * 100, 2)
+        if mape <= 10:
+            guven = "yuksek"
+        elif mape <= 25:
+            guven = "orta"
+        else:
+            guven = "dusuk"
+        return {
+            "geriye_donuk_mape": mape,
+            "mape_holdout_ay":   holdout_ay,
+            "guven_seviyesi":    guven,
+        }
 
     @staticmethod
     def _apply_deflator(result: Dict[str, Any], enflasyon_yillik: float) -> Dict[str, Any]:
