@@ -28,6 +28,18 @@ jobs:
       - name: API, finans ve güvenlik testleri
         run: python -m unittest discover -s api/tests -v
 
+      - name: Motor bağımlılıkları (test_engines forecast fallback)
+        # statsmodels: Prophet olmadığında ExponentialSmoothing devreye giriyor;
+        # kök testleri (test_engines.py) Prophet eksikliğini fallback ile geçirir.
+        # Not: Bash'de `>` redirection olmasın diye specifier tırnak içinde.
+        run: pip install 'statsmodels>=0.14.0'
+
+      - name: Kök motor ve usage tracker testleri
+        # test_engines.py: financial, cashflow, debt, budget, forecast,
+        # investment, customer, sector, cac/ltv motorları (111 test).
+        # test_usage_tracker.py: admin dashboard event counters (10 test).
+        run: python -m unittest test_engines test_usage_tracker -v
+
       - name: Python sözdizimi
         run: python -m compileall -q api cfo_agent.py gemini_engine.py
 
