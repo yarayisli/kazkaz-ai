@@ -15,6 +15,7 @@ from typing import Any, Dict, Iterable, List, Optional, Tuple, Type
 from openpyxl import Workbook, load_workbook
 from pydantic import BaseModel, ValidationError
 
+from api.data_quality import kalite_raporu
 from api.models import (
     AlacakFaturasi,
     BorcServisSatiri,
@@ -510,9 +511,38 @@ def dosya_dogrula(icerik: bytes, dosya_adi: str) -> Dict[str, Any]:
     toplam_gelir = sum(s["gelir"] for s in islemler)
     toplam_gider = sum(s["gider"] for s in islemler)
     uyari_sayisi = sum(1 for h in hatalar if h["seviye"] == "uyari")
+
+    # Sayfa eşleme özeti — hangi sayfalar tanındı, hangileri atlandı.
+    tanınan_sayfalar: List[str] = []
+    atlanan_sayfalar: List[str] = []
+    if uzanti != ".csv":
+        _bilinen_sayfalar = {
+            "finansal_gorunum", "islemler", "transactions", *SAYFA_MODELLERI.keys(),
+            "kapak", "rehber", "kontroller", "kontrol_paneli",
+            "beklenen_sonuclar", "test_senaryolari", "hacim_5000",
+        }
+        for ad in sayfalar:
+            anahtar = _anahtar(ad)
+            if anahtar in _bilinen_sayfalar:
+                tanınan_sayfalar.append(ad)
+            else:
+                atlanan_sayfalar.append(ad)
+
+    # Semantik veri kalitesi raporu (cross-field + anomali)
+    kalite = kalite_raporu(
+        finansal_veri=finansal,
+        zaman_serisi=islemler,
+        musteri_cirolari=finansal.get("musteri_cirolari") if finansal else None,
+    )
+
     return {
         "durum": "hazir" if not hatalar else "uyarili",
-        "dosya": {"ad": temiz_ad, "tur": uzanti[1:], "boyut": len(icerik), "sayfalar": sayfalar},
+        "dosya": {
+            "ad": temiz_ad, "tur": uzanti[1:], "boyut": len(icerik),
+            "sayfalar": sayfalar,
+            "tanınan_sayfalar": tanınan_sayfalar,
+            "atlanan_sayfalar": atlanan_sayfalar,
+        },
         "ozet": {
             "gecerli_satirlar": gecerli, "uyarili_satirlar": uyari_sayisi,
             "reddedilen_satirlar": reddedilen, "toplam_gelir": toplam_gelir,
@@ -533,6 +563,14 @@ def dosya_dogrula(icerik: bytes, dosya_adi: str) -> Dict[str, Any]:
             "eksikler": [] if finansal_sayfa_var else [
                 "Bilanço kalemleri", "Faiz/vergi/amortisman ayrımının açık teyidi",
             ],
+            # Cross-field tutarlılık + anomali bulguları — kullanıcı Uygula
+            # butonuna basmadan önce görebilir. Bulgular hesaplamayı bloke
+            # etmez; sadece dikkat çeker.
+            "tutarlilik_bulgulari": kalite["tutarlilik_bulgulari"],
+            "anomali_bulgulari": kalite["anomali_bulgulari"],
+            "semantik_durum": kalite["durum"],  # temiz | uyarili | hatali
+            "semantik_hata_sayisi": kalite["toplam_hata"],
+            "semantik_uyari_sayisi": kalite["toplam_uyari"],
         },
         "gelismis_veri": gelismis,
         "zaman_serisi": islemler,
