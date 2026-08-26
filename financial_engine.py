@@ -228,12 +228,9 @@ class ExpenseAnalysis:
                 "kaynak": "kullanici_isaretlemesi",
             }
 
-        # Yöntem 2: Anahtar kelime tabanlı (yaklaşık)
-        if fixed_keywords is None:
-            fixed_keywords = ["kira", "maaş", "amortisman", "sigorta", "abonelik"]
-
-        pattern = "|".join(fixed_keywords)
-        is_fixed = self.df["Kategori"].str.lower().str.contains(pattern, na=False)
+        # Yöntem 2: Anahtar kelime tabanlı (yaklaşık) — tek kaynak modülünden
+        from expense_classification import sabit_maskesi
+        is_fixed = sabit_maskesi(self.df, kelimeler=fixed_keywords)
         sabit = float(self.df.loc[is_fixed, "Gider"].sum())
         degisken = float(self.df.loc[~is_fixed, "Gider"].sum())
         return {

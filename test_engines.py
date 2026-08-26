@@ -1141,6 +1141,68 @@ class TestTurkishColumns(unittest.TestCase):
 
 
 # ═══════════════════════════════════════════════════════
+# GIDER SINIFLANDIRMA (ortak modül)
+# ═══════════════════════════════════════════════════════
+
+class TestSabitMaskesi(unittest.TestCase):
+
+    def test_varsayilan_liste_yaygin_sabit_giderleri_yakalar(self):
+        from expense_classification import sabit_maskesi
+        df = pd.DataFrame({"Kategori": [
+            "Ofis Kirası", "Maaş Ödemesi", "Amortisman",
+            "Sigorta Primi", "SaaS Aboneliği", "Site Aidatı",
+            "Hammadde", "Reklam",
+        ]})
+        m = sabit_maskesi(df)
+        self.assertEqual(list(m), [True, True, True, True, True, True, False, False])
+
+    def test_ekstra_ile_sirket_ozel_kategori_eklenebilir(self):
+        from expense_classification import sabit_maskesi
+        df = pd.DataFrame({"Kategori": ["Danışmanlık Sözleşmesi", "Hammadde"]})
+        self.assertFalse(sabit_maskesi(df).iloc[0])
+        self.assertTrue(sabit_maskesi(df, ekstra=["danışmanlık"]).iloc[0])
+
+    def test_kelimeler_ile_tam_override(self):
+        from expense_classification import sabit_maskesi
+        df = pd.DataFrame({"Kategori": ["Kira", "Faiz"]})
+        m = sabit_maskesi(df, kelimeler=["faiz"])
+        # Varsayılan "kira" listesi devre dışı; sadece "faiz" sabit sayılır
+        self.assertEqual(list(m), [False, True])
+
+    def test_regex_meta_karakter_iceren_kategori_literal_islenir(self):
+        """
+        Codex bulgusu (#27): ekstra=["C++"] eskiden regex hatası verirdi;
+        kelimeler=["Sabit (ofis)"] literal metni yakalayamazdı.
+        """
+        from expense_classification import sabit_maskesi
+        df = pd.DataFrame({"Kategori": ["C++ Lisansı", "Sabit (ofis)", "Hammadde"]})
+        m1 = sabit_maskesi(df, ekstra=["C++"])
+        self.assertEqual(list(m1), [True, False, False])
+        m2 = sabit_maskesi(df, kelimeler=["Sabit (ofis)"])
+        self.assertEqual(list(m2), [False, True, False])
+
+    def test_kategori_sutunu_yoksa_hepsi_false(self):
+        from expense_classification import sabit_maskesi
+        df = pd.DataFrame({"X": [1, 2, 3]})
+        self.assertFalse(sabit_maskesi(df).any())
+
+    def test_financial_engine_paylasilan_kaynagi_kullanir(self):
+        """Modüle taşındıktan sonra sonuçlar aynı kalıyor mu?"""
+        from financial_engine import ExpenseAnalysis, DataLoader
+        df = pd.DataFrame({
+            "Tarih": pd.to_datetime(["2024-01-01"] * 4),
+            "Kategori": ["Kira", "Maaş Ödemesi", "Hammadde", "Reklam"],
+            "Gelir": [0, 0, 0, 0],
+            "Gider": [5000, 20000, 8000, 3000],
+        })
+        ea = ExpenseAnalysis(DataLoader.from_dataframe(df))
+        fv = ea.fixed_vs_variable()
+        # Kira 5000 + Maaş 20000 = 25000; Hammadde 8000 + Reklam 3000 = 11000
+        self.assertAlmostEqual(fv["sabit_gider"], 25000, delta=0.1)
+        self.assertAlmostEqual(fv["degisken_gider"], 11000, delta=0.1)
+
+
+# ═══════════════════════════════════════════════════════
 # 7. SINIR DURUMLARI (Edge Cases)
 # ═══════════════════════════════════════════════════════
 

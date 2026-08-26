@@ -210,7 +210,9 @@ class KazKazConverter(BaseConverter):
         kat = str(row.get("Kategori", "")).lower()
 
         # Anahtar kelime tabanlı sınıflandırma (kullanıcı sonradan düzenleyebilir)
-        if any(k in kat for k in ["kira", "maaş", "amortisman", "sigorta", "abonelik", "aidat"]):
+        # Sabit kelime listesi tek kaynaktan; diğer kategori kökleri satır bazlı.
+        from expense_classification import SABIT_GIDER_KELIMELERI
+        if any(k in kat for k in SABIT_GIDER_KELIMELERI):
             return "Sabit"
         if any(k in kat for k in ["hammadde", "malzeme", "üretim maliyeti", "cogs", "satış maliyeti"]):
             return "COGS"
