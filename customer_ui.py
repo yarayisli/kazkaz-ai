@@ -290,7 +290,26 @@ def show_customer_tab(df: pd.DataFrame):
         with col1:
             sec("👥 Müşteri Karlılığı")
             musteri_kar = rapor["musteri_kar"]
-            if not musteri_kar.empty:
+            veri_yetersiz = bool(musteri_kar.attrs.get("veri_yetersiz"))
+            if musteri_kar.empty:
+                st.info("Müşteri karlılığı için yeterli veri yok.")
+            elif veri_yetersiz:
+                st.warning(
+                    musteri_kar.attrs.get(
+                        "metodoloji_uyarisi",
+                        "Müşteri bazlı brüt katkı marjı hesaplanamadı; "
+                        "gider satırlarına Müşteri veya Ürün etiketi ekleyin.",
+                    )
+                )
+                st.dataframe(
+                    musteri_kar.style.format({
+                        "Gelir (₺)":            "{:,.0f} ₺",
+                        "Sabit Gider Payı (₺)": "{:,.0f} ₺",
+                        "Gelir Payı (%)":       "{:.1f}%",
+                    }),
+                    use_container_width=True, hide_index=True,
+                )
+            else:
                 colors_m = [C_GREEN if v >= 0 else C_RED
                             for v in musteri_kar["Net Kar (₺)"]]
                 fig = go.Figure(go.Bar(
@@ -309,10 +328,14 @@ def show_customer_tab(df: pd.DataFrame):
 
                 st.dataframe(
                     musteri_kar.style.format({
-                        "Gelir (₺)":         "{:,.0f} ₺",
-                        "Tahmini Gider (₺)":  "{:,.0f} ₺",
-                        "Net Kar (₺)":        "{:,.0f} ₺",
-                        "Kar Marjı (%)":      "{:.1f}%",
+                        "Gelir (₺)":            "{:,.0f} ₺",
+                        "Değişken Gider (₺)":   "{:,.0f} ₺",
+                        "Ürün Maliyeti (₺)":    "{:,.0f} ₺",
+                        "Brüt Katkı (₺)":       "{:,.0f} ₺",
+                        "Brüt Katkı Marjı (%)": "{:.1f}%",
+                        "Sabit Gider Payı (₺)": "{:,.0f} ₺",
+                        "Net Kar (₺)":          "{:,.0f} ₺",
+                        "Net Marj (%)":         "{:.1f}%",
                     }).applymap(
                         lambda v: "color:#059669" if isinstance(v,(int,float)) and v>0
                                   else "color:#DC2626" if isinstance(v,(int,float)) and v<0
