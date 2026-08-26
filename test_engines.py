@@ -1206,6 +1206,51 @@ class TestSectorBenchmarkEBITGuven(unittest.TestCase):
 
 
 # ═══════════════════════════════════════════════════════
+# FORECAST — geriye dönük MAPE (holdout doğrulama)
+# ═══════════════════════════════════════════════════════
+
+class TestForecastGeriyeDonukMAPE(unittest.TestCase):
+
+    def _df(self, aylar: int, gelir_baz: float = 100_000, buyume: float = 0.02):
+        """Sentetik gelir serisi; ay bazında ~%2 lineer büyüme."""
+        tarihler = pd.date_range("2024-01-01", periods=aylar, freq="MS")
+        rows = []
+        for i, t in enumerate(tarihler):
+            gelir = gelir_baz * (1 + buyume * i)
+            rows.append({"Tarih": t, "Kategori": "Satış", "Gelir": gelir, "Gider": 0})
+        df = pd.DataFrame(rows)
+        df["YilAy"] = df["Tarih"].dt.to_period("M").astype(str)
+        return df
+
+    def test_dogrulama_kapalıyken_alanlar_olculmedi_gorunur(self):
+        from forecast_engine import ForecastEngine
+        fc = ForecastEngine(self._df(12))
+        r = fc.forecast(ay=3)
+        self.assertIsNone(r["geriye_donuk_mape"])
+        self.assertEqual(r["mape_holdout_ay"], 0)
+        self.assertEqual(r["guven_seviyesi"], "olculmedi")
+
+    def test_dogrulama_aktifken_mape_ve_guven_uretilir(self):
+        from forecast_engine import ForecastEngine
+        fc = ForecastEngine(self._df(24))
+        r = fc.forecast(ay=3, dogrula=True, dogrulama_ay=3)
+        self.assertIsNotNone(r["geriye_donuk_mape"])
+        self.assertEqual(r["mape_holdout_ay"], 3)
+        self.assertIn(r["guven_seviyesi"], {"yuksek", "orta", "dusuk"})
+        # Lineer büyüyen sentetik veride %10 altı beklenir
+        self.assertLess(r["geriye_donuk_mape"], 10.0)
+        self.assertEqual(r["guven_seviyesi"], "yuksek")
+
+    def test_yetersiz_veride_dogrulama_atlanir(self):
+        """holdout + 6 ay eşiği altında MAPE hesaplanmaz."""
+        from forecast_engine import ForecastEngine
+        fc = ForecastEngine(self._df(6))  # 3 holdout + 6 eşik = 9 gerekli
+        r = fc.forecast(ay=3, dogrula=True, dogrulama_ay=3)
+        self.assertIsNone(r["geriye_donuk_mape"])
+        self.assertEqual(r["guven_seviyesi"], "olculmedi_veri_yetersiz")
+
+
+# ═══════════════════════════════════════════════════════
 # GIDER SINIFLANDIRMA (ortak modül)
 # ═══════════════════════════════════════════════════════
 
