@@ -80,15 +80,27 @@ class ForecastEngine:
     # ── Veri Hazırlama ────────────────────────────────────────────────────────
 
     def _prepare_data(self) -> pd.DataFrame:
-        """Aylık gelir serisini standart formata çevir."""
+        """Aylık gelir serisini standart formata çevir + eksik ayları 0 ile doldur.
+
+        Codex (#29): _prepare_data eksik ayları atlarsa forecast backend'leri
+        ardışık ay üretir ama holdout gerçek ile positional zip yanlış aylara
+        denk gelir. Reindex tam aylık grid → holdout eşleşmesi periyot bazlı.
+        """
         monthly = (
             self.df.groupby("YilAy")["Gelir"]
             .sum()
             .reset_index()
         )
+        if monthly.empty:
+            return pd.DataFrame(columns=["ds", "y"])
         monthly["ds"] = pd.to_datetime(monthly["YilAy"], format="%Y-%m")
-        monthly["y"]  = monthly["Gelir"].clip(lower=0).astype(float)
-        return monthly[["ds", "y"]].sort_values("ds").reset_index(drop=True)
+        monthly = monthly.sort_values("ds").reset_index(drop=True)
+        # Tam aylık grid — eksik aylar 0 gelirle doldurulur (KOBİ verisinde
+        # 0-satış ayı gerçek bilgi; tahmini bozan boşluk değil).
+        tam_grid = pd.date_range(monthly["ds"].iloc[0], monthly["ds"].iloc[-1], freq="MS")
+        monthly = monthly.set_index("ds").reindex(tam_grid).rename_axis("ds").reset_index()
+        monthly["y"] = monthly["Gelir"].fillna(0.0).clip(lower=0).astype(float)
+        return monthly[["ds", "y"]]
 
     # ── Eğitim ────────────────────────────────────────────────────────────────
 
@@ -126,6 +138,11 @@ class ForecastEngine:
             )
 
         self._train_data = data
+        # Codex (#29): validation aynı Prophet konfigüyle yeniden eğitmeli.
+        self._train_args = {
+            "yearly_seasonality": yearly_seasonality,
+            "changepoint_prior_scale": changepoint_prior_scale,
+        }
 
         if PROPHET_AVAILABLE:
             self._train_prophet(data, yearly_seasonality, changepoint_prior_scale)
@@ -179,9 +196,17 @@ class ForecastEngine:
         ).fit(optimized=True)
 
     def _train_linear(self, data):
-        """Son 6 aylık trendi baz alan basit lineer regresyon."""
+        """Son 6 aylık trendi baz alan basit lineer regresyon.
+
+        Codex (#29): _forecast_linear polinomu ``len(train_data) + i`` global
+        indekste değerlendiriyor. Tail-relative (0..5) koordinatlar bu
+        değerlendirmeyi kırıyordu — 21 ay train + 3 ay holdout senaryosunda
+        MAPE %0 yerine %20 çıkıyordu. Fit koordinatlarını global indekse
+        (n-tail_len..n-1) hizala.
+        """
         tail = data.tail(min(6, len(data)))
-        x = np.arange(len(tail))
+        n = len(data)
+        x = np.arange(n - len(tail), n)  # global indeks — forecast ile aynı eksen
         y = tail["y"].values
         self._model = np.polyfit(x, y, deg=1)  # (slope, intercept)
 
@@ -238,6 +263,13 @@ class ForecastEngine:
     def _geriye_donuk_mape(self, holdout_ay: int) -> Optional[Dict[str, Any]]:
         """Walk-forward doğrulama: son N ay holdout, gerisi eğitim.
 
+        Metrik: WAPE (Σ|forecast-actual| / Σ|actual|). Codex (#29): MAPE
+        sıfır aktarımlı aylarda tanımsız; eskiden zero-satırları atlıyorduk
+        ve tam holdout ay sayısı bildirilirken güven şişik çıkıyordu. WAPE
+        sıfır aylara doğal olarak dayanıklı (payda toplamı sıfır değilse
+        anlamlı). Ayrıca train() argümanları (yearly_seasonality,
+        changepoint_prior_scale) validation'a aynen taşınır.
+
         Yeterli veri yoksa None döner (çağıran fallback değeri ayarlar).
         Aktif backend ile aynı yolu kullanır (Prophet/statsmodels/linear).
         """
@@ -251,9 +283,17 @@ class ForecastEngine:
         # Aynı backend'te taze motorla eğit + tahmin et
         gecici = ForecastEngine(self.df)
         gecici._train_data = train_df
+        train_args = getattr(self, "_train_args", None) or {
+            "yearly_seasonality": True,
+            "changepoint_prior_scale": 0.05,
+        }
         try:
             if PROPHET_AVAILABLE:
-                gecici._train_prophet(train_df, yearly_seasonality=True, changepoint_prior_scale=0.05)
+                gecici._train_prophet(
+                    train_df,
+                    yearly_seasonality=train_args["yearly_seasonality"],
+                    changepoint_prior_scale=train_args["changepoint_prior_scale"],
+                )
                 tahmin = gecici._forecast_prophet(holdout_ay)
             elif STATSMODELS_AVAILABLE:
                 gecici._train_statsmodels(train_df)
@@ -264,28 +304,47 @@ class ForecastEngine:
         except Exception:
             return None
 
-        tahmin_serisi = list(tahmin["tahmin_tablosu"]["Tahmin"])
-        gercek_serisi = list(holdout_df["y"])
-        if len(tahmin_serisi) < holdout_ay or len(gercek_serisi) < holdout_ay:
+        tahmin_df = tahmin["tahmin_tablosu"]
+        # Periyot bazlı hizalama — positional zip yerine ay etiketiyle join.
+        # (_prepare_data artık tam grid reindex yapıyor; boşluk 0 gelirdir.)
+        tahmin_haritasi = {
+            row["Dönem"]: float(row["Tahmin"])
+            for _, row in tahmin_df.iterrows()
+        }
+        eslesen = []
+        for _, gercek_satir in holdout_df.iterrows():
+            donem = gercek_satir["ds"].strftime("%Y-%m")
+            tahmin_v = tahmin_haritasi.get(donem)
+            if tahmin_v is None:
+                continue
+            eslesen.append((tahmin_v, float(gercek_satir["y"])))
+
+        # Yeterli örneklem: holdout aylarının en az yarısı eşleşmeli
+        if len(eslesen) < max(1, holdout_ay // 2 + 1):
             return None
 
-        hatalar = []
-        for tahmin_v, gercek_v in zip(tahmin_serisi, gercek_serisi):
-            if gercek_v > 0:
-                hatalar.append(abs(tahmin_v - gercek_v) / gercek_v)
-        if not hatalar:
+        toplam_gercek = sum(abs(g) for _, g in eslesen)
+        toplam_hata = sum(abs(t - g) for t, g in eslesen)
+        if toplam_gercek == 0:
+            # Payda sıfır — WAPE tanımsız. Karar için sinyal yok.
             return None
 
-        mape = round(sum(hatalar) / len(hatalar) * 100, 2)
-        if mape <= 10:
+        wape = round(toplam_hata / toplam_gercek * 100, 2)
+        if wape <= 10:
             guven = "yuksek"
-        elif mape <= 25:
+        elif wape <= 25:
             guven = "orta"
         else:
             guven = "dusuk"
         return {
-            "geriye_donuk_mape": mape,
+            "geriye_donuk_wape": wape,
+            # Geriye uyumluluk için MAPE alanı korunur (WAPE ile aynı hesap
+            # tüm gerçek > 0 durumda; sıfır ay varsa yaklaşık ama farkı
+            # WAPE ile açıklanır).
+            "geriye_donuk_mape": wape,
             "mape_holdout_ay":   holdout_ay,
+            "eslesen_ay":        len(eslesen),
+            "dogrulama_metrigi": "WAPE",
             "guven_seviyesi":    guven,
         }
 

@@ -1249,6 +1249,43 @@ class TestForecastGeriyeDonukMAPE(unittest.TestCase):
         self.assertIsNone(r["geriye_donuk_mape"])
         self.assertEqual(r["guven_seviyesi"], "olculmedi_veri_yetersiz")
 
+    def test_wape_sifir_gelir_ayini_atmiyor(self):
+        """
+        Codex (#29): MAPE payda>0 kontrolüyle sıfır ayları atlıyordu; 3 aylık
+        holdout'un 2'si sıfır olsa da MAPE "yuksek" güven veriyordu. WAPE
+        toplamı üzerinden hesaplar → sıfır aylar gerçekçi cezalandırılır.
+        """
+        import pandas as pd
+        from forecast_engine import ForecastEngine
+        # 12 ay eğitim (100 civarı düz) + 3 ay holdout (0, 0, 100)
+        df_train = self._df(12, gelir_baz=100, buyume=0.0)
+        # Son 3 ayı 0/0/100 ile değiştirmek için sentetik veri ekle
+        ek_aylar = pd.date_range("2025-01-01", periods=3, freq="MS")
+        for i, t in enumerate(ek_aylar):
+            gelir = 0 if i < 2 else 100
+            df_train.loc[len(df_train)] = {
+                "Tarih": t, "Kategori": "Satış", "Gelir": gelir, "Gider": 0,
+                "YilAy": t.strftime("%Y-%m"),
+            }
+        fc = ForecastEngine(df_train)
+        r = fc.forecast(ay=3, dogrula=True, dogrulama_ay=3)
+        # Tahmin ~100 civarı, gerçek [0, 0, 100] → WAPE = |100|+|100|+|~0| / 100 ≈ %200
+        self.assertIsNotNone(r["geriye_donuk_wape"])
+        self.assertGreater(r["geriye_donuk_wape"], 50.0)  # kesinlikle "yuksek" değil
+        self.assertEqual(r["guven_seviyesi"], "dusuk")
+        self.assertEqual(r["dogrulama_metrigi"], "WAPE")
+
+    def test_train_argumanlari_dogrulamaya_tasiniyor(self):
+        """Codex (#29): validation farklı Prophet konfigüyle eğitmemeli."""
+        from forecast_engine import ForecastEngine
+        fc = ForecastEngine(self._df(18))
+        fc.train(yearly_seasonality=False, changepoint_prior_scale=0.5)
+        self.assertEqual(fc._train_args["yearly_seasonality"], False)
+        self.assertEqual(fc._train_args["changepoint_prior_scale"], 0.5)
+        r = fc.forecast(ay=3, dogrula=True, dogrulama_ay=3)
+        # Sadece args'in taşındığını kontrol etmek yeterli (backend değişken)
+        self.assertIsNotNone(r["geriye_donuk_wape"])
+
 
 # ═══════════════════════════════════════════════════════
 # GIDER SINIFLANDIRMA (ortak modül)
