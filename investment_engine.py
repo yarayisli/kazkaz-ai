@@ -29,6 +29,15 @@ except ImportError:
 
 
 # ─────────────────────────────────────────────
+# VARSAYILANLAR — API ve UI arasında paylaşılır
+# ─────────────────────────────────────────────
+# TR 2025 için tek kaynak; from_dict, dataclass ve dış çağıranlar bu sabitleri kullanır.
+VARSAYILAN_ISKONTO: float = 0.35
+VARSAYILAN_VERGI: float = 0.25
+VARSAYILAN_ENFLASYON: float = 0.35
+
+
+# ─────────────────────────────────────────────
 # VERİ YAPISI
 # ─────────────────────────────────────────────
 
@@ -59,9 +68,9 @@ class Investment:
     ad:               str
     baslangic_maliyeti: float          # İlk yatırım tutarı (₺)
     nakit_akislari:   List[float]      # Yıllık nakit akışları listesi
-    iskonto_orani:    float = 0.35     # Yıllık iskonto oranı (WACC) — 2025 TR
-    vergi_orani:      float = 0.25     # Kurumlar vergisi oranı (2025 TR)
-    enflasyon_orani:  float = 0.35     # Yıllık enflasyon beklentisi
+    iskonto_orani:    float = VARSAYILAN_ISKONTO   # Yıllık iskonto oranı (WACC) — 2025 TR
+    vergi_orani:      float = VARSAYILAN_VERGI     # Kurumlar vergisi oranı (2025 TR)
+    enflasyon_orani:  float = VARSAYILAN_ENFLASYON # Yıllık enflasyon beklentisi
     vergi_sonrasi:    bool  = False    # Nakit akışları vergi sonrası mı?
     aciklama:         str   = ""
 
@@ -110,14 +119,23 @@ class InvestmentMetrics:
         return round(pv, 2)
 
     def npv_reel(self) -> float:
-        """Enflasyona göre düzeltilmiş reel NPV."""
+        """Enflasyona göre düzeltilmiş reel NPV (bugünkü satın-alma gücü).
+
+        Nakit akışları ``Investment.nakit_akislari`` alanında NOMİNAL olarak
+        tutulur. Reel NPV için önce her akış enflasyonla bugünkü satın-alma
+        gücüne indirilir, sonra reel iskonto oranıyla iskonto edilir. Nominal
+        akışı doğrudan reel oranla iskonto etmek (eski davranış) enflasyonu
+        çift saydırır ve NPV'yi şişirir; Fisher eşitliği gereği bu değer
+        matematiksel olarak nominal NPV'ye eşittir.
+        """
         r_nominal = self.inv.iskonto_orani
         r_enf     = self.inv.enflasyon_orani
         r_reel    = (1 + r_nominal) / (1 + r_enf) - 1
 
         pv = 0.0
         for t, cf in enumerate(self._cf):
-            pv += cf / ((1 + r_reel) ** t)
+            reel_cf = cf / ((1 + r_enf) ** t)
+            pv += reel_cf / ((1 + r_reel) ** t)
         return round(pv, 2)
 
     # ── IRR ──────────────────────────────────
@@ -517,9 +535,9 @@ class InvestmentEngine:
             ad                   = data.get("ad", "Yatırım"),
             baslangic_maliyeti   = float(data["maliyet"]),
             nakit_akislari       = [float(v) for v in data["nakit_akislari"]],
-            iskonto_orani        = float(data.get("iskonto_orani", 0.12)),
-            vergi_orani          = float(data.get("vergi_orani", 0.22)),
-            enflasyon_orani      = float(data.get("enflasyon_orani", 0.40)),
+            iskonto_orani        = float(data.get("iskonto_orani", VARSAYILAN_ISKONTO)),
+            vergi_orani          = float(data.get("vergi_orani", VARSAYILAN_VERGI)),
+            enflasyon_orani      = float(data.get("enflasyon_orani", VARSAYILAN_ENFLASYON)),
             aciklama             = data.get("aciklama", ""),
         )
         return cls(inv)
