@@ -31,7 +31,8 @@ jobs:
       - name: Motor bağımlılıkları (test_engines forecast fallback)
         # statsmodels: Prophet olmadığında ExponentialSmoothing devreye giriyor;
         # kök testleri (test_engines.py) Prophet eksikliğini fallback ile geçirir.
-        run: pip install statsmodels>=0.14.0
+        # Not: Bash'de `>` redirection olmasın diye specifier tırnak içinde.
+        run: pip install 'statsmodels>=0.14.0'
 
       - name: Kök motor ve usage tracker testleri
         # test_engines.py: financial, cashflow, debt, budget, forecast,
