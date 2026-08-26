@@ -136,6 +136,50 @@ class TestDosyaIceriAktarma(unittest.TestCase):
         self.assertEqual(sonuc["ozet"]["islem_satirlari"], 1)
         self.assertEqual(sonuc["ozet"]["reddedilen_satirlar"], 2)
 
+    def test_dosya_dogrula_kalite_bulgularini_gosterir(self):
+        """Response artık cross-field + anomali bulgularını taşımalı."""
+        # Bilanço eşitsizliği: 1000 varlık, 400+500=900 pasif
+        kitap = Workbook()
+        finans = kitap.active
+        finans.title = "Finansal_Gorunum"
+        finans.append([
+            "Şirket_Adı", "Dönem", "Ciro", "Net_Kâr",
+            "Toplam_Varlıklar", "Toplam_Yükümlülükler", "Özkaynak",
+        ])
+        finans.append(["Bilanço Testi", "2026", 100_000, 10_000,
+                       1_000_000, 400_000, 500_000])
+        tampon = io.BytesIO()
+        kitap.save(tampon)
+
+        sonuc = dosya_dogrula(tampon.getvalue(), "bilanco.xlsx")
+        vk = sonuc["veri_kalitesi"]
+        self.assertIn("tutarlilik_bulgulari", vk)
+        self.assertIn("anomali_bulgulari", vk)
+        self.assertTrue(any(
+            b["kod"] == "bilanco_esitsizligi"
+            for b in vk["tutarlilik_bulgulari"]
+        ))
+        self.assertGreaterEqual(vk["semantik_hata_sayisi"], 1)
+        self.assertEqual(vk["semantik_durum"], "hatali")
+
+    def test_dosya_dogrula_sayfa_eslesmesini_ozetler(self):
+        """Bilinmeyen sayfalar 'atlanan_sayfalar' listesinde görünmeli."""
+        kitap = Workbook()
+        finans = kitap.active
+        finans.title = "Finansal_Gorunum"
+        finans.append(["Şirket_Adı", "Ciro", "Net_Kâr"])
+        finans.append(["Test", 100_000, 10_000])
+        kitap.create_sheet("Rehber").append(["Nasıl doldurulur"])
+        kitap.create_sheet("BenimOzelSayfam").append(["x"])
+        tampon = io.BytesIO()
+        kitap.save(tampon)
+
+        sonuc = dosya_dogrula(tampon.getvalue(), "sayfa.xlsx")
+        dosya = sonuc["dosya"]
+        self.assertIn("Finansal_Gorunum", dosya["tanınan_sayfalar"])
+        self.assertIn("Rehber", dosya["tanınan_sayfalar"])
+        self.assertIn("BenimOzelSayfam", dosya["atlanan_sayfalar"])
+
     def test_elli_bin_satir_siniri_guvenli_bicimde_uygulanir(self):
         satirlar = ["Tarih,Kategori,Gelir,Gider"]
         satirlar.extend(f"2026-01-01,Satış,{index + 1},0" for index in range(50_005))
