@@ -347,18 +347,37 @@ def show_customer_tab(df: pd.DataFrame):
         with col2:
             sec("📦 Ürün Katkı Marjı")
             urun_kar = rapor["urun_kar"]
-            if not urun_kar.empty:
+            urun_veri_yetersiz = bool(urun_kar.attrs.get("veri_yetersiz"))
+            if urun_kar.empty:
+                st.info("Ürün karlılığı için yeterli veri yok.")
+            elif urun_veri_yetersiz:
+                st.warning(
+                    urun_kar.attrs.get(
+                        "metodoloji_uyarisi",
+                        "Ürün bazlı brüt katkı marjı hesaplanamadı; gider "
+                        "satırlarına Ürün etiketi (COGS) ekleyin.",
+                    )
+                )
+                st.dataframe(
+                    urun_kar.style.format({
+                        "Gelir (₺)":            "{:,.0f} ₺",
+                        "Sabit Gider Payı (₺)": "{:,.0f} ₺",
+                        "Gelir Payı (%)":       "{:.1f}%",
+                    }),
+                    use_container_width=True, hide_index=True,
+                )
+            else:
                 colors_u = [C_GREEN if v >= 0 else C_RED
-                            for v in urun_kar["Katkı Marjı (%)"]]
+                            for v in urun_kar["Brüt Katkı Marjı (%)"]]
                 fig2 = go.Figure(go.Bar(
                     x=urun_kar["Ürün/Hizmet"],
-                    y=urun_kar["Katkı Marjı (%)"],
+                    y=urun_kar["Brüt Katkı Marjı (%)"],
                     marker_color=colors_u,
-                    text=[f'%{v:.1f}' for v in urun_kar["Katkı Marjı (%)"]],
+                    text=[f'%{v:.1f}' for v in urun_kar["Brüt Katkı Marjı (%)"]],
                     textposition="outside",
                 ))
                 fig2.update_layout(
-                    title="Ürün Katkı Marjı (%)",
+                    title="Ürün Brüt Katkı Marjı (%)",
                     height=280,
                     yaxis=dict(ticksuffix="%",
                                gridcolor="#E2E8F0", showgrid=True, zeroline=False),
@@ -368,10 +387,13 @@ def show_customer_tab(df: pd.DataFrame):
 
                 st.dataframe(
                     urun_kar.style.format({
-                        "Gelir (₺)":         "{:,.0f} ₺",
-                        "Tahmini Gider (₺)":  "{:,.0f} ₺",
-                        "Katkı Marjı (₺)":    "{:,.0f} ₺",
-                        "Katkı Marjı (%)":    "{:.1f}%",
+                        "Gelir (₺)":            "{:,.0f} ₺",
+                        "Değişken Gider (₺)":   "{:,.0f} ₺",
+                        "Brüt Katkı (₺)":       "{:,.0f} ₺",
+                        "Brüt Katkı Marjı (%)": "{:.1f}%",
+                        "Sabit Gider Payı (₺)": "{:,.0f} ₺",
+                        "Net Kar (₺)":          "{:,.0f} ₺",
+                        "Net Marj (%)":         "{:.1f}%",
                     }),
                     use_container_width=True, hide_index=True)
 

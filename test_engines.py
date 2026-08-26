@@ -1508,6 +1508,55 @@ class TestCustomerProfitability(unittest.TestCase):
         self.assertAlmostEqual(prof.attrs["genel_katki_marji_yuzde"], 93.3, delta=0.2)
 
 
+class TestProductProfitability(unittest.TestCase):
+
+    def test_urun_bazli_gider_dogrudan_atfedilir(self):
+        """
+        Ürün kaydına yazılı gider varsa: brüt marj gerçek ve ürünler arasında
+        ayrışır — eski "gelir payına dağıt" hatası çözülür.
+        """
+        from customer_engine import ProductAnalysis
+        d = pd.Timestamp("2024-01-01")
+        rows = [
+            {"Tarih": d, "Kategori": "Satış",    "Gelir": 1000, "Gider": 0,   "Müşteri": "-", "Ürün": "P1"},
+            {"Tarih": d, "Kategori": "Malzeme",  "Gelir": 0,    "Gider": 200, "Müşteri": "-", "Ürün": "P1"},
+            {"Tarih": d, "Kategori": "Satış",    "Gelir": 500,  "Gider": 0,   "Müşteri": "-", "Ürün": "P2"},
+            {"Tarih": d, "Kategori": "Malzeme",  "Gelir": 0,    "Gider": 300, "Müşteri": "-", "Ürün": "P2"},
+        ]
+        df = pd.DataFrame(rows)
+        df["YilAy"] = pd.to_datetime(df["Tarih"]).dt.to_period("M").astype(str)
+        pa = ProductAnalysis(df)
+        prof = pa.product_profitability()
+
+        self.assertEqual(prof.attrs.get("kaynak"), "urun")
+        marjlar = dict(zip(prof["Ürün/Hizmet"], prof["Brüt Katkı Marjı (%)"]))
+        # P1: 1000 - 200 = 800 → %80; P2: 500 - 300 = 200 → %40
+        self.assertAlmostEqual(marjlar["P1"], 80.0, delta=0.1)
+        self.assertAlmostEqual(marjlar["P2"], 40.0, delta=0.1)
+
+    def test_kaynak_yoksa_brut_marj_hesaplanmaz(self):
+        """
+        Ürün bazında gider yoksa: brüt marj kolonu OLMAMALI (eski davranış
+        tüm ürünlere aynı marj gösteriyordu — kaldırıldı).
+        """
+        from customer_engine import ProductAnalysis
+        d = pd.Timestamp("2024-01-01")
+        rows = [
+            {"Tarih": d, "Kategori": "Satış",   "Gelir": 1000, "Gider": 0,   "Müşteri": "-", "Ürün": "P1"},
+            {"Tarih": d, "Kategori": "Satış",   "Gelir": 500,  "Gider": 0,   "Müşteri": "-", "Ürün": "P2"},
+            {"Tarih": d, "Kategori": "Kira",    "Gelir": 0,    "Gider": 500, "Müşteri": "-", "Ürün": "-"},
+            {"Tarih": d, "Kategori": "Malzeme", "Gelir": 0,    "Gider": 100, "Müşteri": "-", "Ürün": "-"},
+        ]
+        df = pd.DataFrame(rows)
+        df["YilAy"] = pd.to_datetime(df["Tarih"]).dt.to_period("M").astype(str)
+        pa = ProductAnalysis(df)
+        prof = pa.product_profitability()
+
+        self.assertTrue(prof.attrs.get("veri_yetersiz"))
+        self.assertNotIn("Brüt Katkı Marjı (%)", prof.columns)
+        self.assertIn("genel_katki_marji_yuzde", prof.attrs)
+
+
 # ═══════════════════════════════════════════════════════
 # Test Runner
 # ═══════════════════════════════════════════════════════
