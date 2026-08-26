@@ -34,6 +34,8 @@ Son güncelleme: 2025-Q4
 ═══════════════════════════════════════════════════════════════
 """
 
+import math
+
 import numpy as np
 import pandas as pd
 from typing import Dict, Any, List, Optional, Tuple
@@ -452,13 +454,20 @@ class BenchmarkEngine:
                        if g["toplam_gelir"] > 0 else 100)
 
         # Gerçek EBIT varsa kullan, yoksa yaklaşık
+        # Codex bulgusu (#28): None kontrolü NaN/inf'i kaçırıyor; upstream
+        # numpy.nan gönderirse yaklaşık yerine tam ağırlıklı sıfır sinyal
+        # döner ve genel_skor_guveni yanlış "yuksek" işaretlenir.
         gercek_ebit_marj = k.get("operasyonel_marj")
-        if gercek_ebit_marj is None:
+        try:
+            gecerli = gercek_ebit_marj is not None and math.isfinite(float(gercek_ebit_marj))
+        except (TypeError, ValueError):
+            gecerli = False
+        if gecerli:
+            operasyonel_marj = float(gercek_ebit_marj)
+            ebit_kaynak = "gercek"
+        else:
             operasyonel_marj = round(k["kar_marji"] * 0.85, 2)
             ebit_kaynak = "tahmin"
-        else:
-            operasyonel_marj = gercek_ebit_marj
-            ebit_kaynak = "gercek"
 
         self._metrik_kaynak = {
             "kar_marji":         "gercek",

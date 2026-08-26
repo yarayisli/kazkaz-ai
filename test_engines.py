@@ -1179,6 +1179,18 @@ class TestSectorBenchmarkEBITGuven(unittest.TestCase):
         # 3-decimal round + normalize toleransı
         self.assertAlmostEqual(sum(r["etkin_agirliklar"].values()), 1.0, places=2)
 
+    def test_nan_ebit_tahmin_olarak_islenir(self):
+        """Codex (#28): numpy.nan / inf gerçek sayı değil, tahmine düşmeli."""
+        import numpy as np
+        from sector_engine import BenchmarkEngine, SECTOR_DB
+        sektor = next(iter(SECTOR_DB))
+        for hatali_deger in (float("nan"), float("inf"), -float("inf"), np.nan):
+            with self.subTest(deger=hatali_deger):
+                be = BenchmarkEngine(sektor, self._rapor(operasyonel_marj=hatali_deger))
+                r = be.compare()
+                self.assertEqual(r["metrik_sonuclari"]["operasyonel_marj"]["veri_kaynagi"], "tahmin")
+                self.assertEqual(r["veri_kaynagi_ozeti"]["genel_skor_guveni"], "orta")
+
     def test_gercek_ebit_varsa_tam_agirlik_ve_yuksek_guven(self):
         from sector_engine import BenchmarkEngine
         from sector_engine import SECTOR_DB
