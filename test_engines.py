@@ -1440,41 +1440,72 @@ class TestCACLTV(unittest.TestCase):
 
 class TestCustomerProfitability(unittest.TestCase):
 
-    def test_ayni_marj_bugı_cozuldu(self):
+    def test_musteri_bazli_gider_dogrudan_atfedilir(self):
         """
-        REGRESYON: Eski kodda giderler gelir payına dağıtılınca
-        her müşteri aynı marjı alıyordu. Yeni kod sabit/değişken
-        ayrımı yapıp farklı marjlar üretmeli.
+        Müşteri kaydına yazılı gider varsa: brüt marj gerçek ve müşteriler
+        arasında ayrışır — eski "gelir payına dağıt" hatası çözülür.
         """
         from customer_engine import CustomerAnalysis
-        # Farklı gelir profilleri ile 3 müşteri
-        dates = pd.date_range("2024-01-01", periods=6, freq="MS")
+        dates = pd.date_range("2024-01-01", periods=3, freq="MS")
         rows = []
-        # Müşteri A: 3 satış × 1000
-        for d in dates[:3]:
-            rows.append({"Tarih": d, "Kategori": "Satış", "Gelir": 1000, "Gider": 0, "Müşteri": "A", "Ürün": "P1"})
-        # Müşteri B: 3 satış × 500
-        for d in dates[3:]:
-            rows.append({"Tarih": d, "Kategori": "Satış", "Gelir": 500, "Gider": 0, "Müşteri": "B", "Ürün": "P1"})
-        # Sabit giderler
         for d in dates:
-            rows.append({"Tarih": d, "Kategori": "Kira", "Gelir": 0, "Gider": 500, "Müşteri": "-", "Ürün": "-"})
-        # Değişken giderler
-        for d in dates:
-            rows.append({"Tarih": d, "Kategori": "Malzeme", "Gelir": 0, "Gider": 100, "Müşteri": "-", "Ürün": "-"})
+            rows.append({"Tarih": d, "Kategori": "Satış",    "Gelir": 1000, "Gider": 0,   "Müşteri": "A", "Ürün": "P1"})
+            rows.append({"Tarih": d, "Kategori": "Malzeme",  "Gelir": 0,    "Gider": 200, "Müşteri": "A", "Ürün": "P1"})
+            rows.append({"Tarih": d, "Kategori": "Satış",    "Gelir": 500,  "Gider": 0,   "Müşteri": "B", "Ürün": "P2"})
+            rows.append({"Tarih": d, "Kategori": "Malzeme",  "Gelir": 0,    "Gider": 300, "Müşteri": "B", "Ürün": "P2"})
 
-        df = pd.DataFrame(rows)
-        df["YilAy"] = pd.to_datetime(df["Tarih"]).dt.to_period("M").astype(str)
-        df["NetKar"] = df["Gelir"] - df["Gider"]
-
-        ca = CustomerAnalysis(df)
+        ca = CustomerAnalysis(pd.DataFrame(rows))
         prof = ca.profitability_by_customer()
-        # Yeni output'ta "Brüt Katkı Marjı (%)" farklı müşterilerde farklı olmalı
-        # (Eski kodda hepsi aynıydı)
-        marjs = prof["Brüt Katkı Marjı (%)"].unique()
-        # A ve B için ayrıştırma olmalı ama sabit gider dağıtımı ile karışabilir
-        # En azından "-" satırlarını dışlayınca sonuç anlamlı olmalı
-        self.assertIn("metodoloji_uyarisi", prof.attrs)
+
+        self.assertEqual(prof.attrs.get("kaynak"), "musteri")
+        # A: 3000 gelir, 600 gider → %80; B: 1500 gelir, 900 gider → %40
+        marjlar = dict(zip(prof["Müşteri"], prof["Brüt Katkı Marjı (%)"]))
+        self.assertAlmostEqual(marjlar["A"], 80.0, delta=0.1)
+        self.assertAlmostEqual(marjlar["B"], 40.0, delta=0.1)
+
+    def test_urun_maliyeti_uzerinden_dolayli_atfetme(self):
+        """
+        Müşteri gideri yok; ürün gideri var → ürün oranı üzerinden ayrış.
+        """
+        from customer_engine import CustomerAnalysis
+        d = pd.Timestamp("2024-01-01")
+        rows = [
+            {"Tarih": d, "Kategori": "Satış",   "Gelir": 1000, "Gider": 0,   "Müşteri": "A", "Ürün": "Yüksek Marjlı"},
+            {"Tarih": d, "Kategori": "Satış",   "Gelir": 1000, "Gider": 0,   "Müşteri": "B", "Ürün": "Düşük Marjlı"},
+            # P1 birim maliyeti düşük, P2 birim maliyeti yüksek
+            {"Tarih": d, "Kategori": "Maliyet", "Gelir": 0,    "Gider": 200, "Müşteri": "-", "Ürün": "Yüksek Marjlı"},
+            {"Tarih": d, "Kategori": "Maliyet", "Gelir": 0,    "Gider": 700, "Müşteri": "-", "Ürün": "Düşük Marjlı"},
+        ]
+        ca = CustomerAnalysis(pd.DataFrame(rows))
+        prof = ca.profitability_by_customer()
+
+        self.assertEqual(prof.attrs.get("kaynak"), "urun")
+        marjlar = dict(zip(prof["Müşteri"], prof["Brüt Katkı Marjı (%)"]))
+        # A ürünü %20 maliyet → marj %80; B ürünü %70 maliyet → marj %30
+        self.assertAlmostEqual(marjlar["A"], 80.0, delta=0.1)
+        self.assertAlmostEqual(marjlar["B"], 30.0, delta=0.1)
+
+    def test_kaynak_yoksa_brut_marj_hesaplanmaz(self):
+        """
+        Ne müşteri ne ürün bazında gider varsa: brüt marj kolonu OLMAMALI
+        (eski davranış tüm müşterilere aynı marj gösteriyordu — kaldırıldı).
+        """
+        from customer_engine import CustomerAnalysis
+        d = pd.Timestamp("2024-01-01")
+        rows = [
+            {"Tarih": d, "Kategori": "Satış",   "Gelir": 1000, "Gider": 0,   "Müşteri": "A", "Ürün": "-"},
+            {"Tarih": d, "Kategori": "Satış",   "Gelir": 500,  "Gider": 0,   "Müşteri": "B", "Ürün": "-"},
+            {"Tarih": d, "Kategori": "Kira",    "Gelir": 0,    "Gider": 500, "Müşteri": "-", "Ürün": "-"},
+            {"Tarih": d, "Kategori": "Malzeme", "Gelir": 0,    "Gider": 100, "Müşteri": "-", "Ürün": "-"},
+        ]
+        ca = CustomerAnalysis(pd.DataFrame(rows))
+        prof = ca.profitability_by_customer()
+
+        self.assertTrue(prof.attrs.get("veri_yetersiz"))
+        self.assertNotIn("Brüt Katkı Marjı (%)", prof.columns)
+        self.assertIn("genel_katki_marji_yuzde", prof.attrs)
+        # Genel katkı marjı: (1500 - 100) / 1500 = %93.3 (kira sabit gider sayılır)
+        self.assertAlmostEqual(prof.attrs["genel_katki_marji_yuzde"], 93.3, delta=0.2)
 
 
 # ═══════════════════════════════════════════════════════
