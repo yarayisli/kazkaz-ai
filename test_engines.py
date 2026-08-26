@@ -954,6 +954,58 @@ class TestInvestment(unittest.TestCase):
         skor = scorer._npv_score()
         self.assertEqual(skor, 0.0)
 
+    def test_npv_reel_nominal_ile_fisher_esitligini_saglar(self):
+        """
+        REGRESYON: Eski npv_reel nominal CF'i reel oranla iskonto ederek
+        enflasyonu çift sayıyor ve NPV'yi şişiriyordu. Fisher eşitliği
+        gereği doğru hesap, nominal NPV ile aynı sonucu vermelidir.
+        """
+        from investment_engine import Investment, InvestmentMetrics
+        inv = Investment(
+            ad="Fisher",
+            baslangic_maliyeti=10_000,
+            nakit_akislari=[5_000, 5_000, 5_000],
+            iskonto_orani=0.40,
+            enflasyon_orani=0.30,
+        )
+        m = InvestmentMetrics(inv)
+        # Fisher: aynı nominal CF'ler için nominal NPV == reel NPV
+        self.assertAlmostEqual(m.npv_reel(), m.npv(), delta=0.05)
+
+    def test_npv_reel_enflasyon_sifirken_nominal_ile_ayni(self):
+        """r_enf=0 → r_reel=r_nominal ve deflasyon 1 kalır; sonuç nominal NPV ile birebir."""
+        from investment_engine import Investment, InvestmentMetrics
+        inv = Investment(
+            ad="Sifir enflasyon",
+            baslangic_maliyeti=1_000,
+            nakit_akislari=[400, 400, 400],
+            iskonto_orani=0.15,
+            enflasyon_orani=0.0,
+        )
+        m = InvestmentMetrics(inv)
+        self.assertAlmostEqual(m.npv_reel(), m.npv(), delta=0.01)
+
+    def test_from_dict_iskonto_orani_default_sinif_ile_ayni(self):
+        """
+        REGRESYON: from_dict eskiden 0.12 varsayılan kullanıyordu; class default
+        0.35. Bu tutarsızlık UI vs API arasında tahsisi bozuyordu. Artık ikisi
+        de tek modül sabitinden geliyor.
+        """
+        from investment_engine import (
+            InvestmentEngine,
+            Investment,
+            VARSAYILAN_ISKONTO,
+            VARSAYILAN_VERGI,
+            VARSAYILAN_ENFLASYON,
+        )
+        motor = InvestmentEngine.from_dict({"maliyet": 1_000, "nakit_akislari": [400, 400, 400]})
+        self.assertEqual(motor.inv.iskonto_orani, VARSAYILAN_ISKONTO)
+        self.assertEqual(motor.inv.vergi_orani, VARSAYILAN_VERGI)
+        self.assertEqual(motor.inv.enflasyon_orani, VARSAYILAN_ENFLASYON)
+        # Class default ile birebir
+        beklenen = Investment(ad="x", baslangic_maliyeti=1_000, nakit_akislari=[400])
+        self.assertEqual(motor.inv.iskonto_orani, beklenen.iskonto_orani)
+
 
 # ═══════════════════════════════════════════════════════
 # 4. CASHFLOW — Nakit Akışı Testleri
