@@ -20,6 +20,7 @@ o yaklaşımın tek kaynağıdır.
 
 from __future__ import annotations
 
+import re
 from typing import Iterable, Optional, Sequence
 
 import pandas as pd
@@ -39,8 +40,15 @@ SABIT_GIDER_KELIMELERI: tuple[str, ...] = (
 
 
 def _pattern(kelimeler: Iterable[str]) -> str:
-    """Regex-safe alt-string alternasyonu (küçük harf, boş girdi güvenli)."""
-    parcalar = [p.strip() for p in kelimeler if p and p.strip()]
+    """Regex-safe alt-string alternasyonu (küçük harf, boş girdi güvenli).
+
+    Şirket-özel kategori adları regex meta karakterleri içerebilir
+    (ör. "C++", "Sabit (ofis)", "%KDV"); her parça re.escape ile literal
+    hale getirilir, aksi halde runtime hatası ya da yanlış eşleşme olur.
+    """
+    # Metin str.lower() sonra aranıyor; parçaları da küçük harfe düşür
+    # (kullanıcı "C++" verdi diye "C\+\+" aramak "c++ lisansı"nda kaçmaz).
+    parcalar = [re.escape(p.strip().lower()) for p in kelimeler if p and p.strip()]
     if not parcalar:
         return r"(?!x)x"  # hiçbir şey eşleşmez
     return "|".join(parcalar)

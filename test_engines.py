@@ -1169,6 +1169,18 @@ class TestSabitMaskesi(unittest.TestCase):
         # Varsayılan "kira" listesi devre dışı; sadece "faiz" sabit sayılır
         self.assertEqual(list(m), [False, True])
 
+    def test_regex_meta_karakter_iceren_kategori_literal_islenir(self):
+        """
+        Codex bulgusu (#27): ekstra=["C++"] eskiden regex hatası verirdi;
+        kelimeler=["Sabit (ofis)"] literal metni yakalayamazdı.
+        """
+        from expense_classification import sabit_maskesi
+        df = pd.DataFrame({"Kategori": ["C++ Lisansı", "Sabit (ofis)", "Hammadde"]})
+        m1 = sabit_maskesi(df, ekstra=["C++"])
+        self.assertEqual(list(m1), [True, False, False])
+        m2 = sabit_maskesi(df, kelimeler=["Sabit (ofis)"])
+        self.assertEqual(list(m2), [False, True, False])
+
     def test_kategori_sutunu_yoksa_hepsi_false(self):
         from expense_classification import sabit_maskesi
         df = pd.DataFrame({"X": [1, 2, 3]})
