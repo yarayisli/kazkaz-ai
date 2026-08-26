@@ -21,6 +21,8 @@ from datetime import datetime, timedelta
 import warnings
 warnings.filterwarnings("ignore")
 
+from expense_classification import sabit_maskesi
+
 
 # ─────────────────────────────────────────────
 # VERİ HAZIRLIK
@@ -118,9 +120,7 @@ class CustomerAnalysis:
         kaynak, musteri_gider_map = self._musteri_gider_haritasi(musteri_gelir.index)
 
         # Sabit/değişken sınıflandırması (net kâr hesabı için hâlâ gerekli)
-        sabit_kelimeler = ["kira", "maaş", "amortisman", "sigorta", "abonelik"]
-        pattern = "|".join(sabit_kelimeler)
-        is_sabit = self.df["Kategori"].str.lower().str.contains(pattern, na=False)
+        is_sabit = sabit_maskesi(self.df)
         sabit_gider = float(self.df.loc[is_sabit, "Gider"].sum())
         degisken_gider_toplam = float(self.df.loc[~is_sabit, "Gider"].sum())
 
@@ -372,9 +372,7 @@ class ProductAnalysis:
         kaynak = "urun" if urun_gider_map else "yetersiz"
 
         # Sabit/değişken sınıflandırması (net kâr hesabı için hâlâ gerekli)
-        sabit_kelimeler = ["kira", "maaş", "amortisman", "sigorta", "abonelik"]
-        pattern = "|".join(sabit_kelimeler)
-        is_sabit = self.df["Kategori"].str.lower().str.contains(pattern, na=False)
+        is_sabit = sabit_maskesi(self.df)
         sabit_gider = float(self.df.loc[is_sabit, "Gider"].sum())
         degisken_gider_toplam = float(self.df.loc[~is_sabit, "Gider"].sum())
 
