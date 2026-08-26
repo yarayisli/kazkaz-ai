@@ -18,7 +18,14 @@ from design_system import *
 
 from typing import List
 
-from investment_engine import Investment, InvestmentEngine, InvestmentComparator
+from investment_engine import (
+    Investment,
+    InvestmentEngine,
+    InvestmentComparator,
+    VARSAYILAN_ISKONTO,
+    VARSAYILAN_VERGI,
+    VARSAYILAN_ENFLASYON,
+)
 
 try:
     from ui_components import (
@@ -97,11 +104,14 @@ def _single_investment_ui():
         inv_adi     = st.text_input("Yatırım Adı", value="Yeni Fabrika", key="inv_ad")
         maliyet     = st.number_input("Başlangıç Maliyeti (₺)", min_value=1000,
                                       value=1_000_000, step=10_000, key="inv_maliyet")
-        iskonto     = st.slider("İskonto Oranı / WACC (%)", 1, 50, 12, key="inv_iskonto") / 100
-        vergi       = st.slider("Vergi Oranı (%)", 0, 50, 22, key="inv_vergi") / 100
+        iskonto     = st.slider("İskonto Oranı / WACC (%)", 1, 100,
+                                 int(round(VARSAYILAN_ISKONTO * 100)), key="inv_iskonto") / 100
+        vergi       = st.slider("Vergi Oranı (%)", 0, 50,
+                                 int(round(VARSAYILAN_VERGI * 100)), key="inv_vergi") / 100
 
     with col2:
-        enflasyon   = st.slider("Enflasyon Oranı (%)", 0, 100, 40, key="inv_enfl") / 100
+        enflasyon   = st.slider("Enflasyon Oranı (%)", 0, 100,
+                                 int(round(VARSAYILAN_ENFLASYON * 100)), key="inv_enfl") / 100
         yil_sayisi  = st.slider("Analiz Süresi (Yıl)", 1, 20, 5, key="inv_yil")
 
         st.markdown('<div style="color:#64748B;font-size:0.78rem;margin-bottom:6px;">'
@@ -182,7 +192,7 @@ def _single_investment_ui():
                       color=C_GREEN if ozet["npv_reel"]>0 else C_RED,
                       positive=bool(ozet["npv_reel"]>0))
     with c3: kpi_card("NPV (Vergi Sonrası)", fmt(ozet["npv_vergi_sonrasi"]),
-                      f'Vergi: %{ozet.get("vergi_orani",0.22)*100:.0f}',
+                      f'Vergi: %{ozet.get("vergi_orani", VARSAYILAN_VERGI)*100:.0f}',
                       color=C_GREEN if ozet["npv_vergi_sonrasi"]>0 else C_RED,
                       positive=bool(ozet["npv_vergi_sonrasi"]>0))
     with c4:
@@ -280,7 +290,9 @@ def _comparison_ui():
                                           value=1_000_000, step=50_000, key=f"c_m_{i}")
             with c2:
                 yil   = st.slider("Süre (Yıl)", 1, 15, 5, key=f"c_y_{i}")
-                iskonto = st.slider("WACC (%)", 1, 50, 12, key=f"c_r_{i}") / 100
+                iskonto = st.slider("WACC (%)", 1, 100,
+                                    int(round(VARSAYILAN_ISKONTO * 100)),
+                                    key=f"c_r_{i}") / 100
             with c3:
                 ort_cf = st.number_input("Ort. Yıllık Nakit Akışı (₺)",
                                           min_value=0, value=int(maliyet*0.25),
