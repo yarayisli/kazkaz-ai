@@ -1141,6 +1141,59 @@ class TestTurkishColumns(unittest.TestCase):
 
 
 # ═══════════════════════════════════════════════════════
+# SEKTOR BENCHMARK — EBIT güven seviyesi
+# ═══════════════════════════════════════════════════════
+
+class TestSectorBenchmarkEBITGuven(unittest.TestCase):
+
+    def _rapor(self, *, operasyonel_marj=None, kar_marji=20.0):
+        return {
+            "gelir": {
+                "toplam_gelir": 1_000_000,
+                "ortalama_buyume_orani": 15,
+                "ortalama_aylik_gelir": 100_000,
+            },
+            "gider": {"toplam_gider": 800_000},
+            "karlilik": {
+                "kar_marji": kar_marji,
+                "operasyonel_marj": operasyonel_marj,
+            },
+        }
+
+    def test_ebit_yokken_tahmin_isaretlenir_ve_agirlik_indirilir(self):
+        from sector_engine import BenchmarkEngine
+        # Var olan sektör anahtarını seç
+        from sector_engine import SECTOR_DB
+        sektor = next(iter(SECTOR_DB))
+        be = BenchmarkEngine(sektor, self._rapor(operasyonel_marj=None))
+        r = be.compare()
+
+        # EBIT gerçek değil, tahmin
+        self.assertEqual(r["metrik_sonuclari"]["operasyonel_marj"]["veri_kaynagi"], "tahmin")
+        self.assertIn("operasyonel_marj", r["veri_kaynagi_ozeti"]["tahmin_metrikler"])
+        self.assertEqual(r["veri_kaynagi_ozeti"]["genel_skor_guveni"], "orta")
+
+        # Etkin ağırlık: operasyonel_marj temel 0.10 * 0.5 = 0.05, sonra normalize
+        # Toplam etkin = 0.30+0.25+0.20+0.15+0.05 = 0.95 → ops_marj payı ~0.053
+        self.assertLess(r["etkin_agirliklar"]["operasyonel_marj"], 0.10)
+        # 3-decimal round + normalize toleransı
+        self.assertAlmostEqual(sum(r["etkin_agirliklar"].values()), 1.0, places=2)
+
+    def test_gercek_ebit_varsa_tam_agirlik_ve_yuksek_guven(self):
+        from sector_engine import BenchmarkEngine
+        from sector_engine import SECTOR_DB
+        sektor = next(iter(SECTOR_DB))
+        be = BenchmarkEngine(sektor, self._rapor(operasyonel_marj=18.5))
+        r = be.compare()
+
+        self.assertEqual(r["metrik_sonuclari"]["operasyonel_marj"]["veri_kaynagi"], "gercek")
+        self.assertEqual(r["veri_kaynagi_ozeti"]["tahmin_metrikler"], [])
+        self.assertEqual(r["veri_kaynagi_ozeti"]["genel_skor_guveni"], "yuksek")
+        # Temel ağırlıklar korunuyor (10% ops_marj)
+        self.assertAlmostEqual(r["etkin_agirliklar"]["operasyonel_marj"], 0.10, places=3)
+
+
+# ═══════════════════════════════════════════════════════
 # GIDER SINIFLANDIRMA (ortak modül)
 # ═══════════════════════════════════════════════════════
 

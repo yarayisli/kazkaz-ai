@@ -437,6 +437,12 @@ class BenchmarkEngine:
         (Türkiye KOBİ ortalamasına göre finansman + vergi giderleri gelirin
         %2-4'ü civarındadır.) Gerçek EBIT için gider tipini (finansal/vergi/
         operasyonel) ayırt eden veri gereklidir.
+
+        Kaynak izlenebilirliği için ``self._metrik_kaynak`` sözlüğü
+        (metrik → "gercek" | "tahmin") doldurulur; compare() bu haritayı
+        her metrik cevabına ``veri_kaynagi`` alanı olarak koyar ve
+        genel_skor ağırlıklarını "tahmin" metriklerini indirgeyerek
+        yeniden dengeler.
         """
         g = self.rapor["gelir"]
         e = self.rapor["gider"]
@@ -448,10 +454,19 @@ class BenchmarkEngine:
         # Gerçek EBIT varsa kullan, yoksa yaklaşık
         gercek_ebit_marj = k.get("operasyonel_marj")
         if gercek_ebit_marj is None:
-            # Uyarı: bu bir tahmindir
             operasyonel_marj = round(k["kar_marji"] * 0.85, 2)
+            ebit_kaynak = "tahmin"
         else:
             operasyonel_marj = gercek_ebit_marj
+            ebit_kaynak = "gercek"
+
+        self._metrik_kaynak = {
+            "kar_marji":         "gercek",
+            "gelir_buyumesi":    "gercek",
+            "gider_gelir_orani": "gercek",
+            "aylik_gelir":       "gercek",
+            "operasyonel_marj":  ebit_kaynak,
+        }
 
         return {
             "kar_marji":         k["kar_marji"],
@@ -464,6 +479,7 @@ class BenchmarkEngine:
     def compare(self) -> Dict[str, Any]:
         """Tam benchmark karşılaştırması."""
         metrikler  = self._hesapla_metrikler()
+        kaynak_haritasi = getattr(self, "_metrik_kaynak", {})
         sonuclar   = {}
         alt_skorlar = {}
 
@@ -480,20 +496,32 @@ class BenchmarkEngine:
                 "skor":            skor,
                 "durum":           durum,
                 "dusuk_iyi":       bm.get("dusuk_iyi", False),
+                "veri_kaynagi":    kaynak_haritasi.get(metrik_adi, "gercek"),
             }
             alt_skorlar[metrik_adi] = skor
 
-        # Genel benchmark skoru (ağırlıklı)
-        agirliklar = {
+        # Genel benchmark skoru — "tahmin" veri_kaynaklı metrikler ağırlığı
+        # %50'ye indirgenir; artan pay diğer metriklere orantılı dağıtılır.
+        # Amaç: yaklaşık EBIT gibi düşük güvenli sinyaller karar skorunu
+        # tam ağırlıkla yönetmesin.
+        temel_agirliklar = {
             "kar_marji":         0.30,
             "gelir_buyumesi":    0.25,
             "gider_gelir_orani": 0.20,
             "aylik_gelir":       0.15,
             "operasyonel_marj":  0.10,
         }
+        indirgeme = {
+            m: 0.5 if kaynak_haritasi.get(m) == "tahmin" else 1.0
+            for m in temel_agirliklar
+        }
+        etkin_agirliklar = {m: temel_agirliklar[m] * indirgeme[m] for m in temel_agirliklar}
+        toplam_agirlik = sum(etkin_agirliklar.values()) or 1.0
+        # Normalize (indirgenmiş kayıplar diğerlerine yayılır)
+        etkin_agirliklar = {m: w / toplam_agirlik for m, w in etkin_agirliklar.items()}
         genel_skor = sum(
             alt_skorlar.get(k, 50) * v
-            for k, v in agirliklar.items()
+            for k, v in etkin_agirliklar.items()
         )
 
         kategori = self._kategori(genel_skor)
@@ -506,6 +534,22 @@ class BenchmarkEngine:
             "guclu_yonler":    self._guclu_yonler(sonuclar),
             "zayif_yonler":    self._zayif_yonler(sonuclar),
             "tavsiyeler":      self._tavsiyeler(sonuclar, genel_skor),
+            "veri_kaynagi_ozeti": {
+                "tahmin_metrikler": [
+                    m for m, k in kaynak_haritasi.items() if k == "tahmin"
+                ],
+                "genel_skor_guveni": (
+                    "yuksek"
+                    if all(k == "gercek" for k in kaynak_haritasi.values())
+                    else "orta"
+                ),
+                "aciklama": (
+                    "Tahmin veri_kaynaklı metriklerin ağırlığı %50'ye "
+                    "indirilmiştir; ayırma için raporda gerçek EBIT/finansman/"
+                    "vergi kırılımı olması gerekir."
+                ),
+            },
+            "etkin_agirliklar": {m: round(w, 3) for m, w in etkin_agirliklar.items()},
             "metodoloji_uyarilari": [
                 "Sektör benchmark değerleri kamuya açık kaynaklar temel alınarak "
                 "KOBİ segmenti için kalibre edilmiş TAHMİNİ değerlerdir. "
