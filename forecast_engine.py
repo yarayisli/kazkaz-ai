@@ -243,13 +243,18 @@ class ForecastEngine:
         else:
             result = self._forecast_linear(ay)
 
-        # Geriye dönük doğrulama (holdout MAPE) — opt-in
+        # Geriye dönük doğrulama (holdout WAPE + MAPE) — opt-in
+        # Codex #30: doğrulama çalışmasa da WAPE alanları None ile
+        # doldurulmalı; aksi halde caller KeyError alır.
         mape_bilgisi = self._geriye_donuk_mape(dogrulama_ay) if dogrula else None
         if mape_bilgisi is not None:
             result.update(mape_bilgisi)
         else:
             result.setdefault("geriye_donuk_mape", None)
+            result.setdefault("geriye_donuk_wape", None)
+            result.setdefault("dogrulama_metrigi", None)
             result.setdefault("mape_holdout_ay", dogrulama_ay if dogrula else 0)
+            result.setdefault("eslesen_ay", 0)
             result.setdefault(
                 "guven_seviyesi",
                 "olculmedi" if not dogrula else "olculmedi_veri_yetersiz",
@@ -330,6 +335,17 @@ class ForecastEngine:
             return None
 
         wape = round(toplam_hata / toplam_gercek * 100, 2)
+
+        # Codex #30: geriye_donuk_mape gerçek MAPE olmalı, WAPE kopyası değil.
+        # MAPE = mean(|f-g|/|g|); yalnızca tüm gerçekler > 0 iken tanımlı.
+        # Sıfır ay varsa MAPE None döner; caller güveni WAPE üzerinden okur.
+        if all(g > 0 for _, g in eslesen):
+            mape = round(
+                sum(abs(t - g) / g for t, g in eslesen) / len(eslesen) * 100, 2
+            )
+        else:
+            mape = None
+
         if wape <= 10:
             guven = "yuksek"
         elif wape <= 25:
@@ -338,10 +354,7 @@ class ForecastEngine:
             guven = "dusuk"
         return {
             "geriye_donuk_wape": wape,
-            # Geriye uyumluluk için MAPE alanı korunur (WAPE ile aynı hesap
-            # tüm gerçek > 0 durumda; sıfır ay varsa yaklaşık ama farkı
-            # WAPE ile açıklanır).
-            "geriye_donuk_mape": wape,
+            "geriye_donuk_mape": mape,  # None if any holdout actual is 0
             "mape_holdout_ay":   holdout_ay,
             "eslesen_ay":        len(eslesen),
             "dogrulama_metrigi": "WAPE",
