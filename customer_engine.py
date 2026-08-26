@@ -343,52 +343,93 @@ class ProductAnalysis:
         """
         Ürün bazında karlılık.
 
-        METODOLOJI: Aynı müşteri karlılığı yaklaşımı — değişken giderler gelir
-        payına, sabit giderler ürün sayısına dağıtılır. Kesin ürün karlılığı için
-        ürün başı satış maliyeti (COGS) verisi gereklidir.
-        """
-        urun_gelir  = self.df.groupby("Ürün")["Gelir"].sum()
-        toplam_gelir = self.df["Gelir"].sum()
+        Metodoloji önceliği (bulunan ilki uygulanır):
 
+        1. **Doğrudan ürün gideri:** Satırda hem Ürün hem Gider > 0 varsa gider
+           o ürüne direkt atfedilir. Brüt marj gerçek.
+        2. **Yalnız gelir + genel havuz:** Ürün bazında gider yoksa, brüt marj
+           kolonu çıkarılır — tablo yalnızca gelir + gelir payı + sabit gider
+           payı gösterir; ``attrs["veri_yetersiz"]`` işareti eklenir. Eski
+           davranış (değişken gideri gelir payına orantılı dağıtıp tüm ürünler
+           için aynı brüt marj göstermek) yanıltıcıydı, kaldırıldı.
+        """
+        toplam_gelir = float(self.df["Gelir"].sum())
         if toplam_gelir == 0:
             return pd.DataFrame()
 
+        urun_gelir = self.gelir_df.groupby("Ürün")["Gelir"].sum()
+        if urun_gelir.empty:
+            return pd.DataFrame()
+
+        # Doğrudan ürün gideri var mı?
+        genel_etiketler = {"", "-", "Belirtilmemiş", "Genel"}
+        gider_df = self.df[self.df["Gider"] > 0].copy()
+        urun_gider_df = gider_df[~gider_df["Ürün"].isin(genel_etiketler)]
+        urun_gider_map = (
+            urun_gider_df.groupby("Ürün")["Gider"].sum().to_dict()
+            if not urun_gider_df.empty else {}
+        )
+        kaynak = "urun" if urun_gider_map else "yetersiz"
+
+        # Sabit/değişken sınıflandırması (net kâr hesabı için hâlâ gerekli)
         sabit_kelimeler = ["kira", "maaş", "amortisman", "sigorta", "abonelik"]
         pattern = "|".join(sabit_kelimeler)
         is_sabit = self.df["Kategori"].str.lower().str.contains(pattern, na=False)
-        sabit_gider    = float(self.df.loc[is_sabit, "Gider"].sum())
-        degisken_gider = float(self.df.loc[~is_sabit, "Gider"].sum())
+        sabit_gider = float(self.df.loc[is_sabit, "Gider"].sum())
+        degisken_gider_toplam = float(self.df.loc[~is_sabit, "Gider"].sum())
 
         n_urun = urun_gelir.shape[0]
-        rows = []
+        rows: List[Dict[str, Any]] = []
         for urun, gelir in urun_gelir.items():
-            pay = gelir / toplam_gelir
-            atfedilen_degisken = degisken_gider * pay
-            atfedilen_sabit    = sabit_gider / max(n_urun, 1)
+            atfedilen_sabit = sabit_gider / max(n_urun, 1)
 
-            brut_katki = gelir - atfedilen_degisken
-            net_kar    = gelir - atfedilen_degisken - atfedilen_sabit
-            brut_marj  = round(brut_katki / gelir * 100, 1) if gelir > 0 else 0
-            net_marj   = round(net_kar / gelir * 100, 1) if gelir > 0 else 0
+            if kaynak == "urun":
+                atfedilen_degisken = float(urun_gider_map.get(urun, 0.0))
+                brut_katki = gelir - atfedilen_degisken
+                brut_marj = round(brut_katki / gelir * 100, 1) if gelir > 0 else 0
+                net_kar = brut_katki - atfedilen_sabit
+                net_marj = round(net_kar / gelir * 100, 1) if gelir > 0 else 0
+                rows.append({
+                    "Ürün/Hizmet":          urun,
+                    "Gelir (₺)":            round(gelir, 0),
+                    "Değişken Gider (₺)":   round(atfedilen_degisken, 0),
+                    "Brüt Katkı (₺)":       round(brut_katki, 0),
+                    "Brüt Katkı Marjı (%)": brut_marj,
+                    "Sabit Gider Payı (₺)": round(atfedilen_sabit, 0),
+                    "Net Kar (₺)":          round(net_kar, 0),
+                    "Net Marj (%)":         net_marj,
+                })
+            else:
+                rows.append({
+                    "Ürün/Hizmet":          urun,
+                    "Gelir (₺)":            round(gelir, 0),
+                    "Gelir Payı (%)":       round(gelir / toplam_gelir * 100, 1),
+                    "Sabit Gider Payı (₺)": round(atfedilen_sabit, 0),
+                })
 
-            rows.append({
-                "Ürün/Hizmet":          urun,
-                "Gelir (₺)":            round(gelir, 0),
-                "Değişken Gider (₺)":   round(atfedilen_degisken, 0),
-                "Brüt Katkı (₺)":       round(brut_katki, 0),
-                "Brüt Katkı Marjı (%)": brut_marj,
-                "Sabit Gider Payı (₺)": round(atfedilen_sabit, 0),
-                "Net Kar (₺)":          round(net_kar, 0),
-                "Net Marj (%)":         net_marj,
-            })
-
+        siralama_sutunu = "Brüt Katkı (₺)" if kaynak == "urun" else "Gelir (₺)"
         result = (pd.DataFrame(rows)
-                  .sort_values("Brüt Katkı (₺)", ascending=False)
+                  .sort_values(siralama_sutunu, ascending=False)
                   .reset_index(drop=True))
-        result.attrs["metodoloji_uyarisi"] = (
-            "Değişken giderler gelir payına, sabit giderler ürün sayısına dağıtılmıştır. "
-            "Kesin ürün karlılığı için ürün başı COGS verisi gereklidir."
-        )
+
+        if kaynak == "urun":
+            result.attrs["kaynak"] = "urun"
+            result.attrs["metodoloji_uyarisi"] = (
+                "Değişken giderler doğrudan ürün kaydından, sabit giderler ürün "
+                "sayısına eşit paylaştırılarak atfedilmiştir."
+            )
+        else:
+            result.attrs["kaynak"] = "yetersiz"
+            result.attrs["veri_yetersiz"] = True
+            result.attrs["genel_katki_marji_yuzde"] = (
+                round((1 - degisken_gider_toplam / toplam_gelir) * 100, 1)
+                if toplam_gelir > 0 else 0.0
+            )
+            result.attrs["metodoloji_uyarisi"] = (
+                "Ürün bazlı brüt katkı marjı hesaplanamadı: gider satırları ürün "
+                "ile eşleşmiyor. Sadece gelir ve sabit gider payı gösteriliyor. "
+                "Marj için gider satırlarına Ürün etiketi (COGS) ekleyin."
+            )
         return result
 
     def product_trend(self) -> pd.DataFrame:
