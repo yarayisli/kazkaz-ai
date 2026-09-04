@@ -53,6 +53,8 @@ export interface CfoSohbetYaniti {
     durum: 'dogrulandi' | 'kuralli_yedek' | 'ajan_engeli' | 'veri_engeli';
     kontrol_edilen_sayi: number;
     reddedilen_sayilar: string[];
+    /** Kabul edilen her sayı ve hangi kalemden geldiği. */
+    kaynak_eslesmeleri?: { ham: string; kaynak: string }[];
   };
   veri_kalitesi: FinansalDenetim['veri_kalitesi'];
   ajanlar: string[];

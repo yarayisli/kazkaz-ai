@@ -304,3 +304,46 @@ class TestKaynakKilidi(unittest.TestCase):
         self.assertFalse(sonuc.uygun)
         self.assertNotIn("2.000.000", [e.ham for e in sonuc.kaynak_eslesmeleri])
         self.assertIn("150.000", [e.ham for e in sonuc.kaynak_eslesmeleri])
+
+
+class TestKaynakEslesmesiUctanUca(unittest.TestCase):
+    """kaynak_eslesmeleri guardrail'den API cevabına kadar taşınmalı."""
+
+    def _sahte_saglayici(self, cevap: str):
+        motor = MagicMock()
+        motor.generate.return_value = cevap
+        motor.model_name = "test-model"
+        return motor
+
+    def test_cfo_yaniti_kabul_edilen_sayilarin_kaynagini_dondurur(self):
+        veri = tam_veri()
+        motor = self._sahte_saglayici("Kasanızda 150.000 TL nakit var, cari oranınız 2,00.")
+
+        with patch.dict(
+            os.environ,
+            {"AI_PROVIDER_ORDER": "groq", "GROQ_API_KEY": "test", "NVIDIA_API_KEY": "", "GEMINI_API_KEY": ""},
+            clear=False,
+        ), patch("api.ai_orchestrator.GeminiEngine", return_value=motor):
+            yanit = cfo_yaniti("Nakit durumu nedir?", veri)
+
+        eslesmeler = yanit["ai_dogrulama"]["kaynak_eslesmeleri"]
+        kaynaklar = {e["ham"]: e["kaynak"] for e in eslesmeler}
+        self.assertEqual(kaynaklar.get("150.000"), "Bilanço · Hazır değerler")
+        self.assertEqual(kaynaklar.get("2,00"), "Hesaplandı · Cari oran")
+        self.assertEqual(yanit["ai_dogrulama"]["durum"], "dogrulandi")
+
+    def test_uydurma_sayi_yaniti_engeller_ve_kaynak_listesinde_yer_almaz(self):
+        veri = tam_veri()
+        motor = self._sahte_saglayici("Nakit tamponunu 2.000.000 TL'ye çıkarın.")
+
+        with patch.dict(
+            os.environ,
+            {"AI_PROVIDER_ORDER": "groq", "GROQ_API_KEY": "test", "NVIDIA_API_KEY": "", "GEMINI_API_KEY": ""},
+            clear=False,
+        ), patch("api.ai_orchestrator.GeminiEngine", return_value=motor):
+            yanit = cfo_yaniti("Ne kadar tampon ayırmalıyım?", veri)
+
+        dogrulama = yanit["ai_dogrulama"]
+        self.assertEqual(dogrulama["durum"], "kuralli_yedek")
+        self.assertIn("2.000.000", dogrulama["reddedilen_sayilar"])
+        self.assertNotIn("2.000.000", [e["ham"] for e in dogrulama["kaynak_eslesmeleri"]])
