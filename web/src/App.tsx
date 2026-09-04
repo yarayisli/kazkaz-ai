@@ -11,7 +11,7 @@ import {
   initialBudget
 } from './data/mockData';
 import { ApprovalDecision, BudgetItem, CashFlowItem, CustomerRisk, DebtItem, FinancialData, TransactionAnalytics } from './types';
-import { FinansalDenetim, GelismisAjanGirdisi } from './lib/api';
+import { FinansalDenetim, GelismisAjanGirdisi, SaglikSkoru, zamanSerisiAnalizi } from './lib/api';
 import { workspaceDataFromAdvanced } from './lib/workspaceData';
 import { deleteWorkspace, exportWorkspace, loadWorkspace, saveWorkspace, WorkspaceSnapshot } from './lib/workspacePersistence';
 import { useAuth } from './context/AuthContext';
@@ -66,6 +66,9 @@ function WorkspaceApp() {
   const [persistenceStatus, setPersistenceStatus] = useState<'idle' | 'loading' | 'saved' | 'error'>('idle');
   const [persistenceMessage, setPersistenceMessage] = useState<string | null>(null);
   const [recentTabIds, setRecentTabIds] = useState<string[]>(defaultRecentTabIds);
+  // Sağlık skoru zaman serisi ister; tek dönemlik görünümden hesaplanamaz.
+  // Bu yüzden yalnızca Excel içe aktarımından sonra doldurulur.
+  const [healthScore, setHealthScore] = useState<SaglikSkoru | null>(null);
 
   useEffect(() => {
     try {
@@ -140,6 +143,43 @@ function WorkspaceApp() {
     } catch (error) {
       setPersistenceStatus('error');
       setPersistenceMessage(error instanceof Error ? error.message : 'Çalışma alanı kaydedilemedi.');
+    }
+  };
+
+  /**
+   * Sağlık skoru zaman serisinden hesaplanır (financial_engine.HealthScore).
+   * Satırlarda müşteri adı varsa skor 5 boyuta çıkar; yoksa 4 boyutta kalır.
+   * Skor gösterilemezse ekran skorsuz çalışmaya devam eder — uydurulmaz.
+   */
+  const hesaplaSaglikSkoru = async (
+    zamanSerisi: Array<Record<string, string | number>> | undefined,
+    finansal: FinancialData,
+  ) => {
+    const satirlar = (zamanSerisi || [])
+      .filter((satir) => satir.tarih && satir.kategori)
+      .map((satir) => ({
+        tarih: String(satir.tarih),
+        kategori: String(satir.kategori),
+        gelir: Number(satir.gelir) || 0,
+        gider: Number(satir.gider) || 0,
+        musteri: satir.musteri ? String(satir.musteri) : undefined,
+      }));
+
+    if (satirlar.length === 0) {
+      setHealthScore(null);
+      return;
+    }
+
+    try {
+      const sonuc = await zamanSerisiAnalizi(satirlar, {
+        baslangic_nakiti: finansal.cashInHand,
+        kisa_vadeli_borc: finansal.shortTermDebt,
+        stoklar: finansal.inventory,
+      });
+      setHealthScore(sonuc.finansal.saglik_skoru ?? null);
+    } catch {
+      // Skor hesaplanamazsa ekran skorsuz devam eder; yaklaşık değer üretilmez.
+      setHealthScore(null);
     }
   };
 
@@ -319,6 +359,7 @@ function WorkspaceApp() {
                     cashFlow={cashFlow}
                     customers={customers}
                     audit={financialAudit}
+                    healthScore={healthScore}
                     isSampleData={isSampleData}
                     onNavigateTab={navigateToTab}
                   />
@@ -380,11 +421,12 @@ function WorkspaceApp() {
                 {activeTab === 'data-entry' && (
                   <DataEntryTab
                     initialData={financialData}
-                    onImport={async (imported, advanced, analytics, audit) => {
+                    onImport={async (imported, advanced, analytics, audit, zamanSerisi) => {
                       const collections = applyAdvancedData(advanced);
                       setFinancialData(imported);
                       setFinancialAudit(audit);
                       setTransactionAnalytics(analytics);
+                      await hesaplaSaglikSkoru(zamanSerisi, imported);
                       await persistWorkspace({
                         financialData: imported,
                         cashFlow: collections.cashFlow || [],

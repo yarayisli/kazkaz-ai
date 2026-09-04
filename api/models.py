@@ -11,6 +11,9 @@ class FinansSatiri(BaseModel):
     kategori: str = Field(min_length=1, max_length=120)
     gelir: float = Field(default=0, ge=0)
     gider: float = Field(default=0, ge=0)
+    #: Verilirse sağlık skoru 5. boyutu (müşteri konsantrasyon riski)
+    #: devreye girer; verilmezse skor 4 boyutta hesaplanır.
+    musteri: Optional[str] = Field(default=None, max_length=160)
 
 
 class BilançoBilgisi(BaseModel):

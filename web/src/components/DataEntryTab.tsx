@@ -21,7 +21,7 @@ import {
 interface DataEntryTabProps {
   initialData: FinancialData;
   onSave: (updatedData: FinancialData, audit?: FinansalDenetim) => Promise<void> | void;
-  onImport: (financial: FinancialData, advanced: GelismisAjanGirdisi, analytics: TransactionAnalytics, audit: FinansalDenetim) => Promise<void> | void;
+  onImport: (financial: FinancialData, advanced: GelismisAjanGirdisi, analytics: TransactionAnalytics, audit: FinansalDenetim, zamanSerisi: VeriIceriAktarmaSonucu['zaman_serisi']) => Promise<void> | void;
 }
 
 export const DataEntryTab: React.FC<DataEntryTabProps> = ({ initialData, onSave, onImport }) => {
@@ -102,7 +102,7 @@ export const DataEntryTab: React.FC<DataEntryTabProps> = ({ initialData, onSave,
     try {
       const audit = await finansalDenetim(imported);
       setFormData(imported);
-      await onImport(imported, importResult.gelismis_veri, importResult.analizler, audit);
+      await onImport(imported, importResult.gelismis_veri, importResult.analizler, audit, importResult.zaman_serisi);
     } catch (err) {
       setSyncError(err instanceof Error ? err.message : 'Kurumsal finans metrikleri hesaplanamadı.');
     } finally {

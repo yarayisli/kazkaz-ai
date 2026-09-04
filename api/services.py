@@ -40,6 +40,13 @@ def zaman_serisi_analizi(istek: FinansalAnalizIstegi) -> Dict[str, Any]:
             "Gider": [satir.gider for satir in istek.satirlar],
         }
     )
+    # Müşteri sütunu FinancialEngine'de sağlık skorunun 5. boyutunu
+    # (konsantrasyon riski) açar. En az bir satırda müşteri yoksa sütun
+    # hiç eklenmez ve skor 4 boyutta kalır.
+    musteriler = [satir.musteri for satir in istek.satirlar]
+    if any(ad for ad in musteriler):
+        veri["Müşteri"] = musteriler
+
     finans = FinancialEngine.from_dataframe(veri)
     nakit = CashFlowEngine.from_financial_engine(
         finans,

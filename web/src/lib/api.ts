@@ -861,6 +861,46 @@ export function finansalDenetim(veri: FinancialData) {
   return apiIstegi<FinansalDenetim>('/api/v1/finans/denetim', apiFinansalVeri(veri));
 }
 
+/** Zaman serisinden hesaplanan finansal sağlık skoru (financial_engine.HealthScore). */
+export interface SaglikSkoru {
+  skor: number;
+  kategori: string;
+  /** Müşteri verisi varsa 5, yoksa 4 anahtar içerir. */
+  alt_skorlar: Record<string, number>;
+  aciklama: string;
+  uyarilar: string[];
+  metodoloji: Record<string, number | string>;
+}
+
+export interface ZamanSerisiSatiri {
+  tarih: string;
+  kategori: string;
+  gelir: number;
+  gider: number;
+  /** Verilirse skorun 5. boyutu (konsantrasyon riski) devreye girer. */
+  musteri?: string;
+}
+
+export interface ZamanSerisiAnalizi {
+  finansal: { saglik_skoru: SaglikSkoru } & Record<string, unknown>;
+  nakit: Record<string, unknown>;
+}
+
+/**
+ * Sağlık skoru tek dönemlik veriden hesaplanamaz; en az birkaç dönemlik
+ * işlem satırı ister. Excel içe aktarımının zaman_serisi çıktısı bu
+ * uca doğrudan verilebilir.
+ */
+export function zamanSerisiAnalizi(
+  satirlar: ZamanSerisiSatiri[],
+  bilanco?: { baslangic_nakiti?: number; donen_varliklar?: number; kisa_vadeli_borc?: number; stoklar?: number },
+) {
+  return apiIstegi<ZamanSerisiAnalizi>('/api/v1/finans/zaman-serisi', {
+    satirlar,
+    bilanco: bilanco || {},
+  });
+}
+
 export function cfoSohbet(
   mesaj: string,
   veri: FinancialData,

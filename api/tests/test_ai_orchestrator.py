@@ -347,3 +347,45 @@ class TestKaynakEslesmesiUctanUca(unittest.TestCase):
         self.assertEqual(dogrulama["durum"], "kuralli_yedek")
         self.assertIn("2.000.000", dogrulama["reddedilen_sayilar"])
         self.assertNotIn("2.000.000", [e["ham"] for e in dogrulama["kaynak_eslesmeleri"]])
+
+
+class TestSaglikSkoruUcu(unittest.TestCase):
+    """Sağlık skoru zaman serisi ucundan gelmeli; müşteri sütunu 5. boyutu açmalı."""
+
+    @staticmethod
+    def _satirlar(musteri_ile: bool):
+        musteriler = [('Aygaz', 1_900_000), ('Mercan', 850_000), ('Toros', 550_000)]
+        satirlar = []
+        for ay in range(1, 13):
+            for ad, gelir in musteriler:
+                satir = {
+                    "tarih": f"2025-{ay:02d}-15", "kategori": ad,
+                    "gelir": gelir, "gider": int(gelir * 0.62),
+                }
+                if musteri_ile:
+                    satir["musteri"] = ad
+                satirlar.append(satir)
+        return satirlar
+
+    def _skor(self, musteri_ile: bool):
+        from api.models import FinansalAnalizIstegi
+        from api.services import zaman_serisi_analizi
+        istek = FinansalAnalizIstegi(satirlar=self._satirlar(musteri_ile))
+        return zaman_serisi_analizi(istek)["finansal"]["saglik_skoru"]
+
+    def test_musteri_sutunu_besinci_boyutu_acar(self):
+        skor = self._skor(musteri_ile=True)
+        self.assertEqual(skor["metodoloji"]["boyut_sayisi"], 5)
+        self.assertIn("konsantrasyon", skor["alt_skorlar"])
+
+    def test_musteri_yoksa_dort_boyutta_kalir(self):
+        skor = self._skor(musteri_ile=False)
+        self.assertEqual(skor["metodoloji"]["boyut_sayisi"], 4)
+        self.assertNotIn("konsantrasyon", skor["alt_skorlar"])
+
+    def test_skor_ve_kategori_uretilir(self):
+        skor = self._skor(musteri_ile=True)
+        self.assertIsInstance(skor["skor"], float)
+        self.assertGreaterEqual(skor["skor"], 0)
+        self.assertLessEqual(skor["skor"], 100)
+        self.assertTrue(skor["kategori"])
