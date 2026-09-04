@@ -110,6 +110,36 @@ def finansal_denetim(veri: FinansalGorunum) -> Dict[str, Any]:
     return {
         "sirket_adi": veri.sirket_adi,
         "donem": veri.donem,
+        # Kullanıcının bildirdiği ham değerler. AI bunlardan söz edebilmelidir;
+        # guardrail izin listesini buradan da besler ve kaynağını adıyla gösterir.
+        "girdi_degerleri": {
+            ad: deger
+            for ad, deger in (
+                ("ciro", veri.ciro),
+                ("satis_maliyeti", veri.satis_maliyeti),
+                ("faaliyet_giderleri", veri.faaliyet_giderleri),
+                ("net_kar", veri.net_kar),
+                ("nakit", veri.nakit),
+                ("alacaklar", veri.alacaklar),
+                ("borclar", veri.borclar),
+                ("stoklar", veri.stoklar),
+                ("kisa_vadeli_borc", veri.kisa_vadeli_borc),
+                ("uzun_vadeli_borc", veri.uzun_vadeli_borc),
+                ("ozkaynak", veri.ozkaynak),
+                ("faiz_gideri", veri.faiz_gideri),
+                ("vergi_gideri", veri.vergi_gideri),
+                ("amortisman", veri.amortisman),
+                ("capex", veri.capex),
+                ("donen_varliklar", veri.donen_varliklar),
+                ("toplam_varliklar", veri.toplam_varliklar),
+                ("toplam_yukumlulukler", veri.toplam_yukumlulukler),
+                ("operasyonel_nakit_akisi", veri.operasyonel_nakit_akisi),
+                ("donem_basi_nakit", veri.donem_basi_nakit),
+                ("yatirim_nakit_akisi", veri.yatirim_nakit_akisi),
+                ("finansman_nakit_akisi", veri.finansman_nakit_akisi),
+            )
+            if isinstance(deger, (int, float))
+        },
         "metrikler": {
             "brut_kar": round(brut_kar, 2),
             "faaliyet_kari_yaklasik": round(faaliyet_kari_yaklasik, 2),
@@ -238,6 +268,7 @@ def cfo_yaniti(
             "durum": uretim.dogrulama_durumu,
             "kontrol_edilen_sayi": uretim.kontrol_edilen_sayi,
             "reddedilen_sayilar": uretim.reddedilen_sayilar,
+            "kaynak_eslesmeleri": uretim.kaynak_eslesmeleri,
         },
         "veri_kalitesi": denetim["veri_kalitesi"],
         "ajanlar": ai_durumu()["aktif_ajanlar"],

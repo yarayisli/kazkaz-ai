@@ -265,3 +265,42 @@ class TestAIOrchestrator(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class TestKaynakKilidi(unittest.TestCase):
+    """Guardrail hem ham girdileri kabul etmeli hem kaynağını söylemeli."""
+
+    def test_kullanicinin_bildirdigi_ham_degerler_kabul_edilir(self):
+        denetim = finansal_denetim(tam_veri())
+        sonuc = ai_yanitini_dogrula("Kasanızda 150.000 TL nakit ve 250.000 TL alacak var.", denetim)
+        self.assertTrue(sonuc.uygun, f"reddedilenler: {sonuc.reddedilen_sayilar}")
+
+    def test_ciro_ve_ozkaynak_da_izinli(self):
+        denetim = finansal_denetim(tam_veri())
+        sonuc = ai_yanitini_dogrula("Ciro 1.000.000 TL, özkaynak 500.000 TL.", denetim)
+        self.assertTrue(sonuc.uygun, f"reddedilenler: {sonuc.reddedilen_sayilar}")
+
+    def test_uydurma_sayi_hala_reddedilir(self):
+        denetim = finansal_denetim(tam_veri())
+        sonuc = ai_yanitini_dogrula("Nakit tamponunu 2.000.000 TL'ye çıkarın.", denetim)
+        self.assertFalse(sonuc.uygun)
+        self.assertIn("2.000.000", sonuc.reddedilen_sayilar)
+
+    def test_kabul_edilen_sayinin_kaynagi_raporlanir(self):
+        denetim = finansal_denetim(tam_veri())
+        sonuc = ai_yanitini_dogrula("Kasanızda 150.000 TL nakit var.", denetim)
+        kaynaklar = {e.ham: e.kaynak for e in sonuc.kaynak_eslesmeleri}
+        self.assertEqual(kaynaklar.get("150.000"), "Bilanço · Hazır değerler")
+
+    def test_hesaplanmis_metrigin_kaynagi_ayirt_edilir(self):
+        denetim = finansal_denetim(tam_veri())
+        sonuc = ai_yanitini_dogrula("Cari oranınız 2,00 seviyesinde.", denetim)
+        kaynaklar = {e.ham: e.kaynak for e in sonuc.kaynak_eslesmeleri}
+        self.assertEqual(kaynaklar.get("2,00"), "Hesaplandı · Cari oran")
+
+    def test_reddedilen_sayi_kaynak_listesine_girmez(self):
+        denetim = finansal_denetim(tam_veri())
+        sonuc = ai_yanitini_dogrula("Nakit 150.000 TL, hedef 2.000.000 TL.", denetim)
+        self.assertFalse(sonuc.uygun)
+        self.assertNotIn("2.000.000", [e.ham for e in sonuc.kaynak_eslesmeleri])
+        self.assertIn("150.000", [e.ham for e in sonuc.kaynak_eslesmeleri])
