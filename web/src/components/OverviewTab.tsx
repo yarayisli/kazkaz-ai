@@ -29,6 +29,7 @@ import {
 } from 'recharts';
 import { FinansalDenetim } from '../lib/api';
 import { CashFlowItem, CustomerRisk, FinancialData } from '../types';
+import { DurumOzeti } from './DurumOzeti';
 
 interface OverviewTabProps {
   data: FinancialData;
@@ -282,6 +283,9 @@ export const OverviewTab: React.FC<OverviewTabProps> = ({
         </div>
         <button type="button" onClick={() => onNavigateTab('cfo-agent')} className="inline-flex items-center gap-2 text-xs font-extrabold text-violet-700 transition hover:text-violet-900">AI bulgularını aç <ArrowRight className="h-3.5 w-3.5" /></button>
       </section>
+
+      {/* Motorun ürettiği risk ve aksiyonlar — detay bölümlerinden önce gelir. */}
+      <DurumOzeti audit={audit} onNavigateTab={onNavigateTab} />
 
       <section className="panel-card p-5 sm:p-6">
         <div className="flex flex-col gap-6 xl:flex-row xl:items-end xl:justify-between">
