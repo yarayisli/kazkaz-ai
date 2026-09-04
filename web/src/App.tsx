@@ -18,6 +18,7 @@ import { useAuth } from './context/AuthContext';
 import { CompanySetup } from './components/CompanySetup';
 import { ErrorBoundary } from './components/ErrorBoundary';
 import { FeedbackWidget } from './components/FeedbackWidget';
+import { ScreenTabs } from './components/ScreenTabs';
 
 const OverviewTab = lazy(() => import('./components/OverviewTab').then((module) => ({ default: module.OverviewTab })));
 const CfoAgentTab = lazy(() => import('./components/CfoAgentTab').then((module) => ({ default: module.CfoAgentTab })));
@@ -309,6 +310,7 @@ function WorkspaceApp() {
                   </button>
                 </div>
               )}
+              <ScreenTabs activeTab={activeTab} onNavigateTab={navigateToTab} />
               <div key={activeTab} className="panel-tab-transition">
               <Suspense fallback={<WorkspaceFallback />}>
                 {activeTab === 'overview' && (

@@ -1,35 +1,29 @@
 import React, { useEffect, useState } from 'react';
 import {
   ArrowRight,
-  BarChart2,
-  Bot,
   Building2,
   ChevronDown,
   Clock3,
   Edit3,
-  FileBarChart,
   FileText,
-  Landmark,
-  LayoutDashboard,
-  Leaf,
   LogIn,
   LogOut,
   Menu,
-  PieChart,
-  Scale,
   Search,
   ServerCog,
   Settings2,
-  Sliders,
   Sparkles,
-  TrendingUp,
-  Users,
-  Wallet,
   UploadCloud,
   X,
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { AuthModal } from './AuthModal';
+import {
+  EKRANLAR,
+  TUM_SEKMELER,
+  ekraninIlkSekmesi,
+  type EkranSekmesi,
+} from '../lib/navigation';
 
 interface NavigationProps {
   activeTab: string;
@@ -39,114 +33,18 @@ interface NavigationProps {
   recentTabIds: string[];
 }
 
-type TabItem = {
-  id: string;
-  label: string;
-  description?: string;
-  icon: React.ComponentType<{ className?: string }>;
-  restrictedForViewer?: boolean;
-};
+type TabItem = EkranSekmesi;
 
-type NavigationItem = TabItem | {
-  id: string;
-  label: string;
-  icon: React.ComponentType<{ className?: string }>;
-  children: TabItem[];
-};
+/** Mobil menü, ekranları grup olarak listeler; açıklama satırı ekranın sorusudur. */
+const workspaceMenuGroups = EKRANLAR.map((ekran) => ({
+  id: ekran.id,
+  label: ekran.label,
+  description: ekran.soru,
+  icon: ekran.icon,
+  tabs: ekran.tabs,
+}));
 
-const financeTabs: TabItem[] = [
-  { id: 'income-statement', label: 'Gelir Tablosu', description: 'Ciro, maliyet ve kârlılık köprüsü', icon: TrendingUp },
-  { id: 'balance-sheet', label: 'Bilanço', description: 'Varlık, yükümlülük ve özkaynak', icon: Scale },
-  { id: 'cash-statement', label: 'Nakit Akışı', description: 'Faaliyet, yatırım ve finansman köprüsü', icon: Landmark },
-  { id: 'budget', label: 'Bütçe', description: 'Plan, gerçekleşen ve sapma', icon: PieChart },
-];
-
-const analysisTabs: TabItem[] = [
-  { id: 'customer', label: 'Müşteriler', description: 'Alacak, yoğunlaşma ve ürün görünümü', icon: Users },
-  { id: 'scenario', label: 'Senaryolar', description: 'Stres testi, tahmin ve yatırım ön değerlendirmesi', icon: Sliders },
-  { id: 'benchmarking', label: 'Benchmark', description: 'Sektör referans karşılaştırması', icon: BarChart2 },
-  { id: 'compliance', label: 'ESG & TFRS Hazırlık', description: 'Kanıt, belge ve uzman onayı hazırlık kontrolü', icon: Leaf },
-];
-
-const workspaceNavigation: NavigationItem[] = [
-  { id: 'overview', label: 'Genel Bakış', icon: LayoutDashboard },
-  { id: 'finance-group', label: 'Finans', icon: FileBarChart, children: financeTabs },
-  { id: 'cashflow', label: 'Nakit & Borç', icon: Wallet },
-  { id: 'analysis-group', label: 'Analizler', icon: Sliders, children: analysisTabs },
-  { id: 'cfo-agent', label: 'AI CFO', icon: Bot },
-  { id: 'reports', label: 'Raporlar', icon: FileText },
-];
-
-type WorkspaceMenuGroup = {
-  id: string;
-  label: string;
-  description: string;
-  icon: React.ComponentType<{ className?: string }>;
-  tabs: TabItem[];
-};
-
-const workspaceMenuGroups: WorkspaceMenuGroup[] = [
-  {
-    id: 'overview-group',
-    label: 'Genel Bakış',
-    description: 'Finansal durum ve öncelikler',
-    icon: LayoutDashboard,
-    tabs: [{ id: 'overview', label: 'Genel Bakış', description: 'Temel göstergeler, riskler ve öncelikli aksiyonlar', icon: LayoutDashboard }],
-  },
-  {
-    id: 'finance-group',
-    label: 'Finans',
-    description: 'Temel finansal tablolar',
-    icon: FileBarChart,
-    tabs: financeTabs,
-  },
-  {
-    id: 'cashflow-group',
-    label: 'Nakit & Borç',
-    description: 'Likidite ve ödeme planı',
-    icon: Wallet,
-    tabs: [{ id: 'cashflow', label: 'Nakit & Borç', description: '13 haftalık nakit, borç servisi ve ödeme takvimi', icon: Wallet }],
-  },
-  {
-    id: 'analysis-group',
-    label: 'Analizler',
-    description: 'Müşteri, senaryo ve sektör',
-    icon: Sliders,
-    tabs: analysisTabs,
-  },
-  {
-    id: 'cfo-group',
-    label: 'AI CFO',
-    description: 'Uyarılar ve karar desteği',
-    icon: Bot,
-    tabs: [{ id: 'cfo-agent', label: 'AI CFO', description: 'Uzman ajan bulguları, uyarılar ve aksiyon planı', icon: Bot }],
-  },
-  {
-    id: 'reports-group',
-    label: 'Raporlar',
-    description: 'Geçmiş, PDF ve Excel',
-    icon: FileText,
-    tabs: [{ id: 'reports', label: 'Rapor Merkezi', description: 'Geçmiş analizler, karşılaştırmalar ve dışa aktarma', icon: FileText }],
-  },
-  {
-    id: 'data-group',
-    label: 'Veri Girişi',
-    description: 'Yükle, doğrula ve onayla',
-    icon: UploadCloud,
-    tabs: [{ id: 'data-entry', label: 'Finansal Veri Girişi', description: 'Excel, Google Sheets veya manuel girişle veriyi doğrula', icon: UploadCloud, restrictedForViewer: true }],
-  },
-  {
-    id: 'settings-group',
-    label: 'Şirket Ayarları',
-    description: 'Profil, erişim ve veri yaşam döngüsü',
-    icon: Settings2,
-    tabs: [{ id: 'settings', label: 'Şirket Ayarları', description: 'Şirket kimliği, kullanıcı rolleri ve veri sahipliği', icon: Settings2, restrictedForViewer: true }],
-  },
-];
-
-const searchableWorkspaceTabs = workspaceMenuGroups.flatMap((group) => group.tabs);
-
-const isGroup = (item: NavigationItem): item is Extract<NavigationItem, { children: TabItem[] }> => 'children' in item;
+const searchableWorkspaceTabs = TUM_SEKMELER;
 
 const BrandMark = () => (
   <span className="relative block h-8 w-11 shrink-0" aria-hidden="true">
@@ -167,7 +65,7 @@ export const Navigation: React.FC<NavigationProps> = ({ activeTab, setActiveTab,
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [openMenu, setOpenMenu] = useState<string | null>(null);
   const [isProfileOpen, setIsProfileOpen] = useState(false);
-  const [mobileWorkspaceGroup, setMobileWorkspaceGroup] = useState('finance-group');
+  const [mobileWorkspaceGroup, setMobileWorkspaceGroup] = useState(EKRANLAR[0].id);
   const [mobileSearchQuery, setMobileSearchQuery] = useState('');
   const isLanding = activeTab === 'landing';
 
@@ -214,10 +112,6 @@ export const Navigation: React.FC<NavigationProps> = ({ activeTab, setActiveTab,
     .slice(0, 2)
     .toUpperCase();
 
-  const isItemActive = (item: NavigationItem) => isGroup(item)
-    ? item.children.some((child) => child.id === activeTab)
-    : item.id === activeTab;
-
   const activeLabel = searchableWorkspaceTabs
     .find((item) => item.id === activeTab)?.label || (activeTab === 'platform-admin' ? 'Sistem Yönetimi' : 'Finansal karar merkezi');
   const showWorkspaceSidebar = !isLanding && (
@@ -227,7 +121,7 @@ export const Navigation: React.FC<NavigationProps> = ({ activeTab, setActiveTab,
       && (Boolean(userProfile.onboardingProfile) || !['admin', 'cfo'].includes(userProfile.role))
     )
   );
-  const selectedMobileGroup = workspaceMenuGroups.find((group) => group.id === mobileWorkspaceGroup) || workspaceMenuGroups[1];
+  const selectedMobileGroup = workspaceMenuGroups.find((group) => group.id === mobileWorkspaceGroup) || workspaceMenuGroups[0];
   const normalizedMobileSearch = mobileSearchQuery.trim().toLocaleLowerCase('tr-TR');
   const mobileSearchResults = normalizedMobileSearch
     ? searchableWorkspaceTabs.filter((tab) => `${tab.label} ${tab.description || ''}`.toLocaleLowerCase('tr-TR').includes(normalizedMobileSearch))
@@ -463,58 +357,35 @@ export const Navigation: React.FC<NavigationProps> = ({ activeTab, setActiveTab,
           </div>
 
           <nav className="flex-1 space-y-1 overflow-y-auto px-3 py-4">
-            <p className="px-3 pb-2 text-[9px] font-black uppercase tracking-[0.17em] text-slate-400">Finans merkezi</p>
-            {workspaceNavigation.map((item) => {
-              const Icon = item.icon;
-              const isActive = isItemActive(item);
-              if (!isGroup(item)) {
-                const isAi = item.id === 'cfo-agent';
-                return (
-                  <button type="button" key={item.id} onClick={() => navigate(item.id)} aria-current={isActive ? 'page' : undefined} className={`group relative flex min-h-11 w-full items-center gap-3 overflow-hidden rounded-xl px-3 text-left text-xs font-extrabold transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-violet-400 ${isActive ? 'bg-[#eef2ff] text-[#0f2252] shadow-[inset_0_0_0_1px_#c7d2fe]' : 'text-slate-600 hover:bg-slate-50 hover:text-[#0f2252]'}`}>
-                    {isActive && <span aria-hidden="true" className="panel-nav-indicator absolute inset-y-2 left-0 w-0.5 rounded-full bg-violet-600" />}
-                    <span className={`grid h-8 w-8 shrink-0 place-items-center rounded-lg transition ${isActive ? 'bg-white text-violet-700 shadow-sm' : isAi ? 'bg-violet-50 text-violet-700' : 'bg-slate-100 text-slate-500 group-hover:bg-white'}`}><Icon className="h-4 w-4" /></span>
-                    <span className="flex-1">{item.label}</span>
-                    {isAi && !isActive && <span className="h-1.5 w-1.5 rounded-full bg-violet-500 shadow-[0_0_0_3px_#ede9fe]" aria-label="AI aktif" />}
-                  </button>
-                );
-              }
-
-              const menuOpen = openMenu === item.id || isActive;
+            {EKRANLAR.map((ekran) => {
+              const Icon = ekran.icon;
+              const isActive = ekran.tabs.some((tab) => tab.id === activeTab);
+              const isAi = ekran.id === 'cfo';
               return (
-                <div key={item.id} className="space-y-1">
-                  <button type="button" onClick={() => setOpenMenu(openMenu === item.id ? null : item.id)} aria-expanded={menuOpen} className={`group flex min-h-11 w-full items-center gap-3 rounded-xl px-3 text-left text-xs font-extrabold transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-violet-400 ${isActive ? 'text-[#0f2252]' : 'text-slate-600 hover:bg-slate-50 hover:text-[#0f2252]'}`}>
-                    <span className={`grid h-8 w-8 shrink-0 place-items-center rounded-lg transition ${isActive ? 'bg-violet-100 text-violet-700' : 'bg-slate-100 text-slate-500 group-hover:bg-white'}`}><Icon className="h-4 w-4" /></span>
-                    <span className="flex-1">{item.label}</span>
-                    <ChevronDown className={`h-3.5 w-3.5 text-slate-400 transition ${menuOpen ? 'rotate-180' : ''}`} />
-                  </button>
-                  {menuOpen && (
-                    <div className="ml-7 space-y-1 border-l border-violet-100 pl-3">
-                      {item.children.map((child) => {
-                        const ChildIcon = child.icon;
-                        const childActive = child.id === activeTab;
-                        return (
-                          <button type="button" key={child.id} onClick={() => navigate(child.id)} className={`flex min-h-9 w-full items-center gap-2.5 rounded-lg px-2.5 text-left text-[11px] font-bold transition ${childActive ? 'bg-violet-50 text-violet-800' : 'text-slate-500 hover:bg-slate-50 hover:text-slate-900'}`}>
-                            <ChildIcon className={`h-3.5 w-3.5 ${childActive ? 'text-violet-700' : 'text-slate-400'}`} />
-                            <span>{child.label}</span>
-                          </button>
-                        );
-                      })}
-                    </div>
-                  )}
-                </div>
+                <button
+                  type="button"
+                  key={ekran.id}
+                  onClick={() => navigate(isActive ? activeTab : ekraninIlkSekmesi(ekran.id))}
+                  aria-current={isActive ? 'page' : undefined}
+                  className={`group relative flex min-h-12 w-full items-center gap-3 overflow-hidden rounded-xl px-3 text-left transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-violet-400 ${isActive ? 'bg-[#eef2ff] shadow-[inset_0_0_0_1px_#c7d2fe]' : 'hover:bg-slate-50'}`}
+                >
+                  {isActive && <span aria-hidden="true" className="panel-nav-indicator absolute inset-y-2 left-0 w-0.5 rounded-full bg-violet-600" />}
+                  <span className={`grid h-8 w-8 shrink-0 place-items-center rounded-lg transition ${isActive ? 'bg-white text-violet-700 shadow-sm' : isAi ? 'bg-violet-50 text-violet-700' : 'bg-slate-100 text-slate-500 group-hover:bg-white'}`}><Icon className="h-4 w-4" /></span>
+                  <span className="min-w-0 flex-1">
+                    <span className={`block truncate text-[13px] font-extrabold ${isActive ? 'text-[#0f2252]' : 'text-slate-600 group-hover:text-[#0f2252]'}`}>{ekran.label}</span>
+                    <span className="mt-0.5 block truncate text-[10px] font-medium text-slate-400">{ekran.soru}</span>
+                  </span>
+                  {isAi && !isActive && <span className="h-1.5 w-1.5 shrink-0 rounded-full bg-violet-500 shadow-[0_0_0_3px_#ede9fe]" aria-label="AI aktif" />}
+                </button>
               );
             })}
           </nav>
 
-          <div className="border-t border-slate-100 p-3">
-            <button type="button" onClick={() => navigate('data-entry')} className={`flex min-h-11 w-full items-center gap-3 rounded-xl px-3 text-left text-xs font-bold transition ${activeTab === 'data-entry' ? 'bg-violet-50 text-violet-800' : 'text-slate-500 hover:bg-slate-50 hover:text-slate-900'}`}>
-              <UploadCloud className="h-4 w-4 text-violet-600" /> Finansal veri girişi
-            </button>
-            <button type="button" onClick={() => navigate('settings')} className={`mt-1 flex min-h-11 w-full items-center gap-3 rounded-xl px-3 text-left text-xs font-bold transition ${activeTab === 'settings' ? 'bg-violet-50 text-violet-800' : 'text-slate-500 hover:bg-slate-50 hover:text-slate-900'}`}>
-              <Settings2 className="h-4 w-4 text-violet-600" /> Şirket ayarları
-            </button>
-            {showPlatformAdmin && <button type="button" onClick={() => navigate('platform-admin')} className={`mt-1 flex min-h-11 w-full items-center gap-3 rounded-xl px-3 text-left text-xs font-extrabold transition ${activeTab === 'platform-admin' ? 'bg-[#0f2252] text-white' : 'bg-violet-50 text-violet-800 hover:bg-violet-100'}`}><ServerCog className="h-4 w-4" /> Sistem yönetimi</button>}
-          </div>
+          {showPlatformAdmin && (
+            <div className="border-t border-slate-100 p-3">
+              <button type="button" onClick={() => navigate('platform-admin')} className={`flex min-h-11 w-full items-center gap-3 rounded-xl px-3 text-left text-xs font-extrabold transition ${activeTab === 'platform-admin' ? 'bg-[#0f2252] text-white' : 'bg-violet-50 text-violet-800 hover:bg-violet-100'}`}><ServerCog className="h-4 w-4" /> Sistem yönetimi</button>
+            </div>
+          )}
         </aside>
       )}
 
