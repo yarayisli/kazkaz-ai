@@ -255,7 +255,12 @@ export interface TfrsHazirlikGirdisi {
 
 export interface VeriIceriAktarmaSonucu {
   durum: 'hazir' | 'uyarili';
-  dosya: { ad: string; tur: string; boyut: number; sayfalar: string[] };
+  dosya: {
+    ad: string; tur: string; boyut: number; sayfalar: string[];
+    /** Finansal olarak yorumlanabilen sayfalar (Python tarafında 'tanınan_sayfalar'). */
+    'tanınan_sayfalar'?: string[];
+    atlanan_sayfalar?: string[];
+  };
   ozet: {
     gecerli_satirlar: number;
     uyarili_satirlar: number;
@@ -282,6 +287,13 @@ export interface VeriIceriAktarmaSonucu {
     favok_hesaplanabilir: boolean;
     kurumsal_metrikler_hazir?: boolean;
     eksikler: string[];
+    /** Muhasebe kimlikleri arası tutarlılık bulguları (api/data_quality.py). */
+    tutarlilik_bulgulari?: VeriKalitesiBulgusu[];
+    /** İstatistiksel anomali bulguları. */
+    anomali_bulgulari?: VeriKalitesiBulgusu[];
+    semantik_durum?: 'temiz' | 'uyarili' | 'hatali';
+    semantik_hata_sayisi?: number;
+    semantik_uyari_sayisi?: number;
   };
   gelismis_veri: GelismisAjanGirdisi;
   zaman_serisi: Array<Record<string, string | number>>;
@@ -292,6 +304,17 @@ export interface VeriIceriAktarmaSonucu {
     seviye: 'hata' | 'uyari';
   }>;
   metodoloji: Record<string, string>;
+}
+
+/** api/data_quality.py'nin ürettiği tek bir kalite bulgusu. */
+export interface VeriKalitesiBulgusu {
+  kod: string;
+  alan: string;
+  mesaj: string;
+  seviye: 'hata' | 'uyari';
+  beklenen?: number;
+  gozlemlenen?: number;
+  sapma_yuzde?: number;
 }
 
 export interface SirketOlusturmaSonucu {

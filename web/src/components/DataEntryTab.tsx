@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { FinancialData, TransactionAnalytics } from '../types';
 import { Edit3, Save, CheckCircle, Lock, ShieldAlert, UploadCloud, FileSpreadsheet, AlertTriangle, Keyboard, CircleCheckBig, FileDown, Link2, Eye } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
+import { DataQualityFindings } from './DataQualityFindings';
 import {
   finansalDenetim,
   finansDosyasiDogrula,
@@ -200,6 +201,7 @@ export const DataEntryTab: React.FC<DataEntryTabProps> = ({ initialData, onSave,
           </div>
         ))}
       </div>
+      <DataQualityFindings kalite={importResult.veri_kalitesi} dosya={importResult.dosya} />
       {importResult.hatalar.length > 0 && (
         <div className="rounded-xl border border-amber-200 bg-amber-50 p-3">
           <p className="flex items-center gap-2 text-xs font-bold text-amber-900">
