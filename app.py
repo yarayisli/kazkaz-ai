@@ -1,4 +1,13 @@
 """
+KazKaz AI — Streamlit yüzeyi (DONDURULDU)
+=========================================
+Bu arayüz bakım modundadır. Ürünün aktif yüzü FastAPI + React tarafıdır
+(`api/` ve `web/`); yeni özellikler oraya eklenir. Buradaki 19 sayfa
+çalıştığı için korunuyor ve iç araç olarak kullanılabiliyor, ancak
+kullanıcıya dönük yeni yetenekler bu dosyaya taşınmaz. Gerçek bir hatayı
+düzeltmek serbesttir. Motorlar (`*_engine.py`) her iki yüzey tarafından
+paylaşılır ve tümüyle aktiftir.
+
 KazKaz AI — Ana Uygulama v2.1
 ================================
 Değişiklikler (v2.1):
@@ -1002,6 +1011,16 @@ with st.sidebar:
     if ADMIN_OK and is_admin():
         nav_group("Admin")
         nav_item("Admin Dashboard", "admin", "🛠")
+
+    # Bu yüzeyin bakım modunda olduğu, açan herkesin görebileceği yerde durur.
+    st.markdown(
+        "<div style='margin-top:14px;padding:10px 12px;border:1px solid #E2E5EB;"
+        "border-radius:10px;background:#F8FAFC;font-size:11px;line-height:1.55;"
+        "color:#64748B;'><strong style='color:#0F1729;'>Bakım modu</strong><br>"
+        "Bu arayüz dondurulmuştur. Yeni özellikler web uygulamasına eklenir; "
+        "buradaki sayfalar mevcut hâliyle korunur.</div>",
+        unsafe_allow_html=True,
+    )
 
     # AI kullanım göstergesi (guardrail + cache aktifse)
     if st.session_state.get("ai_active") and "llm_guardrail" in st.session_state:
