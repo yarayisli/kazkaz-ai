@@ -6,6 +6,7 @@ import re
 from collections import defaultdict
 from typing import Any, Dict, Iterable, List, Optional
 
+from api.hesap_plani import kategori_bul, maliyet_hesabi_mi
 from api.models import FinansalGorunum, MizanSatiri
 
 
@@ -31,7 +32,14 @@ TANINAN_ESLEMELER = (
 
 
 def _kategori(satir: MizanSatiri) -> Optional[str]:
-    return satir.esleme.strip().lower() if satir.esleme and satir.esleme.strip() else None
+    """Satırın kategorisi: kullanıcının etiketi öncelikli, yoksa hesap kodu.
+
+    Tekdüzen Hesap Planı kodları standart olduğu için mizan hiçbir şey
+    etiketlenmeden sınıflandırılabilir; `esleme` verildiğinde onu ezmez.
+    """
+    if satir.esleme and satir.esleme.strip():
+        return satir.esleme.strip().lower()
+    return kategori_bul(satir.hesap_kodu)
 
 
 def _borc_bakiye(satir: MizanSatiri) -> float:
@@ -224,7 +232,13 @@ def finansal_tablo_paketi(mizan: List[MizanSatiri], veri: FinansalGorunum) -> Di
         }
     mutabakat = _gorunum_mutabakati(veri, son["gelir_tablosu"], son["bilanco"])
     nakit = _nakit_koprusu(veri)
-    eslesmeyen = [s.hesap_kodu for s in mizan if _kategori(s) not in TANINAN_ESLEMELER]
+    # 7'li maliyet hesapları 6'lı gruba yansıtıldığı için toplanmaz; bunlar
+    # "tanınmayan hesap" değildir, ayrı raporlanır ki kullanıcı endişelenmesin.
+    yansitma = [s.hesap_kodu for s in mizan if maliyet_hesabi_mi(s.hesap_kodu)]
+    eslesmeyen = [
+        s.hesap_kodu for s in mizan
+        if not maliyet_hesabi_mi(s.hesap_kodu) and _kategori(s) not in TANINAN_ESLEMELER
+    ]
     sorun_var = (
         any(
             not t["mizan_denk"]
@@ -247,9 +261,18 @@ def finansal_tablo_paketi(mizan: List[MizanSatiri], veri: FinansalGorunum) -> Di
         "finansal_gorunum_mutabakati": mutabakat,
         "nakit_koprusu": nakit,
         "eslesmeyen_hesaplar": eslesmeyen[:100],
+        "yansitma_hesaplari": yansitma[:100],
         "metodoloji": {
             "gelir_tablosu": "Kapanmamış gelir/gider hesaplarından hesaplanır.",
             "bilanco": "Ayrı dönem kârı hesabı yoksa hesaplanan net kâr özkaynağa eklenir.",
             "nakit": "CFO, CFI ve CFF açıkça girilmeden nakit köprüsü varsayım yapmaz.",
+            "hesap_eslemesi": (
+                "Hesap kodları Tekdüzen Hesap Planı'na göre otomatik eşlenir; "
+                "mizandaki Eşleme sütunu doldurulmuşsa o önceliklidir."
+            ),
+            "maliyet_hesaplari": (
+                "7'li maliyet hesapları 6'lı gruba yansıtıldığı için ayrıca "
+                "toplanmaz; çift sayımı önler."
+            ),
         },
     }
