@@ -103,6 +103,29 @@ export const BenchmarkingTab: React.FC<BenchmarkingTabProps> = ({ financialData 
   const companyDso = financialData.periodDays != null && financialData.periodDays > 0 && financialData.revenue > 0
     ? Math.round(financialData.receivables / financialData.revenue * financialData.periodDays) : null;
 
+  // Para birimi kayıttan gelir; ₺ sabitlenmez.
+  const paraBicimle = (deger: number) => new Intl.NumberFormat('tr-TR', {
+    style: 'currency',
+    currency: financialData.currency === '₺' ? 'TRY' : financialData.currency,
+    maximumFractionDigits: 0,
+  }).format(deger);
+
+  // DSO 10 gün kısalırsa serbest kalan tutar. Günlük ciro, kaydın kendi
+  // dönem gün sayısından hesaplanır — 365 varsayımı çeyreklik veride
+  // sonucu dört kat saptırıyordu.
+  const gunlukCiro = financialData.periodDays != null && financialData.periodDays > 0
+    ? financialData.revenue / financialData.periodDays
+    : null;
+  const dsoKisaltmaEtkisi = gunlukCiro == null ? null : gunlukCiro * 10;
+
+  // Kârlılık yorumu hesaplanan sonuca bağlıdır; her durumda "güçlü" denmez.
+  const netMarjFarki = companyNetMargin - sectorInfo.avg.netProfitMargin;
+  const karlilikDurumu = companyNetMargin < 0
+    ? 'zarar'
+    : netMarjFarki >= 0
+      ? 'guclu'
+      : 'geride';
+
   // Recharts Data Structure
   const comparisonData = [
     {
@@ -399,13 +422,37 @@ export const BenchmarkingTab: React.FC<BenchmarkingTabProps> = ({ financialData 
 
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           {/* Item 1 */}
-          <div className="p-4 bg-emerald-50/60 border border-emerald-200 rounded-xl space-y-2">
-            <div className="flex items-center gap-2 text-emerald-800 font-bold text-xs">
-              <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
-              <span>Güçlü Alan: Net Kâr Marjı</span>
+          <div className={`p-4 border rounded-xl space-y-2 ${
+            karlilikDurumu === 'guclu'
+              ? 'bg-emerald-50/60 border-emerald-200'
+              : karlilikDurumu === 'geride'
+                ? 'bg-amber-50/60 border-amber-200'
+                : 'bg-red-50/60 border-red-200'
+          }`}>
+            <div className={`flex items-center gap-2 font-bold text-xs ${
+              karlilikDurumu === 'guclu'
+                ? 'text-emerald-800'
+                : karlilikDurumu === 'geride' ? 'text-amber-900' : 'text-red-900'
+            }`}>
+              {karlilikDurumu === 'guclu'
+                ? <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
+                : <AlertTriangle className={`w-4 h-4 shrink-0 ${karlilikDurumu === 'geride' ? 'text-amber-600' : 'text-red-600'}`} />}
+              <span>
+                {karlilikDurumu === 'guclu'
+                  ? 'Güçlü Alan: Net Kâr Marjı'
+                  : karlilikDurumu === 'geride'
+                    ? 'Gelişime Açık: Net Kâr Marjı'
+                    : 'Kritik: Dönem Zararı'}
+              </span>
             </div>
             <p className="text-xs text-slate-700">
-              Şirketinizin Net Kâr Marjı (<strong>%{companyNetMargin.toFixed(1)}</strong>), seçili referans ortalamasıyla (<strong>%{sectorInfo.avg.netProfitMargin}</strong>) karşılaştırıldığında güçlü görünmektedir. Gider kalemlerini dönemsel etkilerle birlikte doğrulayın.
+              {karlilikDurumu === 'zarar' ? (
+                <>Şirketiniz incelenen dönemde <strong>%{Math.abs(companyNetMargin).toFixed(1)}</strong> oranında zarar etti. Referans değerle karşılaştırma yapılmadan önce negatif katkı marjlı ürün ve gider kalemlerini ayırın.</>
+              ) : karlilikDurumu === 'geride' ? (
+                <>Net Kâr Marjınız (<strong>%{companyNetMargin.toFixed(1)}</strong>), seçili referans değerin (<strong>%{sectorInfo.avg.netProfitMargin}</strong>) <strong>{Math.abs(netMarjFarki).toFixed(1)} puan</strong> altında. Fiyatlama ve gider kalemlerini dönemsel etkilerle birlikte gözden geçirin.</>
+              ) : (
+                <>Net Kâr Marjınız (<strong>%{companyNetMargin.toFixed(1)}</strong>), seçili referans değerin (<strong>%{sectorInfo.avg.netProfitMargin}</strong>) <strong>{netMarjFarki.toFixed(1)} puan</strong> üzerinde. Gider kalemlerini dönemsel etkilerle birlikte doğrulayın.</>
+              )}
             </p>
           </div>
 
@@ -418,7 +465,7 @@ export const BenchmarkingTab: React.FC<BenchmarkingTabProps> = ({ financialData 
             <p className="text-xs text-slate-700">
               {companyDso == null
                 ? 'Bilanço ve ticari alacak verisi olmadan tahsilat karşılaştırması yapılmaz.'
-                : <>Alacak tahsilat süreniz <strong>{companyDso} gün</strong>. Referans değer <strong>{sectorInfo.avg.dsoDays} gün</strong>. DSO süresi 10 gün kısalırsa yaklaşık <strong>₺{((financialData.revenue / 365) * 10).toLocaleString('tr-TR', { maximumFractionDigits: 0 })}</strong> likidite etkisi oluşabilir.</>}
+                : <>Alacak tahsilat süreniz <strong>{companyDso} gün</strong>. Referans değer <strong>{sectorInfo.avg.dsoDays} gün</strong>.{dsoKisaltmaEtkisi != null && <> DSO süresi 10 gün kısalırsa yaklaşık <strong>{paraBicimle(dsoKisaltmaEtkisi)}</strong> likidite etkisi oluşabilir ({financialData.periodDays} günlük dönem üzerinden).</>}</>}
             </p>
           </div>
 
@@ -431,7 +478,7 @@ export const BenchmarkingTab: React.FC<BenchmarkingTabProps> = ({ financialData 
             <p className="text-xs text-slate-700">
               {companyDebtToEquity == null
                 ? 'Borç ve özkaynak kalemleri doğrulanmadan sermaye yapısı karşılaştırması yapılmaz.'
-                : <>Borç / Özkaynak oranınız <strong>{companyDebtToEquity.toFixed(2)}x</strong>. Kısa vadeli borçları uzun vadeye yaymanın oranı güçlü performans eşiğine (<strong>{sectorInfo.top10.debtToEquity}x</strong>) yaklaştırıp yaklaştırmadığını değerlendirin.</>}
+                : <>Borç / Özkaynak oranınız <strong>{companyDebtToEquity.toFixed(2)}x</strong>, referans eşik <strong>{sectorInfo.top10.debtToEquity}x</strong>. Bu oranı yalnızca borcu azaltmak veya özkaynağı güçlendirmek değiştirir; kısa vadeli borcu uzun vadeye yaymak toplam borcu değiştirmediği için oranı da değiştirmez. Vade uzatma likiditeyi ve ödeme takvimini rahatlatır — etkisini cari oran{companyCurrentRatio != null && <> (<strong>{companyCurrentRatio.toFixed(2)}x</strong>)</>} ve borç servis kapasitesi üzerinden değerlendirin.</>}
             </p>
           </div>
         </div>
