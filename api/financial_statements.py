@@ -6,6 +6,7 @@ import re
 from collections import defaultdict
 from typing import Any, Dict, Iterable, List, Optional
 
+from api.donem_karsilastirma import donem_karsilastirmasi
 from api.hesap_plani import kategori_bul, maliyet_hesabi_mi
 from api.models import FinansalGorunum, MizanSatiri
 
@@ -258,6 +259,8 @@ def finansal_tablo_paketi(mizan: List[MizanSatiri], veri: FinansalGorunum) -> Di
         "tablolar": tablolar,
         "son_donem": son,
         "donem_degisimleri": degisim,
+        # Şirketi sektör ortalamasıyla değil kendi geçmişiyle karşılaştırır.
+        "kendi_trendi": donem_karsilastirmasi(tablolar, veri.donem_gun_sayisi),
         "finansal_gorunum_mutabakati": mutabakat,
         "nakit_koprusu": nakit,
         "eslesmeyen_hesaplar": eslesmeyen[:100],

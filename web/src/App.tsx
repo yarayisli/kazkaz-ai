@@ -393,7 +393,12 @@ function WorkspaceApp() {
                   />
                 )}
                 {activeTab === 'benchmarking' && (
-                  <BenchmarkingTab financialData={financialData} audit={financialAudit} />
+                  <BenchmarkingTab
+                    financialData={financialData}
+                    audit={financialAudit}
+                    advancedData={advancedData}
+                    onNavigateTab={navigateToTab}
+                  />
                 )}
                 {activeTab === 'cashflow' && (
                   <CashflowDebtTab

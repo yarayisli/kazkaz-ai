@@ -1,7 +1,9 @@
 import React, { useEffect, useState } from 'react';
 import { FinancialData } from '../types';
-import type { FinansalDenetim } from '../lib/api';
+import type { FinansalDenetim, GelismisAjanGirdisi, KendiTrendi } from '../lib/api';
+import { gelismisAjanAnalizi } from '../lib/api';
 import { finansalMetrikler, paraBicimlendirici } from '../lib/metrikler';
+import { KendiTrendin } from './KendiTrendin';
 import {
   BarChart2,
   TrendingUp,
@@ -37,6 +39,9 @@ interface BenchmarkingTabProps {
   financialData: FinancialData;
   /** Doğrulanmış metrikler; verilirse yerel hesap yerine bunlar kullanılır. */
   audit?: FinansalDenetim | null;
+  /** Yüklenen mizan; çok dönemliyse kendi trendi hesaplanır. */
+  advancedData?: GelismisAjanGirdisi;
+  onNavigateTab?: (tabId: string) => void;
 }
 
 interface SectorMetrics {
@@ -81,7 +86,7 @@ const SECTOR_BENCHMARKS: Record<string, { name: string; avg: SectorMetrics; top1
   }
 };
 
-export const BenchmarkingTab: React.FC<BenchmarkingTabProps> = ({ financialData, audit }) => {
+export const BenchmarkingTab: React.FC<BenchmarkingTabProps> = ({ financialData, audit, advancedData, onNavigateTab }) => {
   const [selectedSectorKey, setSelectedSectorKey] = useState<string>('Teknoloji & Yazılım');
 
   useEffect(() => {
@@ -100,6 +105,25 @@ export const BenchmarkingTab: React.FC<BenchmarkingTabProps> = ({ financialData,
   // vermesi böyle önlenir.
   const metrikler = finansalMetrikler(financialData, audit);
   const paraBicimle = paraBicimlendirici(financialData.currency);
+
+  // Şirketin kendi geçmişi — mizan çok dönemliyse dolar. Sektör
+  // ortalaması "normal miyim?" der; bu "ne değişti?" der ve karar üretir.
+  const [kendiTrendi, setKendiTrendi] = useState<KendiTrendi | null>(null);
+  const mizanSatirSayisi = advancedData?.mizan?.length ?? 0;
+
+  useEffect(() => {
+    if (mizanSatirSayisi === 0 || !advancedData) {
+      setKendiTrendi(null);
+      return undefined;
+    }
+    let aktif = true;
+    gelismisAjanAnalizi(financialData, advancedData)
+      .then((sonuc) => {
+        if (aktif) setKendiTrendi(sonuc.ajanlar?.finansal_tablo_mutabakat_ajani?.kendi_trendi ?? null);
+      })
+      .catch(() => { if (aktif) setKendiTrendi(null); });
+    return () => { aktif = false; };
+  }, [advancedData, financialData, mizanSatirSayisi]);
 
   const companyGrossMargin = metrikler.brutKarMarji.deger ?? 0;
   const companyNetMargin = metrikler.netKarMarji.deger ?? 0;
@@ -200,6 +224,13 @@ export const BenchmarkingTab: React.FC<BenchmarkingTabProps> = ({ financialData,
 
   return (
     <div className="space-y-6">
+      {/* Kendi geçmişiyle karşılaştırma — sektör kartlarından önce gelir. */}
+      <KendiTrendin
+        trend={kendiTrendi}
+        paraBirimi={financialData.currency}
+        onNavigateTab={onNavigateTab ?? (() => {})}
+      />
+
       {/* Page Header */}
       <div className="bg-white p-5 rounded-xl border border-slate-200 shadow-xs flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
         <div>
@@ -236,8 +267,10 @@ export const BenchmarkingTab: React.FC<BenchmarkingTabProps> = ({ financialData,
       <div className="flex items-start gap-3 rounded-xl border border-amber-300 bg-amber-50 px-4 py-3 text-sm text-amber-900">
         <HelpCircle className="mt-0.5 h-4 w-4 shrink-0 text-amber-700" />
         <p>
-          <strong>Referans veri notu:</strong> Bu eşikler doğrulanmış canlı bir sektör veri havuzu değildir.
-          Pilot karşılaştırma amacıyla kullanılır; yatırım veya kredi kararında bağımsız veri kaynağıyla doğrulanmalıdır.
+          <strong>Bu eşikler ürün içi başlangıç referansıdır.</strong> Bağımsız bir kaynaktan
+          gelmez; yayın tarihi, örneklem büyüklüğü ve şirket ölçeği bilgisi yoktur, bu yüzden
+          "sektör ortalaması" değildir. Asıl karşılaştırma yukarıdaki kendi trendinizdir —
+          geçmiş dönem yüklendikçe bu eşiklere ihtiyaç azalır.
         </p>
       </div>
 
@@ -266,9 +299,9 @@ export const BenchmarkingTab: React.FC<BenchmarkingTabProps> = ({ financialData,
               ) : normalizedScore >= 75 ? (
                 <span className="text-emerald-400 font-bold"> Pilot referans eşiklerinin üzerinde görünüyorsunuz.</span>
               ) : normalizedScore >= 55 ? (
-                <span className="text-blue-400 font-bold"> Sektör Ortalamasının Üzerinde Performans.</span>
+                <span className="text-blue-400 font-bold"> Ürün içi referans eşiğinin üzerinde.</span>
               ) : (
-                <span className="text-amber-400 font-bold"> Sektör Ortalamasının Altında - İyileştirme Fırsatı Var.</span>
+                <span className="text-amber-400 font-bold"> Ürün içi referans eşiğinin altında.</span>
               )}
             </p>
           </div>

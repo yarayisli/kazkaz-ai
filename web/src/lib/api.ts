@@ -149,9 +149,42 @@ export interface GelismisAjanAnalizi {
     yansitma_hesaplari?: string[];
     eslesmeyen_hesaplar?: string[];
     donemler?: string[];
+    /** Şirketin kendi geçmişiyle karşılaştırması. */
+    kendi_trendi?: KendiTrendi;
     finansal_gorunum_mutabakati?: { durum: string; uyusmayan_alanlar: string[] };
     nakit_koprusu?: { durum: string; fark?: number; eksik_alanlar?: string[] };
   }>;
+}
+
+/** Bir metriğin önceki döneme göre değişimi. */
+export interface TrendDegisimi {
+  metrik: string;
+  etiket: string;
+  birim: 'tutar' | 'yuzde' | 'gun' | 'kat';
+  onceki: number;
+  son: number;
+  fark: number;
+  goreli_degisim_yuzde: number | null;
+  yon: 'artti' | 'azaldi' | 'sabit';
+  /** Artış her metrikte iyi değildir: tahsilat süresi uzaması kötüdür. */
+  deger_yargisi: 'iyi' | 'kotu' | 'notr';
+  /** %5 eşiğini aşan değişim. */
+  onemli: boolean;
+  /** Yalnızca tahsilat süresinde: bağlanan (+) veya serbest kalan (−) para. */
+  nakit_etkisi: number | null;
+}
+
+/** Şirketin kendi geçmişiyle karşılaştırması. */
+export interface KendiTrendi {
+  durum: 'hazir' | 'gecmis_yok';
+  onceki_donem?: string;
+  son_donem?: string;
+  donem_sayisi: number;
+  degisimler: TrendDegisimi[];
+  onemli_degisim_sayisi?: number;
+  kotulesen_sayisi?: number;
+  metodoloji?: string;
+  aciklama?: string;
 }
 
 /** Mizandan türetilen bir dönemin gelir tablosu ve bilançosu. */
