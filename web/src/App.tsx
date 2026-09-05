@@ -369,6 +369,7 @@ function WorkspaceApp() {
                     data={financialData}
                     cashFlow={cashFlow}
                     section={activeTab === 'income-statement' ? 'income' : activeTab === 'balance-sheet' ? 'balance' : 'cash'}
+                    advancedData={advancedData}
                     onNavigateTab={navigateToTab}
                   />
                 )}

@@ -138,17 +138,54 @@ export interface GelismisAjanAnalizi {
     gerekenler?: string[];
     bulgular: string[];
     tablo_surumu?: string;
-    son_donem?: {
-      donem: string;
-      gelir_tablosu: { ciro: number; brut_kar: number; faaliyet_kari: number; net_kar: number };
-      bilanco: {
-        toplam_varliklar: number; toplam_yukumlulukler: number; toplam_ozkaynak: number;
-        bilanco_farki: number; denk: boolean;
-      };
-    };
+    son_donem?: MizanDonemi;
+    /** 7'li maliyet hesapları: 6'lı gruba yansıtıldığı için toplanmaz. */
+    yansitma_hesaplari?: string[];
+    eslesmeyen_hesaplar?: string[];
+    donemler?: string[];
     finansal_gorunum_mutabakati?: { durum: string; uyusmayan_alanlar: string[] };
     nakit_koprusu?: { durum: string; fark?: number; eksik_alanlar?: string[] };
   }>;
+}
+
+/** Mizandan türetilen bir dönemin gelir tablosu ve bilançosu. */
+export interface MizanDonemi {
+  donem: string;
+  gelir_tablosu: {
+    ciro: number;
+    satis_maliyeti: number;
+    brut_kar: number;
+    faaliyet_giderleri: number;
+    amortisman: number;
+    faaliyet_kari: number;
+    faiz_gideri: number;
+    vergi_oncesi_kar: number;
+    vergi_gideri: number;
+    net_kar: number;
+  };
+  bilanco: {
+    nakit: number;
+    alacaklar: number;
+    stoklar: number;
+    diger_donen_varliklar: number;
+    donen_varliklar: number;
+    duran_varliklar: number;
+    toplam_varliklar: number;
+    ticari_borc: number;
+    kisa_vadeli_borc: number;
+    karsiliklar: number;
+    diger_yukumlulukler: number;
+    uzun_vadeli_borc: number;
+    toplam_yukumlulukler: number;
+    kayitli_ozkaynak: number;
+    donem_net_kari: number;
+    toplam_ozkaynak: number;
+    bilanco_farki: number;
+    denk: boolean;
+  };
+  /** Mizanın çift taraflı denkliği (borç toplamı = alacak toplamı). */
+  mizan_farki: number;
+  mizan_denk: boolean;
 }
 
 export interface GelismisAjanGirdisi {
