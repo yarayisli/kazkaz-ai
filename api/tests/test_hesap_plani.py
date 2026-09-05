@@ -127,5 +127,49 @@ class TestMizandanTabloTuretme(unittest.TestCase):
         self.assertNotIn("770", paket["eslesmeyen_hesaplar"])
 
 
+
+class TestDevirGunleri(unittest.TestCase):
+    """DSO/DIO/DPO ayrı metrik olarak dışa verilmeli; 365 sabiti kullanılmamalı."""
+
+    @staticmethod
+    def _veri(donem_gun: int):
+        return FinansalGorunum(
+            sirket_adi="Test", ciro=900_000, satis_maliyeti=400_000,
+            faaliyet_giderleri=250_000, net_kar=27_000, nakit=150_000,
+            alacaklar=300_000, stoklar=100_000, borclar=150_000,
+            kisa_vadeli_borc=400_000, ozkaynak=600_000, donem_gun_sayisi=donem_gun,
+        )
+
+    def test_dso_donem_gun_sayisini_kullanir(self):
+        from api.services import finansal_denetim
+        # 90 günlük dönem: 300.000 / 900.000 × 90 = 30 gün
+        self.assertEqual(finansal_denetim(self._veri(90))["metrikler"]["alacak_devir_gunu"], 30.0)
+        # 365 günlük dönem aynı bakiyelerle farklı sonuç vermeli
+        self.assertAlmostEqual(
+            finansal_denetim(self._veri(365))["metrikler"]["alacak_devir_gunu"], 121.6667, places=3
+        )
+
+    def test_dio_ve_dpo_satis_maliyetine_gore_hesaplanir(self):
+        from api.services import finansal_denetim
+        m = finansal_denetim(self._veri(90))["metrikler"]
+        self.assertEqual(m["stok_devir_gunu"], 22.5)    # 100.000 / 400.000 × 90
+        self.assertEqual(m["borc_devir_gunu"], 33.75)   # 150.000 / 400.000 × 90
+
+    def test_ccc_bilesenlerinin_toplamiyla_tutarli(self):
+        from api.services import finansal_denetim
+        m = finansal_denetim(self._veri(90))["metrikler"]
+        self.assertAlmostEqual(
+            m["nakit_donusum_dongusu"],
+            m["alacak_devir_gunu"] + m["stok_devir_gunu"] - m["borc_devir_gunu"],
+            places=2,
+        )
+
+    def test_donem_gunu_yoksa_hesaplanmaz(self):
+        from api.services import finansal_denetim
+        veri = self._veri(90).model_copy(update={"donem_gun_sayisi": None})
+        m = finansal_denetim(veri)["metrikler"]
+        self.assertIsNone(m["alacak_devir_gunu"])
+        self.assertIsNone(m["stok_devir_gunu"])
+
 if __name__ == "__main__":
     unittest.main()

@@ -1,5 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { FinancialData } from '../types';
+import type { FinansalDenetim } from '../lib/api';
+import { finansalMetrikler, paraBicimlendirici } from '../lib/metrikler';
 import {
   BarChart2,
   TrendingUp,
@@ -33,6 +35,8 @@ import {
 
 interface BenchmarkingTabProps {
   financialData: FinancialData;
+  /** Doğrulanmış metrikler; verilirse yerel hesap yerine bunlar kullanılır. */
+  audit?: FinansalDenetim | null;
 }
 
 interface SectorMetrics {
@@ -77,7 +81,7 @@ const SECTOR_BENCHMARKS: Record<string, { name: string; avg: SectorMetrics; top1
   }
 };
 
-export const BenchmarkingTab: React.FC<BenchmarkingTabProps> = ({ financialData }) => {
+export const BenchmarkingTab: React.FC<BenchmarkingTabProps> = ({ financialData, audit }) => {
   const [selectedSectorKey, setSelectedSectorKey] = useState<string>('Teknoloji & Yazılım');
 
   useEffect(() => {
@@ -91,32 +95,28 @@ export const BenchmarkingTab: React.FC<BenchmarkingTabProps> = ({ financialData 
 
   const sectorInfo = SECTOR_BENCHMARKS[selectedSectorKey] || SECTOR_BENCHMARKS['Teknoloji & Yazılım'];
 
-  // Company calculated KPIs
-  const companyGrossMargin = (financialData.grossProfit / (financialData.revenue || 1)) * 100;
-  const companyNetMargin = (financialData.netProfit / (financialData.revenue || 1)) * 100;
+  // Metrikler tek kaynaktan gelir (lib/metrikler.ts → api/financial_metrics.py).
+  // Ekran içinde aritmetik yapılmaz; aynı metriğin iki farklı sonuç
+  // vermesi böyle önlenir.
+  const metrikler = finansalMetrikler(financialData, audit);
+  const paraBicimle = paraBicimlendirici(financialData.currency);
+
+  const companyGrossMargin = metrikler.brutKarMarji.deger ?? 0;
+  const companyNetMargin = metrikler.netKarMarji.deger ?? 0;
   const companyTotalDebt = financialData.shortTermDebt + financialData.longTermDebt;
   const fullBalanceAvailable = [financialData.currentAssets, financialData.totalAssets, financialData.totalLiabilities]
     .every((value) => value != null);
-  const companyDebtToEquity = fullBalanceAvailable && financialData.equity > 0 ? companyTotalDebt / financialData.equity : null;
-  const companyCurrentRatio = financialData.currentAssets != null && financialData.shortTermDebt > 0
-    ? financialData.currentAssets / financialData.shortTermDebt : null;
-  const companyDso = financialData.periodDays != null && financialData.periodDays > 0 && financialData.revenue > 0
-    ? Math.round(financialData.receivables / financialData.revenue * financialData.periodDays) : null;
+  const companyDebtToEquity = fullBalanceAvailable ? metrikler.borcOzkaynak.deger : null;
+  const companyCurrentRatio = metrikler.cariOran.deger;
+  const companyDso = metrikler.alacakDevirGunu.deger == null
+    ? null
+    : Math.round(metrikler.alacakDevirGunu.deger);
 
-  // Para birimi kayıttan gelir; ₺ sabitlenmez.
-  const paraBicimle = (deger: number) => new Intl.NumberFormat('tr-TR', {
-    style: 'currency',
-    currency: financialData.currency === '₺' ? 'TRY' : financialData.currency,
-    maximumFractionDigits: 0,
-  }).format(deger);
-
-  // DSO 10 gün kısalırsa serbest kalan tutar. Günlük ciro, kaydın kendi
-  // dönem gün sayısından hesaplanır — 365 varsayımı çeyreklik veride
-  // sonucu dört kat saptırıyordu.
-  const gunlukCiro = financialData.periodDays != null && financialData.periodDays > 0
-    ? financialData.revenue / financialData.periodDays
-    : null;
-  const dsoKisaltmaEtkisi = gunlukCiro == null ? null : gunlukCiro * 10;
+  // DSO 10 gün kısalırsa serbest kalan tutar. Günlük ciro dönem gün
+  // sayısından gelir; 365 varsayılmaz.
+  const dsoKisaltmaEtkisi = metrikler.gunlukCiro.deger == null
+    ? null
+    : metrikler.gunlukCiro.deger * 10;
 
   // Kârlılık yorumu hesaplanan sonuca bağlıdır; her durumda "güçlü" denmez.
   const netMarjFarki = companyNetMargin - sectorInfo.avg.netProfitMargin;

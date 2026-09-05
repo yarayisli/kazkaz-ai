@@ -17,6 +17,12 @@ export interface FinansalDenetim {
     roic: number | null;
     serbest_nakit_akisi: number | null;
     nakit_donusum_dongusu: number | null;
+    /** DSO — tahsilat süresi (gün). Dönem gün sayısından; 365 sabit değil. */
+    alacak_devir_gunu: number | null;
+    /** DIO — stokta kalma süresi (gün). */
+    stok_devir_gunu: number | null;
+    /** DPO — tedarikçiye ödeme süresi (gün). */
+    borc_devir_gunu: number | null;
     musteri_hhi: number | null;
   };
   metrik_kaydi: Record<string, {
