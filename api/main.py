@@ -1,7 +1,9 @@
 """KazKaz AI birleşik V1 FastAPI uygulaması."""
 
+import json
 import os
 from pathlib import Path
+from typing import Optional
 
 from fastapi import Depends, FastAPI, HTTPException, Query, Request, Response
 from fastapi.middleware.cors import CORSMiddleware
@@ -70,7 +72,10 @@ from api.security_middleware import ApiGuvenlikMiddleware
 from api.services import ai_durumu, cfo_yaniti, finansal_denetim, zaman_serisi_analizi
 from api.telemetry import operasyonu_olc, performans_ozeti
 from api.usage_audit_service import kullanim_olayi_kaydet
-from api.excel_import import DosyaIcerikHatasi, dosya_dogrula, veri_sablonu_olustur
+from api.excel_import import ALANLAR, DosyaIcerikHatasi, dosya_dogrula, veri_sablonu_olustur
+
+#: sutun_eslemesi'nde kabul edilen kanonik alanlar (dışarıdan gelen değeri sınırlar).
+GECERLI_KANONIK_ALANLAR = frozenset(ALANLAR.values())
 from api.workspace_service import (
     calisma_alani_disa_aktar,
     calisma_alani_kaydet,
@@ -340,14 +345,32 @@ def zaman_serisi(
 async def finans_dosyasi_dogrula(
     request: Request,
     dosya_adi: str = Query(min_length=3, max_length=180),
+    sutun_eslemesi: Optional[str] = Query(default=None, max_length=4000),
     kullanici: KimlikBilgisi = Depends(mevcut_sirket_uyesi),
 ):
-    """Excel/CSV dosyasını çalıştırmadan doğrular ve V1 veri sözleşmesine çevirir."""
+    """Excel/CSV dosyasını çalıştırmadan doğrular ve V1 veri sözleşmesine çevirir.
+
+    sutun_eslemesi: şirket için kaydedilmiş {normalize_baslik: kanonik_alan}
+    eşlemesinin JSON'u. Standart dışı başlıklı dosyalarda kullanıcının bir
+    kez yaptığı eşlemeyi taşır; sonraki yüklemelerde sütun tekrar sorulmaz.
+    """
     guvenli_ad = Path(dosya_adi).name
     icerik = await request.body()
+    kayitli_esleme = None
+    if sutun_eslemesi:
+        try:
+            aday = json.loads(sutun_eslemesi)
+            if isinstance(aday, dict):
+                # Yalnızca string→string çiftleri; kanonik alan geçerli olmalı.
+                kayitli_esleme = {
+                    str(k): str(v) for k, v in aday.items()
+                    if isinstance(k, str) and v in GECERLI_KANONIK_ALANLAR
+                }
+        except (json.JSONDecodeError, TypeError):
+            raise HTTPException(status_code=422, detail="sutun_eslemesi geçerli bir JSON nesnesi değil.")
     with operasyonu_olc("dosya_dogrulama", istek_bayti=len(icerik)) as olcum:
         try:
-            sonuc = dosya_dogrula(icerik, guvenli_ad)
+            sonuc = dosya_dogrula(icerik, guvenli_ad, kayitli_esleme)
             olcum.satir_sayisi = int(sonuc.get("ozet", {}).get("gecerli_satirlar", 0))
         except DosyaIcerikHatasi as exc:
             raise HTTPException(status_code=422, detail=str(exc)) from exc

@@ -3,6 +3,7 @@ import { FinancialData, TransactionAnalytics } from '../types';
 import { Edit3, Save, CheckCircle, Lock, ShieldAlert, UploadCloud, FileSpreadsheet, AlertTriangle, Keyboard, CircleCheckBig, FileDown, Link2, Eye } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { DataQualityFindings } from './DataQualityFindings';
+import { SutunEslemeAdimi } from './SutunEslemeAdimi';
 import {
   finansalDenetim,
   finansDosyasiDogrula,
@@ -10,6 +11,7 @@ import {
   importedFinancialData,
   GelismisAjanGirdisi,
   VeriIceriAktarmaSonucu,
+  EslesmeGerekliSonucu,
   veriSablonuIndir,
   googleSheetsDogrula,
   googleSheetsDurumu,
@@ -33,6 +35,8 @@ export const DataEntryTab: React.FC<DataEntryTabProps> = ({ initialData, onSave,
   const [syncError, setSyncError] = useState<string | null>(null);
   const [uploading, setUploading] = useState(false);
   const [importResult, setImportResult] = useState<VeriIceriAktarmaSonucu | null>(null);
+  const [eslemeGerekli, setEslemeGerekli] = useState<EslesmeGerekliSonucu | null>(null);
+  const [bekleyenDosya, setBekleyenDosya] = useState<File | null>(null);
   const [entryMode, setEntryMode] = useState<'excel' | 'sheets' | 'manual'>('excel');
   const [sheetUrl, setSheetUrl] = useState('');
   const [sheetName, setSheetName] = useState('');
@@ -54,15 +58,67 @@ export const DataEntryTab: React.FC<DataEntryTabProps> = ({ initialData, onSave,
     return () => { aktif = false; };
   }, [entryMode, sheetsStatus]);
 
+  // Sütun eşlemesi şirket bazında saklanır: bir kez elle eşlenen standart
+  // dışı başlık (örn. "Ciro" → gelir) sonraki yüklemelerde tekrar sorulmaz.
+  const eslemeAnahtari = () => `kazkaz_sutun_eslemesi_${userProfile?.companyId ?? 'demo'}`;
+
+  const kayitliEslemeYukle = (): Record<string, string> => {
+    try {
+      const ham = localStorage.getItem(eslemeAnahtari());
+      if (!ham) return {};
+      const veri = JSON.parse(ham);
+      return veri && typeof veri === 'object' && !Array.isArray(veri) ? veri : {};
+    } catch {
+      return {};
+    }
+  };
+
+  const kayitliEslemeKaydet = (esleme: Record<string, string>) => {
+    try {
+      localStorage.setItem(eslemeAnahtari(), JSON.stringify(esleme));
+    } catch {
+      // localStorage kapalıysa eşleme oturum boyunca yine gönderilir; sessiz geç.
+    }
+  };
+
+  const dogrulamaSonucunuIsle = (sonuc: Awaited<ReturnType<typeof finansDosyasiDogrula>>, dosya: File) => {
+    if (sonuc.durum === 'eslesme_gerekli') {
+      setBekleyenDosya(dosya);
+      setEslemeGerekli(sonuc);
+      setImportResult(null);
+    } else {
+      setEslemeGerekli(null);
+      setBekleyenDosya(null);
+      setImportResult(sonuc);
+    }
+  };
+
   const handleFile = async (file?: File) => {
     if (!file || isReadOnly) return;
     setUploading(true);
     setSyncError(null);
     setImportResult(null);
+    setEslemeGerekli(null);
     try {
-      setImportResult(await finansDosyasiDogrula(file));
+      dogrulamaSonucunuIsle(await finansDosyasiDogrula(file, kayitliEslemeYukle()), file);
     } catch (err) {
       setSyncError(err instanceof Error ? err.message : 'Dosya doğrulanamadı.');
+    } finally {
+      setUploading(false);
+    }
+  };
+
+  const handleEslemeKaydet = async (birlesikEsleme: Record<string, string>) => {
+    if (!bekleyenDosya || isReadOnly) return;
+    kayitliEslemeKaydet(birlesikEsleme);
+    setUploading(true);
+    setSyncError(null);
+    try {
+      // Kalan sütunlar hâlâ eksikse yeni sonuç yine "eslesme_gerekli" olur;
+      // kullanıcı kalanları da eşler. Tam eşleşince içerik önizlemesi açılır.
+      dogrulamaSonucunuIsle(await finansDosyasiDogrula(bekleyenDosya, birlesikEsleme), bekleyenDosya);
+    } catch (err) {
+      setSyncError(err instanceof Error ? err.message : 'Dosya yeniden doğrulanamadı.');
     } finally {
       setUploading(false);
     }
@@ -73,6 +129,8 @@ export const DataEntryTab: React.FC<DataEntryTabProps> = ({ initialData, onSave,
     setUploading(true);
     setSyncError(null);
     setImportResult(null);
+    setEslemeGerekli(null);
+    setBekleyenDosya(null);
     try {
       setImportResult(await googleSheetsDogrula(sheetUrl.trim(), sheetName));
     } catch (err) {
@@ -169,6 +227,15 @@ export const DataEntryTab: React.FC<DataEntryTabProps> = ({ initialData, onSave,
       setIsSyncing(false);
     }
   };
+
+  const eslemePaneli = eslemeGerekli && bekleyenDosya && (
+    <SutunEslemeAdimi
+      sonuc={eslemeGerekli}
+      mevcutEsleme={kayitliEslemeYukle()}
+      onKaydet={(m) => void handleEslemeKaydet(m)}
+      yukleniyor={uploading}
+    />
+  );
 
   const importPreview = importResult && (
     <div className="mt-5 space-y-4 border-t border-slate-200 pt-4">
@@ -311,6 +378,7 @@ export const DataEntryTab: React.FC<DataEntryTabProps> = ({ initialData, onSave,
           KazKaz V1 Excel şablonunu indir
         </button>
 
+        {eslemePaneli}
         {importPreview}
       </section>}
 

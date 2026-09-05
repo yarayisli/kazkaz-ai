@@ -329,6 +329,24 @@ export interface TfrsHazirlikGirdisi {
   muhasebe_uzmani_onayi: boolean;
 }
 
+/** İşlem sayfasının sütun tanıma raporu. */
+export interface SutunEslemeRaporu {
+  taninan_sutunlar: Array<{ indeks: number; baslik: string; normalize: string; alan: string }>;
+  cozulemeyen_sutunlar: Array<{ indeks: number; baslik: string; normalize: string }>;
+  tam_eslesme: boolean;
+  zorunlu_eksik?: string[];
+}
+
+/** Standart dışı başlık nedeniyle kullanıcı eşlemesi bekleyen dosya. */
+export interface EslesmeGerekliSonucu {
+  durum: 'eslesme_gerekli';
+  dosya: { ad: string; tur: string; boyut: number; sayfalar: string[] };
+  sutun_eslemesi: SutunEslemeRaporu;
+  eslenebilir_alanlar: string[];
+  hatalar: VeriIceriAktarmaSonucu['hatalar'];
+  mesaj: string;
+}
+
 export interface VeriIceriAktarmaSonucu {
   durum: 'hazir' | 'uyarili';
   dosya: {
@@ -380,7 +398,12 @@ export interface VeriIceriAktarmaSonucu {
     seviye: 'hata' | 'uyari';
   }>;
   metodoloji: Record<string, string>;
+  /** İşlem sayfasının sütun tanıma raporu (başarılı yüklemede de döner). */
+  sutun_eslemesi?: SutunEslemeRaporu;
 }
+
+/** Dosya doğrulama iki sonuçtan birini döner: hazır/uyarılı içerik ya da eşleme bekleyen dosya. */
+export type DosyaDogrulamaSonucu = VeriIceriAktarmaSonucu | EslesmeGerekliSonucu;
 
 /** api/data_quality.py'nin ürettiği tek bir kalite bulgusu. */
 export interface VeriKalitesiBulgusu {
@@ -775,7 +798,10 @@ export function arsivRaporuSil(raporId: string) {
   return apiIstegi<{ durum: 'silindi'; rapor_id: string }>(`/api/v1/rapor/arsiv/${encodeURIComponent(raporId)}/sil`, {});
 }
 
-export async function finansDosyasiDogrula(dosya: File): Promise<VeriIceriAktarmaSonucu> {
+export async function finansDosyasiDogrula(
+  dosya: File,
+  kayitliEsleme?: Record<string, string>,
+): Promise<DosyaDogrulamaSonucu> {
   const kullanici = auth.currentUser;
   const yerelKimlikDogrulamaKapali = import.meta.env.DEV
     && import.meta.env.VITE_API_AUTH_DISABLED === 'true';
@@ -786,7 +812,11 @@ export async function finansDosyasiDogrula(dosya: File): Promise<VeriIceriAktarm
     throw new Error('Dosya boyutu 5 MB sınırını aşıyor.');
   }
   const token = kullanici ? await kullanici.getIdToken() : null;
-  const yanit = await fetch(`/api/v1/veri/dosya-dogrula?dosya_adi=${encodeURIComponent(dosya.name)}`, {
+  const eslemeParam = kayitliEsleme && Object.keys(kayitliEsleme).length > 0
+    ? `&sutun_eslemesi=${encodeURIComponent(JSON.stringify(kayitliEsleme))}`
+    : '';
+  const yanit = await fetch(
+    `/api/v1/veri/dosya-dogrula?dosya_adi=${encodeURIComponent(dosya.name)}${eslemeParam}`, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/octet-stream',
@@ -798,7 +828,7 @@ export async function finansDosyasiDogrula(dosya: File): Promise<VeriIceriAktarm
     const hata = await yanit.json().catch(() => null);
     throw new Error(hata?.detail || 'Dosya doğrulanamadı.');
   }
-  return yanit.json() as Promise<VeriIceriAktarmaSonucu>;
+  return yanit.json() as Promise<DosyaDogrulamaSonucu>;
 }
 
 export function googleSheetsDurumu(): Promise<GoogleSheetsDurumu> {

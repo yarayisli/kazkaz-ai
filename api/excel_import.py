@@ -16,6 +16,7 @@ from openpyxl import Workbook, load_workbook
 from pydantic import BaseModel, ValidationError
 
 from api.data_quality import kalite_raporu
+from api.sutun_eslemesi import sutun_raporu, sutunlari_coz
 from api.models import (
     AlacakFaturasi,
     BorcServisSatiri,
@@ -259,12 +260,29 @@ def _mukerrerleri_ayikla(
 
 
 def _islem_satirlari(satirlar: List[List[Any]], sayfa_adi: str, hatalar: List[Dict[str, Any]],
-                     onizleme: List[Dict[str, Any]]) -> Tuple[List[Dict[str, Any]], int]:
+                     onizleme: List[Dict[str, Any]],
+                     kayitli_esleme: Optional[Dict[str, str]] = None,
+                     ) -> Tuple[List[Dict[str, Any]], int, Dict[str, Any]]:
     baslik_no, basliklar = _baslik_satiri(iter(tuple(s) for s in satirlar[:15]), set(ALANLAR))
-    standart = {indeks: ALANLAR.get(alan) for indeks, alan in basliklar.items()}
-    zorunlu = set(standart.values())
+    # Kayıtlı eşleme yerleşik eş anlamlıları ezebilir; kullanıcı bir kez
+    # "Firma Adı → Müşteri" derse sonraki yüklemelerde tekrar sorulmaz.
+    standart = sutunlari_coz(basliklar, ALANLAR, kayitli_esleme)
+    # Kullanıcıya normalize değil gerçek başlık metnini göster.
+    ham_basliklar = {indeks: deger for indeks, deger in enumerate(satirlar[baslik_no - 1])} \
+        if baslik_no - 1 < len(satirlar) else {}
+    rapor = sutun_raporu(basliklar, standart, ham_basliklar)
+    zorunlu = {alan for alan in standart.values() if alan}
     if not {"tarih", "kategori", "gelir", "gider"}.issubset(zorunlu):
-        raise DosyaIcerikHatasi("İşlem dosyasında Tarih, Kategori, Gelir ve Gider sütunları zorunludur.")
+        eksik = {"tarih", "kategori", "gelir", "gider"} - zorunlu
+        hata = DosyaIcerikHatasi(
+            "İşlem dosyasında Tarih, Kategori, Gelir ve Gider sütunları zorunludur. "
+            f"Eşlenemeyen zorunlu alan(lar): {', '.join(sorted(eksik))}."
+        )
+        # Raporu istisnaya iliştir: arayüz zorunlu sütunları kullanıcıya
+        # eşletebilsin diye çözülemeyen sütun listesi kaybolmamalı.
+        rapor["zorunlu_eksik"] = sorted(eksik)
+        hata.sutun_eslemesi = rapor  # type: ignore[attr-defined]
+        raise hata
     sonuc: List[Dict[str, Any]] = []
     reddedilen = 0
     for satir_no, hucreler in enumerate(satirlar[baslik_no:], start=baslik_no + 1):
@@ -298,7 +316,7 @@ def _islem_satirlari(satirlar: List[List[Any]], sayfa_adi: str, hatalar: List[Di
         except (ValueError, TypeError) as exc:
             reddedilen += 1
             _hata(hatalar, sayfa_adi, satir_no, "satir", str(exc))
-    return sonuc, reddedilen
+    return sonuc, reddedilen, rapor
 
 
 def _finansal_ozet(islemler: List[Dict[str, Any]]) -> Dict[str, Any]:
@@ -407,7 +425,8 @@ def _csv_satirlari(icerik: bytes) -> List[List[Any]]:
     return [list(satir) for satir in csv.reader(io.StringIO(metin), dialect=lehce)]
 
 
-def dosya_dogrula(icerik: bytes, dosya_adi: str) -> Dict[str, Any]:
+def dosya_dogrula(icerik: bytes, dosya_adi: str,
+                  kayitli_esleme: Optional[Dict[str, str]] = None) -> Dict[str, Any]:
     """Kullanıcı dosyasını çalıştırmadan okur, doğrular ve tek veri sözleşmesine çevirir."""
     if not icerik:
         raise DosyaIcerikHatasi("Dosya boş.")
@@ -425,6 +444,7 @@ def dosya_dogrula(icerik: bytes, dosya_adi: str) -> Dict[str, Any]:
         "mizan": [], "haftalik_nakit": [], "alacak_faturalari": [], "borc_servisi": [], "butce": [],
     }
     islemler: List[Dict[str, Any]] = []
+    sutun_bilgisi: Dict[str, Any] = {"taninan_sutunlar": [], "cozulemeyen_sutunlar": [], "tam_eslesme": True}
     finansal: Optional[Dict[str, Any]] = None
     finansal_sayfa_var = False
     gecerli = reddedilen = 0
@@ -432,7 +452,8 @@ def dosya_dogrula(icerik: bytes, dosya_adi: str) -> Dict[str, Any]:
 
     if uzanti == ".csv":
         sayfalar = ["CSV"]
-        islemler, reddedilen = _islem_satirlari(_csv_satirlari(icerik), "CSV", hatalar, onizleme)
+        islemler, reddedilen, sutun_bilgisi = _islem_satirlari(
+            _csv_satirlari(icerik), "CSV", hatalar, onizleme, kayitli_esleme)
         gecerli = len(islemler)
     else:
         _xlsx_guvenlik_kontrolu(icerik)
@@ -471,17 +492,38 @@ def dosya_dogrula(icerik: bytes, dosya_adi: str) -> Dict[str, Any]:
         if aday:
             ham_satirlar = [list(s) for s in kitap[aday].iter_rows(values_only=True)]
             try:
-                islemler, atlanan = _islem_satirlari(ham_satirlar, aday, hatalar, onizleme)
+                islemler, atlanan, sutun_bilgisi = _islem_satirlari(
+                    ham_satirlar, aday, hatalar, onizleme, kayitli_esleme)
                 gecerli += len(islemler)
                 reddedilen += atlanan
-            except DosyaIcerikHatasi:
-                pass
+            except DosyaIcerikHatasi as exc:
+                # Zorunlu sütun eşleşmediyse rapor istisnada taşınır; onu
+                # yakalayıp cevaba koy ki kullanıcı eşlemeyi tamamlayabilsin.
+                iliskili = getattr(exc, "sutun_eslemesi", None)
+                if iliskili:
+                    sutun_bilgisi = iliskili
+                    _hata(hatalar, aday, 0, "sutun", str(exc), "uyari", "sutun_eslemesi_gerekli")
         kitap.close()
 
     if not finansal and islemler:
         finansal = _finansal_ozet(islemler)
         _hata(hatalar, "Genel", 0, "bilanço", "İşlem dosyasında bilanço yok; bilanço alanları sıfır bırakıldı.", "uyari", "eksik_bilanco")
     if not finansal:
+        # Zorunlu sütunlar eşleşemediyse hata fırlatmak yerine "eşleşme
+        # gerekli" durumunu döndür: arayüz kullanıcıya eksik sütunları
+        # eşletir, kayıtlı eşlemeyle tekrar dener. Hard-fail değildir.
+        if sutun_bilgisi.get("zorunlu_eksik") or sutun_bilgisi.get("cozulemeyen_sutunlar"):
+            return {
+                "durum": "eslesme_gerekli",
+                "dosya": {"ad": temiz_ad, "tur": uzanti[1:], "boyut": len(icerik), "sayfalar": sayfalar},
+                "sutun_eslemesi": sutun_bilgisi,
+                "eslenebilir_alanlar": sorted({v for v in ALANLAR.values()}),
+                "hatalar": hatalar,
+                "mesaj": (
+                    "Dosyadaki bazı sütunlar tanınamadı. Eksik sütunları eşleyip "
+                    "kaydedin; sonraki yüklemelerde tekrar sorulmayacak."
+                ),
+            }
         raise DosyaIcerikHatasi("Finansal görünüm veya Tarih/Kategori/Gelir/Gider işlemleri bulunamadı.")
 
     rapor_tarihi = finansal.pop("rapor_tarihi", None)
@@ -543,6 +585,10 @@ def dosya_dogrula(icerik: bytes, dosya_adi: str) -> Dict[str, Any]:
             "tanınan_sayfalar": tanınan_sayfalar,
             "atlanan_sayfalar": atlanan_sayfalar,
         },
+        # İşlem sayfasının sütun eşleme raporu. cozulemeyen_sutunlar
+        # doluysa arayüz kullanıcıya bunları eşletir ve şirket için kaydeder;
+        # sonraki yüklemelerde kayitli_esleme ile tekrar sorulmaz.
+        "sutun_eslemesi": sutun_bilgisi,
         "ozet": {
             "gecerli_satirlar": gecerli, "uyarili_satirlar": uyari_sayisi,
             "reddedilen_satirlar": reddedilen, "toplam_gelir": toplam_gelir,
