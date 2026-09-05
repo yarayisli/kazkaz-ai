@@ -59,7 +59,12 @@ def _dogrusal_tahmin(aylik: List[Dict[str, Any]], ufuk: int = 3) -> Dict[str, An
         "durum": "hazir", "yontem": "Doğrusal eğilim + geçmiş dönem geri testi",
         "gecmis_hata_mape": mape, "veri_ayi": n,
         "guven": "orta" if n >= 12 and (mape or 100) <= 20 else "dusuk",
-        "uyari": "Mevsimsellik ve enflasyon modeli içermez; karar değil planlama aralığıdır.",
+        # Bant istatistiksel güven aralığı değil: genişliği geçmiş dönem
+        # geri test hatasına (MAPE) göre belirlenen bir senaryo aralığıdır.
+        "band_turu": "senaryo",
+        "band_kalibrasyonu": "gecmis_mape",
+        "uyari": "Mevsimsellik ve enflasyon modeli içermez; istatistiksel güven aralığı "
+                 "değil, geçmiş hataya göre kalibre edilmiş senaryo aralığıdır.",
         "noktalar": noktalar,
     }
 

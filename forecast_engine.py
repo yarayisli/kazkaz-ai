@@ -46,9 +46,9 @@ if not PROPHET_AVAILABLE:
 def get_backend_info() -> Dict[str, str]:
     """UI'da hangi backend'in aktif olduğunu göstermek için."""
     labels = {
-        "prophet":     "Prophet (tam model — mevsimsellik + güven aralığı)",
-        "statsmodels": "Holt-Winters (orta model — trend + mevsimsellik)",
-        "linear":      "Lineer Trend (basit projeksiyon)",
+        "prophet":     "Prophet (tam model — mevsimsellik + istatistiksel güven aralığı)",
+        "statsmodels": "Holt-Winters (orta model — trend + mevsimsellik; senaryo bandı)",
+        "linear":      "Lineer Trend (basit projeksiyon; senaryo bandı)",
     }
     return {
         "backend": ACTIVE_BACKEND,
@@ -469,8 +469,13 @@ class ForecastEngine:
             tr_ek = " TR resmi tatil regressörü aktif." if getattr(self, "_tr_holidays_active", False) else ""
             guven_notu = f"Güven aralığı %90 (Prophet default).{tr_ek}"
 
+        # Prophet gerçek istatistiksel aralık üretir; statsmodels/linear'de
+        # bant sabit yüzdedir (senaryo bandı), güven aralığı değildir.
+        band_turu = "istatistiksel" if ACTIVE_BACKEND == "prophet" else "senaryo"
+
         return {
             "tahmin_tablosu":    tahmin_df,
+            "band_turu":         band_turu,
             "trend_yonu":        self._trend_direction(yhat_vals),
             "toplam_tahmin":     float(tahmin_df["Tahmin"].sum()),
             "ortalama_tahmin":   float(tahmin_df["Tahmin"].mean()),

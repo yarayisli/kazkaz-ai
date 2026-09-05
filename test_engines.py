@@ -1460,6 +1460,19 @@ class TestForecast(unittest.TestCase):
         self.assertGreater(len(result.get("veri_uyarilari", [])), 0)
         self.assertIn("guven_notu", result)
 
+    def test_band_turu_prophet_disinda_senaryo(self):
+        """Prophet yoksa bant istatistiksel değil senaryodur; yapı bunu belirtmeli."""
+        import forecast_engine as fe
+        from forecast_engine import ForecastEngine
+        dates = pd.date_range("2023-01-01", periods=24, freq="MS")
+        df = pd.DataFrame({
+            "YilAy": [d.strftime("%Y-%m") for d in dates],
+            "Gelir": [100 + i * 5 for i in range(24)],
+        })
+        result = ForecastEngine(df).forecast(ay=3)
+        beklenen = "istatistiksel" if fe.ACTIVE_BACKEND == "prophet" else "senaryo"
+        self.assertEqual(result["band_turu"], beklenen)
+
     def test_2_ay_veri_hata(self):
         """2 aydan az veri → hata."""
         from forecast_engine import ForecastEngine
