@@ -64,13 +64,16 @@ def _pozitif_tamsayi(adi: str, varsayilan: int) -> int:
         return varsayilan
 
 
+def _istemci_ip(request: Request) -> str:
+    return request.client.host if request.client else "bilinmeyen"
+
+
 def _kimlik_anahtari(request: Request) -> str:
     authorization = request.headers.get("authorization", "")
     if authorization.startswith("Bearer "):
         ozet = hashlib.sha256(authorization.encode("utf-8")).hexdigest()[:20]
         return f"token:{ozet}"
-    istemci = request.client.host if request.client else "bilinmeyen"
-    return f"ip:{istemci}"
+    return f"ip:{_istemci_ip(request)}"
 
 
 def _hiz_izni(anahtar: str, limit: int, simdi: float) -> bool:
@@ -145,8 +148,25 @@ class ApiGuvenlikMiddleware(BaseHTTPMiddleware):
                 )
 
         if request.url.path.startswith(("/api/v1/", "/api/public/")):
+            simdi = time.monotonic()
+            # IP arka durak sınırı: token'ı doğrulanmadan hash'lediğimiz için
+            # geçersiz token'ları döndürerek her istekte yeni sayaç üretilebilir
+            # ve token bazlı sınır atlatılabilirdi. IP başına daha geniş bir
+            # tavan bu kötüye kullanımı kapatır; normal tek kullanıcı bu tavana
+            # ulaşmaz, NAT arkasındaki ofisler için yapılandırılabilir.
+            ip_limit = _pozitif_tamsayi("API_IP_RATE_LIMIT_PER_MINUTE", 600)
+            if not _hiz_izni(f"ipbackstop:{_istemci_ip(request)}", ip_limit, simdi):
+                return _guvenlik_basliklarini_ekle(
+                    JSONResponse(
+                        status_code=429,
+                        content={"detail": "Bu ağdan gelen istek yoğunluğu sınırı aşıldı. Lütfen kısa süre sonra tekrar deneyin."},
+                        headers={"Retry-After": "60"},
+                    ),
+                    request,
+                    istek_kimligi,
+                )
             dakikalik_limit = _pozitif_tamsayi("API_RATE_LIMIT_PER_MINUTE", 120)
-            if not _hiz_izni(_kimlik_anahtari(request), dakikalik_limit, time.monotonic()):
+            if not _hiz_izni(_kimlik_anahtari(request), dakikalik_limit, simdi):
                 return _guvenlik_basliklarini_ekle(
                     JSONResponse(
                         status_code=429,

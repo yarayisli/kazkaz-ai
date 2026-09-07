@@ -129,6 +129,26 @@ class TestApi(unittest.TestCase):
         self.assertEqual(ikinci.status_code, 429)
         self.assertEqual(ikinci.headers["retry-after"], "60")
 
+    def test_ip_arka_durak_token_dondurmeyi_kapatir(self):
+        # Farklı (geçersiz) token'lar per-token sınırını atlatabilir; IP arka
+        # durak sınırı aynı ağdan gelen bu yoğunluğu yine de durdurur.
+        with patch.dict(
+            os.environ,
+            {
+                "API_RATE_LIMIT_PER_MINUTE": "1000",  # per-token sınırı devrede olmasın
+                "API_IP_RATE_LIMIT_PER_MINUTE": "2",  # IP tavanı düşük
+                "APP_ENV": "development",
+            },
+            clear=False,
+        ):
+            kodlar = [
+                self.client.get("/api/v1/ai/durum", headers={"Authorization": f"Bearer sahte-token-{i}"}).status_code
+                for i in range(3)
+            ]
+        self.assertNotEqual(kodlar[0], 429)
+        self.assertNotEqual(kodlar[1], 429)
+        self.assertEqual(kodlar[2], 429)  # IP arka durak sınırı devreye girdi
+
     def test_korumali_uc_token_ister(self):
         with patch.dict(os.environ, {"KAZKAZ_AUTH_DISABLED": "false"}, clear=False):
             yanit = self.client.post(
