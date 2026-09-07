@@ -17,7 +17,7 @@ from firebase_admin import firestore
 
 from api.auth import _firebase_uygulamasi
 from api.models import FinansalGorunum, KimlikBilgisi
-from api.report_engine import excel_raporu_olustur, pdf_raporu_olustur
+from api.report_engine import RAPOR_MOTOR_SURUMU, excel_raporu_olustur, pdf_raporu_olustur
 
 
 def _db():
@@ -77,6 +77,9 @@ def rapor_arsivle(data: FinansalGorunum, user: KimlikBilgisi, format_name: str) 
         "period": data.donem,
         "currency": data.para_birimi,
         "version": now.strftime("%Y%m%d-%H%M%S"),
+        # Üretim anındaki rapor motoru sürümü sabitlenir. İndirmede güncel
+        # sürümle karşılaştırılır; farklıysa çıktı özgün rapordan sapabilir.
+        "engineVersion": RAPOR_MOTOR_SURUMU,
         "formats": [format_name],
         "financialData": data.model_dump(mode="json"),
         "summary": _summary(data),
@@ -102,6 +105,10 @@ def rapor_listesi(user: KimlikBilgisi) -> Dict[str, Any]:
             "donem": data.get("period"),
             "para_birimi": data.get("currency", "TRY"),
             "surum": data.get("version"),
+            "motor_surumu": data.get("engineVersion", "bilinmiyor"),
+            # Arşivdeki motor sürümü güncel motorla aynı mı? Değilse indirmede
+            # rapor yeniden hesaplanır ve özgün çıktıdan sapabilir.
+            "guncel_motor": data.get("engineVersion") == RAPOR_MOTOR_SURUMU,
             "formatlar": data.get("formats", []),
             "ozet": data.get("summary", {}),
             "olusturan": data.get("createdBy"),
@@ -111,7 +118,14 @@ def rapor_listesi(user: KimlikBilgisi) -> Dict[str, Any]:
     return {"raporlar": rows[:50]}
 
 
-def arsiv_raporu_olustur(report_id: str, format_name: str, user: KimlikBilgisi) -> bytes:
+def arsiv_raporu_olustur(report_id: str, format_name: str, user: KimlikBilgisi) -> tuple[bytes, Dict[str, Any]]:
+    """Arşiv raporunu saklı girdiden yeniden üretir.
+
+    Rapor ikili dosya olarak saklanmaz (Firestore boyutu şişmesin). Bunun
+    yerine üretim anındaki motor sürümü sabitlenir; burada güncel sürümle
+    karşılaştırılır. Motor değiştiyse çıktı özgün rapordan sapabilir ve bu,
+    dönüş bilgisiyle çağırana bildirilir (uç, indirene başlıkla iletir).
+    """
     _rol_ister(user, {"admin", "cfo", "analist", "viewer"})
     if format_name not in {"pdf", "excel"}:
         raise HTTPException(status_code=422, detail="Rapor formatı geçersiz.")
@@ -127,8 +141,15 @@ def arsiv_raporu_olustur(report_id: str, format_name: str, user: KimlikBilgisi) 
         data = FinansalGorunum.model_validate(stored.get("financialData") or {})
     except Exception as exc:
         raise HTTPException(status_code=422, detail="Arşiv raporu veri sözleşmesiyle uyumsuz.") from exc
+    arsiv_surum = str(stored.get("engineVersion") or "bilinmiyor")
+    yeniden_uretildi = arsiv_surum != RAPOR_MOTOR_SURUMU
     _audit(db, user, "report.download", report_id)
-    return pdf_raporu_olustur(data) if format_name == "pdf" else excel_raporu_olustur(data)
+    icerik = pdf_raporu_olustur(data) if format_name == "pdf" else excel_raporu_olustur(data)
+    return icerik, {
+        "motor_surumu_arsiv": arsiv_surum,
+        "motor_surumu_guncel": RAPOR_MOTOR_SURUMU,
+        "yeniden_uretildi": yeniden_uretildi,
+    }
 
 
 def arsiv_raporu_sil(report_id: str, user: KimlikBilgisi) -> Dict[str, str]:

@@ -807,6 +807,10 @@ export interface ArsivRaporu {
   donem: string;
   para_birimi: string;
   surum: string;
+  /** Raporun üretildiği rapor motoru sürümü. */
+  motor_surumu?: string;
+  /** Arşivdeki motor güncel motorla aynı mı? false ise indirmede rapor yeniden üretilir. */
+  guncel_motor?: boolean;
   formatlar: Array<'pdf' | 'excel'>;
   ozet: { revenue?: number; netProfit?: number; cash?: number; totalDebt?: number; equity?: number; netMargin?: number | null; currentRatio?: number | null };
   olusturan: string;
@@ -844,7 +848,14 @@ export function raporArsiviniGetir() {
   return apiGetIstegi<{ raporlar: ArsivRaporu[] }>('/api/v1/rapor/arsiv');
 }
 
-export async function arsivRaporuIndir(raporId: string, tur: 'pdf' | 'excel'): Promise<void> {
+export interface ArsivIndirmeSonucu {
+  /** Rapor arşivdekinden farklı bir motor sürümüyle yeniden üretildi mi? */
+  yenidenUretildi: boolean;
+  motorArsiv: string | null;
+  motorGuncel: string | null;
+}
+
+export async function arsivRaporuIndir(raporId: string, tur: 'pdf' | 'excel'): Promise<ArsivIndirmeSonucu> {
   const kullanici = auth.currentUser;
   if (!kullanici) throw new Error('Arşiv raporunu indirmek için giriş yapmanız gerekiyor.');
   const yanit = await fetch(`/api/v1/rapor/arsiv/${encodeURIComponent(raporId)}/${tur}`, {
@@ -862,6 +873,11 @@ export async function arsivRaporuIndir(raporId: string, tur: 'pdf' | 'excel'): P
   baglanti.click();
   baglanti.remove();
   URL.revokeObjectURL(adres);
+  return {
+    yenidenUretildi: yanit.headers.get('X-KazKaz-Report-Regenerated') === 'true',
+    motorArsiv: yanit.headers.get('X-KazKaz-Report-Engine-Archived'),
+    motorGuncel: yanit.headers.get('X-KazKaz-Report-Engine-Current'),
+  };
 }
 
 export function arsivRaporuSil(raporId: string) {

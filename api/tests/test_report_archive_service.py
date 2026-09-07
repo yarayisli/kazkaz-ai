@@ -93,8 +93,23 @@ class TestReportArchiveService(unittest.TestCase):
 
     def test_arsiv_raporu_yeniden_uretilir(self):
         report_id = rapor_arsivle(financial_data(), user(), "pdf")
-        content = arsiv_raporu_olustur(report_id, "pdf", user(role="viewer"))
+        content, bilgi = arsiv_raporu_olustur(report_id, "pdf", user(role="viewer"))
         self.assertTrue(content.startswith(b"%PDF"))
+        # Aynı motor sürümüyle üretildi: yeniden hesaplandı işareti yok.
+        self.assertFalse(bilgi["yeniden_uretildi"])
+
+    def test_motor_surumu_degisince_yeniden_uretim_bildirilir(self):
+        report_id = rapor_arsivle(financial_data(), user(), "pdf")
+        # İndirme anında motor sürümü değişmiş gibi davran.
+        with patch("api.report_archive_service.RAPOR_MOTOR_SURUMU", "2.0.0"):
+            content, bilgi = arsiv_raporu_olustur(report_id, "pdf", user(role="viewer"))
+            liste = rapor_listesi(user())
+        self.assertTrue(content.startswith(b"%PDF"))
+        self.assertTrue(bilgi["yeniden_uretildi"])
+        self.assertEqual(bilgi["motor_surumu_guncel"], "2.0.0")
+        self.assertNotEqual(bilgi["motor_surumu_arsiv"], "2.0.0")
+        # Listeleme de arşivin güncel motorla aynı olmadığını göstermeli.
+        self.assertFalse(liste["raporlar"][0]["guncel_motor"])
 
     def test_silme_yalniz_admin_ve_cfo(self):
         report_id = rapor_arsivle(financial_data(), user(), "excel")

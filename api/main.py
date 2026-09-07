@@ -129,7 +129,11 @@ uygulama.add_middleware(
     allow_credentials=True,
     allow_methods=["GET", "POST"],
     allow_headers=["Authorization", "Content-Type", "X-Request-ID"],
-    expose_headers=["X-KazKaz-Report-Id", "X-Request-ID"],
+    expose_headers=[
+        "X-KazKaz-Report-Id", "X-Request-ID",
+        "X-KazKaz-Report-Engine-Archived", "X-KazKaz-Report-Engine-Current",
+        "X-KazKaz-Report-Regenerated",
+    ],
 )
 
 
@@ -508,10 +512,17 @@ def arsiv_raporu_indir(
 ):
     if not rapor_id.startswith("rpt_") or len(rapor_id) > 40:
         raise HTTPException(status_code=422, detail="Rapor kimliği geçersiz.")
-    content = arsiv_raporu_olustur(rapor_id, tur, kullanici)
+    content, bilgi = arsiv_raporu_olustur(rapor_id, tur, kullanici)
     extension = "pdf" if tur == "pdf" else "xlsx"
     media = "application/pdf" if tur == "pdf" else "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
-    return Response(content=content, media_type=media, headers={"Content-Disposition": f'attachment; filename="KazKaz_AI_Arsiv_{rapor_id}.{extension}"'})
+    return Response(content=content, media_type=media, headers={
+        "Content-Disposition": f'attachment; filename="KazKaz_AI_Arsiv_{rapor_id}.{extension}"',
+        # Rapor saklı girdiden yeniden üretildi; motor sürümü arşivdekinden
+        # farklıysa çıktı özgün rapordan sapabilir — indirene açıkça bildir.
+        "X-KazKaz-Report-Engine-Archived": bilgi["motor_surumu_arsiv"],
+        "X-KazKaz-Report-Engine-Current": bilgi["motor_surumu_guncel"],
+        "X-KazKaz-Report-Regenerated": "true" if bilgi["yeniden_uretildi"] else "false",
+    })
 
 
 @uygulama.post("/api/v1/rapor/arsiv/{rapor_id}/sil")
