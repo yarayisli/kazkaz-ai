@@ -8,7 +8,13 @@ from fastapi.testclient import TestClient
 from api.auth import platform_yoneticisi, sirket_uyeligini_dogrula
 from api.main import uygulama
 from api.models import KimlikBilgisi
-from api.platform_admin_service import _aktivite_ozeti, _eposta_maskele, platform_olaylari, platform_sirketleri
+from api.platform_admin_service import (
+    _aktivite_ozeti,
+    _eposta_maskele,
+    platform_olaylari,
+    platform_sayaclari,
+    platform_sirketleri,
+)
 
 
 class TestPlatformAdminYetkisi(unittest.TestCase):
@@ -65,6 +71,47 @@ class TestPlatformAdminVeriMinimizasyonu(unittest.TestCase):
         self.assertFalse(sirketler["finansal_veri_gosterilir"])
         self.assertFalse(olaylar["mesaj_icerigi_gosterilir"])
         self.assertNotIn("gizli hata", str(sirketler))
+
+    def test_sayaclar_gercek_toplami_orneklem_disi_isaretler(self):
+        # Örneklem 2 şirket görüyor ama gerçek toplam 150; panel örneklem
+        # sayısını "toplam" diye sunmamalı, kapsamı örneklem olarak etiketlemeli.
+        sirket_ornegi = [
+            {"durum": "active", "uye_sayisi": 3},
+            {"durum": "pilot", "uye_sayisi": 2},
+        ]
+        with patch("api.platform_admin_service.platform_sirketleri",
+                   return_value={"durum": "hazir", "sirketler": sirket_ornegi}), \
+             patch("api.platform_admin_service.platform_olaylari",
+                   return_value={"durum": "hazir", "olaylar": []}), \
+             patch("api.platform_admin_service._toplam_sirket_sayisi", return_value=150):
+            sayac = platform_sayaclari()
+        self.assertEqual(sayac["toplam_sirket"], 150)
+        self.assertTrue(sayac["toplam_sirket_kesin"])
+        self.assertEqual(sayac["orneklem_sirket"], 2)
+        self.assertEqual(sayac["kapsam"], "orneklem")
+        self.assertEqual(sayac["aktif_sirket"], 1)  # örneklem üzerinden
+        self.assertEqual(sayac["toplam_uye"], 5)
+
+    def test_sayaclar_tum_sirketler_taraninca_kapsam_tam(self):
+        with patch("api.platform_admin_service.platform_sirketleri",
+                   return_value={"durum": "hazir", "sirketler": [{"durum": "active", "uye_sayisi": 4}]}), \
+             patch("api.platform_admin_service.platform_olaylari",
+                   return_value={"durum": "hazir", "olaylar": []}), \
+             patch("api.platform_admin_service._toplam_sirket_sayisi", return_value=1):
+            sayac = platform_sayaclari()
+        self.assertEqual(sayac["kapsam"], "tam")
+        self.assertEqual(sayac["toplam_sirket"], 1)
+
+    def test_toplam_okunamazsa_orneklem_sayisina_duser(self):
+        with patch("api.platform_admin_service.platform_sirketleri",
+                   return_value={"durum": "hazir", "sirketler": [{"durum": "active", "uye_sayisi": 1}]}), \
+             patch("api.platform_admin_service.platform_olaylari",
+                   return_value={"durum": "hazir", "olaylar": []}), \
+             patch("api.platform_admin_service._toplam_sirket_sayisi", return_value=None):
+            sayac = platform_sayaclari()
+        self.assertFalse(sayac["toplam_sirket_kesin"])
+        self.assertEqual(sayac["toplam_sirket"], 1)
+        self.assertEqual(sayac["kapsam"], "tam")
 
     def test_yerel_erisim_ucu_finansal_veri_yetkisi_vermez(self):
         with patch.dict(os.environ, {"APP_ENV": "development", "KAZKAZ_AUTH_DISABLED": "true"}, clear=False):

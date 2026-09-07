@@ -107,6 +107,31 @@ def _db():
     return firestore.client(app=_firebase_uygulamasi())
 
 
+def _son_kayitlar(collection_ref, n: int):
+    """createdAt'e göre en yeni n kaydı getirir.
+
+    order_by olmadan limit, gelişigüzel bir alt küme döndürür; "son aktivite"
+    o küme içinden hesaplandığı için gerçek en yeni kayıt dışarıda kalabilirdi.
+    Sıralama seçimi doğrular; çağıran taraf yine kendi içinde sıralar.
+    """
+    return collection_ref.order_by(
+        "createdAt", direction=firestore.Query.DESCENDING
+    ).limit(n)
+
+
+def _toplam_sirket_sayisi() -> "int | None":
+    """Şirketlerin gerçek toplam sayısı (aggregation). Okunamazsa None döner."""
+    try:
+        db = _db()
+        try:
+            aggregate = db.collection("companies").count()
+            return int(aggregate.get()[0][0].value)
+        except Exception:
+            return sum(1 for _ in db.collection("companies").stream())
+    except Exception:
+        return None
+
+
 def _count(query) -> int:
     """
     Firestore aggregation count — server-side sayım.
@@ -162,7 +187,7 @@ def platform_sirketleri(limit: int = 50) -> dict:
             # aktivite özeti son N kayıt için yeter.
             audit_kayitlari = [
                 audit.to_dict() or {}
-                for audit in belge.reference.collection("auditLogs").limit(50).stream()
+                for audit in _son_kayitlar(belge.reference.collection("auditLogs"), 50).stream()
             ]
             aktivite = _aktivite_ozeti(audit_kayitlari)
             profil = veri.get("profile") if isinstance(veri.get("profile"), dict) else {}
@@ -199,15 +224,19 @@ def platform_sirketleri(limit: int = 50) -> dict:
         return {"durum": "veri_kaynagi_kullanilamiyor", "sirketler": [], "sinir": limit, "finansal_veri_gosterilir": False}
 
 
+#: platform_olaylari kaç şirketi tarar (olay derlemesi bu örneklemle sınırlı).
+OLAY_TARAMA_SINIRI = 50
+
+
 def platform_olaylari(limit: int = 50) -> dict:
     """Mesaj gövdesi ve finansal değer içermeyen destek/denetim olayları."""
     try:
         db = _db()
         olaylar: list[dict] = []
-        for sirket in db.collection("companies").limit(50).stream():
+        for sirket in db.collection("companies").limit(OLAY_TARAMA_SINIRI).stream():
             sirket_verisi = sirket.to_dict() or {}
             sirket_adi = str(sirket_verisi.get("name") or sirket_verisi.get("companyName") or "Adsız şirket")[:160]
-            for belge in sirket.reference.collection("feedback").limit(30).stream():
+            for belge in _son_kayitlar(sirket.reference.collection("feedback"), 30).stream():
                 veri = belge.to_dict() or {}
                 olaylar.append({
                     "olay_id": belge.id,
@@ -219,7 +248,7 @@ def platform_olaylari(limit: int = 50) -> dict:
                     "durum": str(veri.get("status") or "new")[:20],
                     "zaman": _iso(veri.get("createdAt")),
                 })
-            for belge in sirket.reference.collection("auditLogs").limit(30).stream():
+            for belge in _son_kayitlar(sirket.reference.collection("auditLogs"), 30).stream():
                 veri = belge.to_dict() or {}
                 olaylar.append({
                     "olay_id": belge.id,
@@ -232,7 +261,13 @@ def platform_olaylari(limit: int = 50) -> dict:
                     "zaman": _iso(veri.get("createdAt")),
                 })
         olaylar.sort(key=lambda item: item.get("zaman") or "", reverse=True)
-        return {"durum": "hazir", "olaylar": olaylar[:limit], "mesaj_icerigi_gosterilir": False}
+        return {
+            "durum": "hazir",
+            "olaylar": olaylar[:limit],
+            # Olaylar ilk N şirketten, şirket başına en yeni kayıtlardan derlenir.
+            "taranan_sirket_siniri": OLAY_TARAMA_SINIRI,
+            "mesaj_icerigi_gosterilir": False,
+        }
     except Exception:
         return {"durum": "veri_kaynagi_kullanilamiyor", "olaylar": [], "mesaj_icerigi_gosterilir": False}
 
@@ -272,7 +307,7 @@ def platform_sirket_detayi(sirket_id: str) -> dict:
             })
 
         audit_kayitlari = []
-        for belge in sirket_ref.collection("auditLogs").limit(300).stream():
+        for belge in _son_kayitlar(sirket_ref.collection("auditLogs"), 300).stream():
             kayit = belge.to_dict() or {}
             audit_kayitlari.append(kayit)
         aktivite = _aktivite_ozeti(audit_kayitlari)
@@ -340,15 +375,39 @@ def platform_sirket_detayi(sirket_id: str) -> dict:
         raise HTTPException(status_code=503, detail="Şirket işletim ayrıntıları şu anda alınamıyor.") from exc
 
 
+#: platform_sayaclari örneklem başına en fazla kaç şirketi tarar.
+SAYAC_ORNEKLEM_SINIRI = 100
+
+
 def platform_sayaclari() -> dict:
-    sirketler = platform_sirketleri(limit=100)
+    """Platform işletim sayaçları.
+
+    Şirket toplamı gerçek (aggregation) sorgudan gelir; aktif/pilot/üye gibi
+    kalem sayımları ise ilk N şirketlik örneklem üzerinden hesaplanır ve
+    "orneklem_disi" ile açıkça etiketlenir. Örneklem toplamı aşmıyorsa (tüm
+    şirketler taranmışsa) kapsam "tam"dır. Böylece panel, örneklem sayısını
+    gerçek toplammış gibi sunmaz.
+    """
+    sirketler = platform_sirketleri(limit=SAYAC_ORNEKLEM_SINIRI)
     olaylar = platform_olaylari(limit=100)
     liste = sirketler["sirketler"]
     olay_listesi = olaylar["olaylar"]
+    orneklem = len(liste)
+    toplam_sirket = _toplam_sirket_sayisi()
+    kesin_toplam = toplam_sirket is not None
+    if not kesin_toplam:
+        toplam_sirket = orneklem
+    # Örneklem tüm şirketleri kapsıyorsa sayımlar tamdır; aşıyorsa örneklemdir.
+    orneklem_disi = kesin_toplam and toplam_sirket > orneklem
     return {
         "olusturulma_zamani": datetime.now(timezone.utc).isoformat(),
         "veri_kaynagi": "hazir" if sirketler["durum"] == olaylar["durum"] == "hazir" else "sinirli",
-        "toplam_sirket": len(liste),
+        "toplam_sirket": toplam_sirket,
+        "toplam_sirket_kesin": kesin_toplam,
+        "orneklem_sirket": orneklem,
+        "orneklem_siniri": SAYAC_ORNEKLEM_SINIRI,
+        "kapsam": "orneklem" if orneklem_disi else "tam",
+        # Aşağıdaki kalem sayımları örneklem (ilk N şirket) üzerindendir.
         "aktif_sirket": sum(1 for sirket in liste if sirket["durum"] == "active"),
         "pilot_sirket": sum(1 for sirket in liste if sirket["durum"] == "pilot"),
         "toplam_uye": sum(int(sirket["uye_sayisi"]) for sirket in liste),

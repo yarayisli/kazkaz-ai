@@ -445,6 +445,7 @@ export interface GoogleSheetsDurumu {
 export interface PlatformAdminOzet {
   sayaclar: {
     olusturulma_zamani: string; veri_kaynagi: 'hazir' | 'sinirli'; toplam_sirket: number;
+    toplam_sirket_kesin?: boolean; orneklem_sirket?: number; orneklem_siniri?: number; kapsam?: 'tam' | 'orneklem';
     aktif_sirket: number; pilot_sirket: number; toplam_uye: number; yeni_geri_bildirim: number;
     finansal_veri_gosterilir: false;
   };
