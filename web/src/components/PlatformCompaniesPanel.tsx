@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import {
   Activity, Building2, CheckCircle2, ChevronRight,
   FileClock, Loader2, LockKeyhole, Mail, RefreshCw, Search, ShieldAlert,
@@ -62,20 +62,38 @@ export const PlatformCompaniesPanel: React.FC = () => {
   // Askı/paket değişiminde oturum iptali başarısız kalan kullanıcı sayısı.
   const [bekleyenIptal, setBekleyenIptal] = useState(0);
 
+  // Ayrıntı isteklerini sıralar: yalnızca en son istek sonucu uygulanır.
+  // Hızlı A→B seçiminde A'nın geç dönen yanıtı B'nin yerini alamaz.
+  const detayIstekRef = useRef(0);
+
   const loadCompanies = async () => {
     setLoading(true);
     try { setCompanies(await platformSirketleriniGetir(100)); }
+    catch (error) { setMessage(error instanceof Error ? error.message : 'Şirket listesi alınamadı. Servis geçici olarak yanıt vermiyor olabilir.'); }
     finally { setLoading(false); }
   };
   const loadDetail = async (companyId: string) => {
-    setDetailLoading(true); setMessage(null); setBekleyenIptal(0);
-    try { setDetail(await platformSirketDetayiniGetir(companyId)); }
-    catch (error) { setMessage(error instanceof Error ? error.message : 'Şirket ayrıntısı alınamadı.'); }
-    finally { setDetailLoading(false); }
+    const istekNo = ++detayIstekRef.current;
+    setDetail(null);            // Eski şirketin ayrıntısı yeni yükleme boyunca görünmesin.
+    setDetailLoading(true);
+    try {
+      const veri = await platformSirketDetayiniGetir(companyId);
+      if (detayIstekRef.current === istekNo) setDetail(veri);
+    } catch (error) {
+      if (detayIstekRef.current === istekNo) setMessage(error instanceof Error ? error.message : 'Şirket ayrıntısı alınamadı.');
+    } finally {
+      if (detayIstekRef.current === istekNo) setDetailLoading(false);
+    }
   };
 
   useEffect(() => { void loadCompanies(); }, []);
-  useEffect(() => { if (selectedId) void loadDetail(selectedId); else setDetail(null); }, [selectedId]);
+  useEffect(() => {
+    // Yeni seçim önceki eyleme ait mesajı ve bekleyen iptal uyarısını temizler.
+    setMessage(null); setBekleyenIptal(0);
+    if (selectedId) void loadDetail(selectedId);
+    else { detayIstekRef.current += 1; setDetail(null); }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selectedId]);
 
   const filtered = useMemo(() => (companies?.sirketler || []).filter(company => {
     const query = search.trim().toLocaleLowerCase('tr-TR');
