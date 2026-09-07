@@ -47,6 +47,7 @@ from api.models import (
     GoogleSheetsIstegi,
     KurSorgusu,
     GeriBildirimIstegi,
+    GeriBildirimMemnuniyetIstegi,
     SirketOlusturmaIstegi,
     UyeCikarmaIstegi,
     UyeDavetIstegi,
@@ -65,7 +66,7 @@ from api.report_archive_service import arsiv_raporu_olustur, arsiv_raporu_sil, r
 from api.google_sheets_service import GoogleSheetsHatasi, google_sheet_dogrula, google_sheets_durumu
 from api.fx_engine import KurHatasi, tarihsel_kurlari_getir
 from api.subscription_service import abonelik_durumu, kamuya_acik_paketler, odeme_hazirlik_durumu, ozellik_kapisi
-from api.feedback_service import geri_bildirim_kaydet
+from api.feedback_service import geri_bildirim_kaydet, geri_bildirimlerim, geri_bildirim_memnuniyeti
 from api.erp_service import erp_baglanti_durumu
 from api.compliance_readiness import (
     EsgHazirlikIstegi,
@@ -336,6 +337,19 @@ def geri_bildirim(
     kullanici: KimlikBilgisi = Depends(mevcut_sirket_uyesi),
 ):
     return geri_bildirim_kaydet(istek, kullanici)
+
+
+@uygulama.get("/api/v1/geri-bildirim/taleplerim")
+def geri_bildirim_taleplerim(kullanici: KimlikBilgisi = Depends(mevcut_sirket_uyesi)):
+    return geri_bildirimlerim(kullanici)
+
+
+@uygulama.post("/api/v1/geri-bildirim/memnuniyet")
+def geri_bildirim_memnuniyet(
+    istek: GeriBildirimMemnuniyetIstegi,
+    kullanici: KimlikBilgisi = Depends(mevcut_sirket_uyesi),
+):
+    return geri_bildirim_memnuniyeti(istek, kullanici)
 
 
 @uygulama.post("/api/v1/finans/denetim")

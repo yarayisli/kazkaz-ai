@@ -251,6 +251,14 @@ class PlatformGeriBildirimDurumIstegi(BaseModel):
     geri_bildirim_id: str = Field(min_length=1, max_length=128, pattern=r"^[A-Za-z0-9_-]+$")
     durum: Literal["new", "in_review", "resolved"]
     gerekce: Optional[str] = Field(default=None, min_length=5, max_length=300)
+    #: Müşteriye görünecek kısa yanıt (talebin nasıl ele alındığı). Yönetici
+    #: mesaj gövdesini okumadan da bir çözüm notu bırakabilir.
+    yanit: Optional[str] = Field(default=None, min_length=2, max_length=500)
+
+
+class GeriBildirimMemnuniyetIstegi(BaseModel):
+    geri_bildirim_id: str = Field(min_length=1, max_length=128, pattern=r"^[A-Za-z0-9_-]+$")
+    memnun: bool
 
 
 class GoogleSheetsIstegi(BaseModel):

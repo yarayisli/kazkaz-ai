@@ -485,7 +485,7 @@ export interface PlatformSirketDetayi {
   };
   uyeler: Array<{ kullanici_ozeti: string; eposta_maskeli: string; rol: string; eklenme: string | null }>;
   bekleyen_davetler: Array<{ davet_ozeti: string; eposta_maskeli: string; rol: string; son_gecerlilik: string | null }>;
-  geri_bildirimler: Array<{ geri_bildirim_id: string; kategori: string; sayfa: string; durum: 'new' | 'in_review' | 'resolved'; iletisim_izni: boolean; zaman: string | null }>;
+  geri_bildirimler: Array<{ geri_bildirim_id: string; talep_no?: string | null; kategori: string; sayfa: string; durum: 'new' | 'in_review' | 'resolved'; iletisim_izni: boolean; yanit_verildi?: boolean; memnun?: boolean | null; zaman: string | null }>;
   son_olaylar: Array<{ aksiyon: string; kaynak: string | null; aktor: string; aktor_rolu: string; zaman: string | null }>;
   gizlilik: { finansal_veri_gosterilir: false; geri_bildirim_mesaji_gosterilir: false; epostalar_maskeli: true; kullanici_kimlikleri_ozetlenmis: true };
 }
@@ -595,10 +595,10 @@ export function platformSirketEylemi(sirketId: string, eylem: 'oturumlari_sonlan
   );
 }
 
-export function platformGeriBildirimDurumunuGuncelle(sirketId: string, geriBildirimId: string, durum: 'new' | 'in_review' | 'resolved', gerekce?: string) {
+export function platformGeriBildirimDurumunuGuncelle(sirketId: string, geriBildirimId: string, durum: 'new' | 'in_review' | 'resolved', gerekce?: string, yanit?: string) {
   return platformAdminPost<{ durum: string; sirket_id: string; geri_bildirim_id: string; geri_bildirim_durumu: string }>(
     '/api/v1/platform-admin/geri-bildirim-durumu',
-    { sirket_id: sirketId, geri_bildirim_id: geriBildirimId, durum, ...(gerekce ? { gerekce } : {}) },
+    { sirket_id: sirketId, geri_bildirim_id: geriBildirimId, durum, ...(gerekce ? { gerekce } : {}), ...(yanit ? { yanit } : {}) },
   );
 }
 
@@ -970,10 +970,34 @@ export function geriBildirimGonder(
   mesaj: string,
   sayfa: string,
   iletisimIzni: boolean,
-): Promise<{ durum: 'alindi'; kayit_id: string }> {
+): Promise<{ durum: 'alindi'; kayit_id: string; talep_no: string }> {
   return apiIstegi('/api/v1/geri-bildirim', {
     kategori, mesaj, sayfa, iletisim_izni: iletisimIzni,
   });
+}
+
+export interface DestekTalebi {
+  geri_bildirim_id: string;
+  talep_no: string;
+  kategori: string;
+  sayfa: string;
+  mesaj: string;
+  durum: 'new' | 'in_review' | 'resolved';
+  yanit: string | null;
+  olusturma: string | null;
+  guncelleme: string | null;
+  memnun: boolean | null;
+}
+
+export function destekTaleplerim() {
+  return apiGetIstegi<{ talepler: DestekTalebi[] }>('/api/v1/geri-bildirim/taleplerim');
+}
+
+export function destekTalebiMemnuniyeti(geriBildirimId: string, memnun: boolean) {
+  return apiIstegi<{ durum: 'kaydedildi'; talep_no: string; memnun: boolean }>(
+    '/api/v1/geri-bildirim/memnuniyet',
+    { geri_bildirim_id: geriBildirimId, memnun },
+  );
 }
 
 export async function veriSablonuIndir(): Promise<void> {

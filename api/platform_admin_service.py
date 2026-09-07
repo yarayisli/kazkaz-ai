@@ -320,12 +320,17 @@ def platform_sirket_detayi(sirket_id: str) -> dict:
         bildirimler = []
         for belge in sirket_ref.collection("feedback").limit(200).stream():
             bildirim = belge.to_dict() or {}
+            memnuniyet = bildirim.get("satisfaction") if isinstance(bildirim.get("satisfaction"), dict) else None
             bildirimler.append({
                 "geri_bildirim_id": belge.id,
+                "talep_no": bildirim.get("ticketNo"),
                 "kategori": str(bildirim.get("category") or "geri_bildirim")[:40],
                 "sayfa": str(bildirim.get("page") or "bilinmiyor")[:80],
                 "durum": str(bildirim.get("status") or "new")[:20],
                 "iletisim_izni": bool(bildirim.get("contactAllowed")),
+                # Mesaj gövdesi değil; yalnız yanıt verilmiş mi ve memnuniyet.
+                "yanit_verildi": bool(bildirim.get("response")),
+                "memnun": memnuniyet.get("satisfied") if memnuniyet else None,
                 "zaman": _iso(bildirim.get("createdAt")),
             })
         bildirimler.sort(key=lambda item: item.get("zaman") or "", reverse=True)
@@ -598,12 +603,19 @@ def platform_geri_bildirim_durumu(
     bildirim_ref = sirket_ref.collection("feedback").document(istek.geri_bildirim_id)
     if not bildirim_ref.get().exists:
         raise HTTPException(status_code=404, detail="Geri bildirim bulunamadı.")
-    batch = db.batch()
-    batch.set(bildirim_ref, {
+    guncelleme: dict[str, Any] = {
         "status": istek.durum,
         "updatedAt": firestore.SERVER_TIMESTAMP,
         "updatedByPlatform": yonetici.kullanici_id,
-    }, merge=True)
+    }
+    # Yönetici, mesaj gövdesini okumadan da müşteriye görünecek kısa bir
+    # yanıt bırakabilir. Bu yanıt talebi açan kullanıcıya gösterilir.
+    if istek.yanit:
+        guncelleme["response"] = " ".join(istek.yanit.split())
+        guncelleme["respondedAt"] = firestore.SERVER_TIMESTAMP
+        guncelleme["respondedByPlatform"] = yonetici.kullanici_id
+    batch = db.batch()
+    batch.set(bildirim_ref, guncelleme, merge=True)
     batch.set(db.collection("platformAuditLogs").document(), {
         "action": "feedback.status_update",
         "companyId": istek.sirket_id,
