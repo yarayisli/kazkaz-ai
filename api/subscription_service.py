@@ -8,7 +8,7 @@ from typing import Callable
 
 from fastapi import Depends, HTTPException, status
 
-from api.auth import mevcut_sirket_uyesi
+from api.auth import mevcut_sirket_uyesi_dogrulanmis
 from api.models import KimlikBilgisi
 
 
@@ -131,7 +131,7 @@ def ozellik_kapisi(ozellik: str) -> Callable:
     if ozellik not in set().union(*PLAN_OZELLIKLERI.values()):
         raise ValueError(f"Bilinmeyen paket özelliği: {ozellik}")
 
-    def dogrula(kullanici: KimlikBilgisi = Depends(mevcut_sirket_uyesi)) -> KimlikBilgisi:
+    def dogrula(kullanici: KimlikBilgisi = Depends(mevcut_sirket_uyesi_dogrulanmis)) -> KimlikBilgisi:
         if _plan_kapilari_aktif() and ozellik not in PLAN_OZELLIKLERI[etkin_plan(kullanici)]:
             raise HTTPException(
                 status_code=status.HTTP_403_FORBIDDEN,

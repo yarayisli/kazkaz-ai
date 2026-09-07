@@ -29,7 +29,12 @@ if os.getenv("SENTRY_DSN", "").strip():
         # Hazırlık ucu eksik yapılandırmayı görünür kılar; uygulama yine açılır.
         pass
 
-from api.auth import mevcut_kullanici, mevcut_sirket_uyesi, platform_yoneticisi
+from api.auth import (
+    mevcut_kullanici,
+    mevcut_sirket_uyesi,
+    mevcut_sirket_uyesi_dogrulanmis,
+    platform_yoneticisi,
+)
 from api.agent_services import cfo_ajan_analizi
 from api.advanced_agents import gelismis_ajan_analizi
 from api.models import (
@@ -48,6 +53,7 @@ from api.models import (
     UyeRolGuncellemeIstegi,
     PlatformSirketGuncellemeIstegi,
     PlatformSirketEylemIstegi,
+    PlatformClaimYenidenDenemeIstegi,
     PlatformGeriBildirimDurumIstegi,
     RaporIstegi,
     CalismaAlaniKaydetIstegi,
@@ -90,6 +96,7 @@ from api.platform_admin_service import (
     platform_sirket_eylemi,
     platform_sirketleri,
     platform_sirketini_guncelle,
+    platform_bekleyen_claimleri_yeniden_dene,
 )
 
 
@@ -204,6 +211,14 @@ def platform_admin_sirket_eylemi(
     kullanici: KimlikBilgisi = Depends(platform_yoneticisi),
 ):
     return platform_sirket_eylemi(istek, kullanici)
+
+
+@uygulama.post("/api/v1/platform-admin/claim-yeniden-dene")
+def platform_admin_claim_yeniden_dene(
+    istek: PlatformClaimYenidenDenemeIstegi,
+    kullanici: KimlikBilgisi = Depends(platform_yoneticisi),
+):
+    return platform_bekleyen_claimleri_yeniden_dene(istek.sirket_id, kullanici)
 
 
 @uygulama.post("/api/v1/platform-admin/geri-bildirim-durumu")
@@ -322,7 +337,7 @@ def geri_bildirim(
 @uygulama.post("/api/v1/finans/denetim")
 def denetim(
     veri: FinansalGorunum,
-    kullanici: KimlikBilgisi = Depends(mevcut_sirket_uyesi),
+    kullanici: KimlikBilgisi = Depends(mevcut_sirket_uyesi_dogrulanmis),
 ):
     with operasyonu_olc("finansal_denetim", satir_sayisi=1):
         sonuc = finansal_denetim(veri)
@@ -333,7 +348,7 @@ def denetim(
 @uygulama.post("/api/v1/finans/zaman-serisi")
 def zaman_serisi(
     istek: FinansalAnalizIstegi,
-    kullanici: KimlikBilgisi = Depends(mevcut_sirket_uyesi),
+    kullanici: KimlikBilgisi = Depends(mevcut_sirket_uyesi_dogrulanmis),
 ):
     with operasyonu_olc("zaman_serisi", satir_sayisi=len(istek.satirlar)):
         sonuc = zaman_serisi_analizi(istek)
@@ -346,7 +361,7 @@ async def finans_dosyasi_dogrula(
     request: Request,
     dosya_adi: str = Query(min_length=3, max_length=180),
     sutun_eslemesi: Optional[str] = Query(default=None, max_length=4000),
-    kullanici: KimlikBilgisi = Depends(mevcut_sirket_uyesi),
+    kullanici: KimlikBilgisi = Depends(mevcut_sirket_uyesi_dogrulanmis),
 ):
     """Excel/CSV dosyasını çalıştırmadan doğrular ve V1 veri sözleşmesine çevirir.
 
@@ -386,13 +401,13 @@ def calisma_alani_getir(kullanici: KimlikBilgisi = Depends(mevcut_sirket_uyesi))
 @uygulama.post("/api/v1/veri/calisma-alani/kaydet")
 def calisma_alani_kaydi(
     istek: CalismaAlaniKaydetIstegi,
-    kullanici: KimlikBilgisi = Depends(mevcut_sirket_uyesi),
+    kullanici: KimlikBilgisi = Depends(mevcut_sirket_uyesi_dogrulanmis),
 ):
     return calisma_alani_kaydet(istek, kullanici)
 
 
 @uygulama.post("/api/v1/veri/calisma-alani/sil")
-def calisma_alani_silme(kullanici: KimlikBilgisi = Depends(mevcut_sirket_uyesi)):
+def calisma_alani_silme(kullanici: KimlikBilgisi = Depends(mevcut_sirket_uyesi_dogrulanmis)):
     return calisma_alani_sil(kullanici)
 
 
@@ -502,7 +517,7 @@ def arsiv_raporu_indir(
 @uygulama.post("/api/v1/rapor/arsiv/{rapor_id}/sil")
 def arsiv_raporu_silme(
     rapor_id: str,
-    kullanici: KimlikBilgisi = Depends(mevcut_sirket_uyesi),
+    kullanici: KimlikBilgisi = Depends(mevcut_sirket_uyesi_dogrulanmis),
 ):
     return arsiv_raporu_sil(rapor_id, kullanici)
 
@@ -526,7 +541,7 @@ def cfo_sohbet(
 @uygulama.post("/api/v1/cfo/ajan-analizi")
 def cfo_ajan_araclari(
     istek: CfoAjanAnalizIstegi,
-    kullanici: KimlikBilgisi = Depends(mevcut_sirket_uyesi),
+    kullanici: KimlikBilgisi = Depends(mevcut_sirket_uyesi_dogrulanmis),
 ):
     """Eski CFO araçlarını kontrollü V1 veri sözleşmesiyle çalıştırır."""
     with operasyonu_olc(

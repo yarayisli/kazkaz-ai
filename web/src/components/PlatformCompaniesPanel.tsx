@@ -5,7 +5,8 @@ import {
   ShieldCheck, UserRound, Users, X,
 } from 'lucide-react';
 import {
-  PlatformSirketDetayi, PlatformSirketListesi, platformGeriBildirimDurumunuGuncelle,
+  PlatformSirketDetayi, PlatformSirketListesi, platformBekleyenClaimleriYenidenDene,
+  platformGeriBildirimDurumunuGuncelle,
   platformSirketDetayiniGetir, platformSirketEylemi, platformSirketiniGuncelle,
   platformSirketleriniGetir,
 } from '../lib/api';
@@ -58,6 +59,8 @@ export const PlatformCompaniesPanel: React.FC = () => {
   const [actionLoading, setActionLoading] = useState(false);
   const [reason, setReason] = useState('');
   const [message, setMessage] = useState<string | null>(null);
+  // Askı/paket değişiminde oturum iptali başarısız kalan kullanıcı sayısı.
+  const [bekleyenIptal, setBekleyenIptal] = useState(0);
 
   const loadCompanies = async () => {
     setLoading(true);
@@ -65,7 +68,7 @@ export const PlatformCompaniesPanel: React.FC = () => {
     finally { setLoading(false); }
   };
   const loadDetail = async (companyId: string) => {
-    setDetailLoading(true); setMessage(null);
+    setDetailLoading(true); setMessage(null); setBekleyenIptal(0);
     try { setDetail(await platformSirketDetayiniGetir(companyId)); }
     catch (error) { setMessage(error instanceof Error ? error.message : 'Şirket ayrıntısı alınamadı.'); }
     finally { setDetailLoading(false); }
@@ -85,12 +88,38 @@ export const PlatformCompaniesPanel: React.FC = () => {
     if (!detail) return;
     const description = change.durum ? `durumu ${statusLabels[change.durum] || change.durum}` : `paketi ${change.plan?.toUpperCase()}`;
     if (!window.confirm(`${detail.sirket.sirket_adi} şirketinin ${description} olarak güncellensin mi?`)) return;
-    setActionLoading(true); setMessage(null);
+    setActionLoading(true); setMessage(null); setBekleyenIptal(0);
     try {
-      await platformSirketiniGuncelle(detail.sirket.sirket_id, { ...change, ...(reason.trim().length >= 5 ? { gerekce: reason.trim() } : {}) });
-      setMessage('Şirket ayarı güncellendi ve denetim kaydına yazıldı.');
+      const sonuc = await platformSirketiniGuncelle(detail.sirket.sirket_id, { ...change, ...(reason.trim().length >= 5 ? { gerekce: reason.trim() } : {}) });
+      const basarisiz = sonuc.basarisiz_uye ?? sonuc.oturum_yenileme_uyarisi ?? 0;
+      if (sonuc.durum === 'kismen_guncellendi' || basarisiz > 0) {
+        // Kısmi başarı: şirket durumu güncellendi (finans erişimi güvenilir
+        // kontrolle kapanır) ama bazı üyelerin oturum iptali başarısız oldu.
+        setBekleyenIptal(basarisiz);
+        setMessage(
+          `Şirket ayarı güncellendi ve denetim kaydına yazıldı. Ancak ${basarisiz} kullanıcının `
+          + 'oturum iptali başarısız oldu; finans erişimleri yine de kapalı, iptal yeniden denenmek üzere kaydedildi.',
+        );
+      } else {
+        setMessage('Şirket ayarı güncellendi ve denetim kaydına yazıldı.');
+      }
       await Promise.all([loadCompanies(), loadDetail(detail.sirket.sirket_id)]);
     } catch (error) { setMessage(error instanceof Error ? error.message : 'Şirket güncellenemedi.'); }
+    finally { setActionLoading(false); }
+  };
+
+  const bekleyenIptalleriYenidenDene = async () => {
+    if (!detail) return;
+    setActionLoading(true);
+    try {
+      const sonuc = await platformBekleyenClaimleriYenidenDene(detail.sirket.sirket_id);
+      setBekleyenIptal(sonuc.kalan_uye);
+      setMessage(
+        sonuc.kalan_uye === 0
+          ? `Bekleyen oturum iptalleri tamamlandı (${sonuc.cozulen_uye} kullanıcı).`
+          : `${sonuc.cozulen_uye} kullanıcı çözüldü, ${sonuc.kalan_uye} kullanıcı hâlâ başarısız. Daha sonra tekrar deneyin.`,
+      );
+    } catch (error) { setMessage(error instanceof Error ? error.message : 'Yeniden deneme başarısız.'); }
     finally { setActionLoading(false); }
   };
 
@@ -148,7 +177,22 @@ export const PlatformCompaniesPanel: React.FC = () => {
       {selectedId && <aside className="panel-card overflow-hidden xl:sticky xl:top-20 xl:max-h-[calc(100vh-7rem)] xl:overflow-y-auto">
         <div className="sticky top-0 z-10 flex items-center justify-between border-b border-slate-100 bg-white px-5 py-4"><div><p className="text-[9px] font-black uppercase tracking-wider text-violet-600">Şirket ayrıntısı</p><p className="mt-1 text-sm font-black text-slate-900">{detail?.sirket.sirket_adi || 'Yükleniyor'}</p></div><button aria-label="Şirket ayrıntısını kapat" onClick={() => setSelectedId(null)} className="grid h-9 w-9 place-items-center rounded-xl bg-slate-100 text-slate-500 hover:bg-slate-200"><X className="h-4 w-4" /></button></div>
         {detailLoading && !detail ? <div className="grid min-h-72 place-items-center"><Loader2 className="h-6 w-6 animate-spin text-violet-600" /></div> : detail && <div className="space-y-5 p-5">
-          {message && <p role="status" className="rounded-xl border border-sky-200 bg-sky-50 p-3 text-xs font-bold leading-5 text-sky-800">{message}</p>}
+          {message && (
+            <div role="status" aria-live="polite" className={`rounded-xl border p-3 text-xs font-bold leading-5 ${bekleyenIptal > 0 ? 'border-amber-300 bg-amber-50 text-amber-900' : 'border-sky-200 bg-sky-50 text-sky-800'}`}>
+              <p>{message}</p>
+              {bekleyenIptal > 0 && (
+                <button
+                  type="button"
+                  onClick={() => void bekleyenIptalleriYenidenDene()}
+                  disabled={actionLoading}
+                  className="mt-2 inline-flex items-center gap-1.5 rounded-lg border border-amber-400 bg-white px-3 py-1.5 text-[11px] font-bold text-amber-800 hover:bg-amber-100 disabled:opacity-50"
+                >
+                  <RefreshCw className="h-3.5 w-3.5" />
+                  Bekleyen {bekleyenIptal} oturum iptalini yeniden dene
+                </button>
+              )}
+            </div>
+          )}
           <div className="grid grid-cols-2 gap-2"><Metric label="30 günlük hareket" value={detail.kullanim.aktivite_30_gun} detail={actionLabels[detail.kullanim.son_aksiyon] || detail.kullanim.son_aksiyon} /><Metric label="Arşivlenen rapor" value={detail.kullanim.rapor_arsivleme} detail={`${detail.kullanim.rapor_indirme} indirme`} /><Metric label="Çalışma alanı" value={detail.kullanim.veri_durumu === 'kayitli' ? 'Kayıtlı' : 'Veri yok'} detail={`${detail.kullanim.calisma_alani_kayit} kayıt işlemi`} /><Metric label="Ekip" value={detail.uyeler.length} detail={`${detail.bekleyen_davetler.length} bekleyen davet`} /></div>
 
           <section><div className="flex items-center gap-2"><Activity className="h-4 w-4 text-violet-600" /><h3 className="text-xs font-black text-slate-900">Şirket ne yapıyor?</h3></div><div className="mt-3 space-y-2">{detail.son_olaylar.slice(0, 8).map((event, index) => <div key={`${event.aktor}-${event.zaman}-${index}`} className="flex gap-3 rounded-xl border border-slate-200 p-3"><span className="mt-0.5 grid h-7 w-7 shrink-0 place-items-center rounded-lg bg-violet-50"><FileClock className="h-3.5 w-3.5 text-violet-700" /></span><div className="min-w-0"><p className="truncate text-[11px] font-extrabold text-slate-700">{actionLabels[event.aksiyon] || event.aksiyon.replaceAll('_', ' ')}</p><p className="mt-1 text-[9px] text-slate-400">{event.aktor_rolu} · {event.aktor} · {formatDate(event.zaman)}</p></div></div>)}{!detail.son_olaylar.length && <p className="rounded-xl border border-dashed border-slate-300 p-4 text-center text-xs text-slate-400">Henüz denetlenebilir aktivite yok.</p>}</div></section>

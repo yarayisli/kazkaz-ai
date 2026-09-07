@@ -6,7 +6,7 @@ from unittest.mock import MagicMock, patch
 from fastapi import HTTPException
 from google.auth.exceptions import DefaultCredentialsError
 
-from api.auth import mevcut_kullanici, sirket_uyeligini_dogrula
+from api.auth import mevcut_kullanici, mevcut_sirket_uyesi_dogrulanmis, sirket_uyeligini_dogrula
 from api.models import KimlikBilgisi
 
 
@@ -27,6 +27,33 @@ class TestSirketYetkilendirmesi(unittest.TestCase):
             roller={"gelistirici": True},
         )
         self.assertEqual(sirket_uyeligini_dogrula(kullanici), kullanici)
+
+    def test_guvenilir_aski_token_active_dese_de_erisimi_kapatir(self):
+        # Token'ı hâlâ 'active' diyen (iptal edilememiş) bir üye; güvenilir
+        # kaynak 'suspended' döndürünce kritik uç 403 vermeli.
+        kullanici = KimlikBilgisi(
+            kullanici_id="u1", sirket_id="c1", roller={"admin": True}, sirket_durumu="active",
+        )
+        with patch("api.auth.sirket_durumu_guvenilir", return_value="suspended"):
+            with self.assertRaises(HTTPException) as context:
+                mevcut_sirket_uyesi_dogrulanmis(kullanici)
+        self.assertEqual(context.exception.status_code, 403)
+
+    def test_guvenilir_kaynak_aktifse_erisim_surer(self):
+        kullanici = KimlikBilgisi(
+            kullanici_id="u1", sirket_id="c1", roller={"admin": True}, sirket_durumu="active",
+        )
+        with patch("api.auth.sirket_durumu_guvenilir", return_value="active"):
+            self.assertEqual(mevcut_sirket_uyesi_dogrulanmis(kullanici), kullanici)
+
+    def test_guvenilir_kaynak_okunamazsa_token_karari_gecerli(self):
+        # Firestore ulaşılamaz (None): token zaten sirket_uyeligini_dogrula'da
+        # kontrol edildiğinden ek blok yok, kullanıcı geçer.
+        kullanici = KimlikBilgisi(
+            kullanici_id="u1", sirket_id="c1", roller={"admin": True}, sirket_durumu="active",
+        )
+        with patch("api.auth.sirket_durumu_guvenilir", return_value=None):
+            self.assertEqual(mevcut_sirket_uyesi_dogrulanmis(kullanici), kullanici)
 
     def test_gercek_token_yerel_bypasstan_once_gelir(self):
         firebase_app = MagicMock()

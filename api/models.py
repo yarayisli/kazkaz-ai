@@ -242,6 +242,10 @@ class PlatformSirketEylemIstegi(BaseModel):
     gerekce: str = Field(min_length=5, max_length=300)
 
 
+class PlatformClaimYenidenDenemeIstegi(BaseModel):
+    sirket_id: str = Field(min_length=1, max_length=128, pattern=r"^[A-Za-z0-9_-]+$")
+
+
 class PlatformGeriBildirimDurumIstegi(BaseModel):
     sirket_id: str = Field(min_length=1, max_length=128, pattern=r"^[A-Za-z0-9_-]+$")
     geri_bildirim_id: str = Field(min_length=1, max_length=128, pattern=r"^[A-Za-z0-9_-]+$")

@@ -559,10 +559,27 @@ export function platformOlaylariniGetir(limit = 50) {
   return platformAdminGet<PlatformOlayListesi>(`/api/v1/platform-admin/olaylar?limit=${limit}`);
 }
 
+export interface PlatformSirketGuncellemeSonucu {
+  durum: 'guncellendi' | 'kismen_guncellendi';
+  sirket_id: string;
+  degisiklikler: Record<string, string>;
+  basarili_uye?: number;
+  basarisiz_uye?: number;
+  yeniden_denenecek_uye?: number;
+  oturum_yenileme_uyarisi: number;
+}
+
 export function platformSirketiniGuncelle(sirketId: string, degisiklik: { durum?: string; plan?: string; gerekce?: string }) {
-  return platformAdminPost<{ durum: 'guncellendi' | 'kismen_guncellendi'; sirket_id: string; degisiklikler: Record<string, string>; oturum_yenileme_uyarisi: number }>(
+  return platformAdminPost<PlatformSirketGuncellemeSonucu>(
     '/api/v1/platform-admin/sirket-guncelle',
     { sirket_id: sirketId, ...degisiklik },
+  );
+}
+
+export function platformBekleyenClaimleriYenidenDene(sirketId: string) {
+  return platformAdminPost<{ durum: 'tamamlandi' | 'kismen_tamamlandi'; sirket_id: string; cozulen_uye: number; kalan_uye: number }>(
+    '/api/v1/platform-admin/claim-yeniden-dene',
+    { sirket_id: sirketId },
   );
 }
 

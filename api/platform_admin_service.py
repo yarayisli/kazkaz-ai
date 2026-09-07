@@ -357,6 +357,84 @@ def platform_sayaclari() -> dict:
     }
 
 
+def _sirket_claim_hedefi(sirket_verisi: dict) -> dict:
+    """Üye claim'lerine yazılacak plan/durum/deneme değerlerini derler."""
+    return {
+        "plan": str(sirket_verisi.get("plan") or "free"),
+        "trialEndsAt": _iso(sirket_verisi.get("trialEndsAt")),
+        "status": str(sirket_verisi.get("status") or "active"),
+    }
+
+
+def _uye_claimini_yenile(app, uye_id: str, sirket_id: str, rol: str, hedef: dict) -> bool:
+    """Bir üyenin oturumunu iptal edip claim'lerini günceller; başarıyı döner."""
+    try:
+        firebase_auth.revoke_refresh_tokens(uye_id, app=app)
+        _claimleri_guncelle(
+            uye_id, sirket_id, rol, app,
+            hedef["plan"], hedef["trialEndsAt"], hedef["status"],
+        )
+        return True
+    except Exception:
+        return False
+
+
+def _bekleyen_claim_kaydet(sirket_ref, uye_id: str, rol: str, hedef: dict, yonetici: KimlikBilgisi) -> None:
+    """Başarısız iptali yeniden denenecek iş olarak kuyruğa yazar."""
+    ref = sirket_ref.collection("bekleyenClaimGuncellemeleri").document(uye_id)
+    mevcut = ref.get()
+    deneme = (int((mevcut.to_dict() or {}).get("attempts", 0)) + 1) if mevcut.exists else 1
+    ref.set({
+        "userId": uye_id,
+        "role": rol,
+        "plan": hedef["plan"],
+        "status": hedef["status"],
+        "trialEndsAt": hedef["trialEndsAt"],
+        "attempts": deneme,
+        "requestedBy": yonetici.kullanici_id,
+        "updatedAt": firestore.SERVER_TIMESTAMP,
+    })
+
+
+def platform_bekleyen_claimleri_yeniden_dene(sirket_id: str, yonetici: KimlikBilgisi) -> dict:
+    """Askı/paket değişiminde iptali başarısız kalan üyeleri yeniden dener.
+
+    Çözülen üyeler kuyruktan silinir; kalanlar bir sonraki denemeye bırakılır.
+    Finans erişimi zaten güvenilir durum kontrolüyle kapalıdır; bu, üyelerin
+    eski token'larını da bir an önce geçersiz kılmak içindir.
+    """
+    db = _db()
+    sirket_ref = db.collection("companies").document(sirket_id)
+    if not sirket_ref.get().exists:
+        raise HTTPException(status_code=404, detail="Şirket bulunamadı.")
+    app = _firebase_uygulamasi()
+    hedef = _sirket_claim_hedefi(sirket_ref.get().to_dict() or {})
+    cozulen = 0
+    kalan = 0
+    for bekleyen in sirket_ref.collection("bekleyenClaimGuncellemeleri").limit(500).stream():
+        rol = str((bekleyen.to_dict() or {}).get("role") or "viewer")
+        if _uye_claimini_yenile(app, bekleyen.id, sirket_id, rol, hedef):
+            sirket_ref.collection("bekleyenClaimGuncellemeleri").document(bekleyen.id).delete()
+            cozulen += 1
+        else:
+            kalan += 1
+    db.collection("platformAuditLogs").document().set({
+        "action": "company.claims.retry",
+        "companyId": sirket_id,
+        "resolved": cozulen,
+        "remaining": kalan,
+        "actorId": yonetici.kullanici_id,
+        "createdAt": firestore.SERVER_TIMESTAMP,
+        "containsFinancialData": False,
+    })
+    return {
+        "durum": "tamamlandi" if kalan == 0 else "kismen_tamamlandi",
+        "sirket_id": sirket_id,
+        "cozulen_uye": cozulen,
+        "kalan_uye": kalan,
+    }
+
+
 def platform_sirketini_guncelle(istek: PlatformSirketGuncellemeIstegi, yonetici: KimlikBilgisi) -> dict:
     """Paket/durum değişikliğini finansal verilere dokunmadan denetim iziyle uygular."""
     db = _db()
@@ -382,30 +460,33 @@ def platform_sirketini_guncelle(istek: PlatformSirketGuncellemeIstegi, yonetici:
         "containsFinancialData": False,
     })
     batch.commit()
-    claim_uyarilari = []
+    basarili: list[str] = []
+    basarisiz: list[str] = []
     if istek.plan is not None or istek.durum is not None:
         app = _firebase_uygulamasi()
-        sirket_verisi = sirket_ref.get().to_dict() or {}
+        hedef = _sirket_claim_hedefi(sirket_ref.get().to_dict() or {})
         for uye in sirket_ref.collection("members").limit(500).stream():
-            uye_verisi = uye.to_dict() or {}
-            try:
-                firebase_auth.revoke_refresh_tokens(uye.id, app=app)
-                _claimleri_guncelle(
-                    uye.id,
-                    istek.sirket_id,
-                    str(uye_verisi.get("role") or "viewer"),
-                    app,
-                    str(sirket_verisi.get("plan") or "free"),
-                    _iso(sirket_verisi.get("trialEndsAt")),
-                    str(sirket_verisi.get("status") or "active"),
-                )
-            except Exception:
-                claim_uyarilari.append(uye.id)
+            rol = str((uye.to_dict() or {}).get("role") or "viewer")
+            if _uye_claimini_yenile(app, uye.id, istek.sirket_id, rol, hedef):
+                basarili.append(uye.id)
+                # Daha önce başarısız kalıp kuyruğa alınmışsa temizle.
+                sirket_ref.collection("bekleyenClaimGuncellemeleri").document(uye.id).delete()
+            else:
+                # İptal başarısız oldu: üyenin eski token'ı (~1 saat) hâlâ
+                # geçerli olabilir. Finans erişimi güvenilir durum kontrolüyle
+                # (auth.mevcut_sirket_uyesi_dogrulanmis) zaten kapanır; burada
+                # iptali yeniden denenecek iş olarak kaydediyoruz.
+                basarisiz.append(uye.id)
+                _bekleyen_claim_kaydet(sirket_ref, uye.id, rol, hedef, yonetici)
     return {
-        "durum": "guncellendi" if not claim_uyarilari else "kismen_guncellendi",
+        "durum": "guncellendi" if not basarisiz else "kismen_guncellendi",
         "sirket_id": istek.sirket_id,
         "degisiklikler": {key: value for key, value in degisiklik.items() if key != "updatedAt"},
-        "oturum_yenileme_uyarisi": len(claim_uyarilari),
+        "basarili_uye": len(basarili),
+        "basarisiz_uye": len(basarisiz),
+        # Geriye dönük uyum: eski istemci bu alanı okuyor.
+        "oturum_yenileme_uyarisi": len(basarisiz),
+        "yeniden_denenecek_uye": len(basarisiz),
     }
 
 
