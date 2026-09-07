@@ -587,18 +587,70 @@ export function platformGeriBildirimDurumunuGuncelle(sirketId: string, geriBildi
 export interface CalismaAlaniSonucu<T> {
   durum: 'hazir' | 'bos';
   schema_version?: number;
+  /** Optimistik kilit sürümü; kayıtta baz_revizyon olarak geri gönderilir. */
+  revizyon?: number;
   snapshot: T | null;
+}
+
+export interface CalismaAlaniKayitSonucu {
+  durum: 'kaydedildi';
+  schema_version: number;
+  revizyon: number;
+  boyut: number;
+  saklama_gunu: number;
+}
+
+/** Kayıt sırasında başka bir oturum araya girdi: taban sürüm eskimiş. */
+export class CalismaAlaniCakismaHatasi extends Error {
+  mevcutRevizyon: number;
+  constructor(mevcutRevizyon: number, mesaj: string) {
+    super(mesaj);
+    this.name = 'CalismaAlaniCakismaHatasi';
+    this.mevcutRevizyon = mevcutRevizyon;
+  }
 }
 
 export function calismaAlaniYukle<T>() {
   return apiGetIstegi<CalismaAlaniSonucu<T>>('/api/v1/veri/calisma-alani');
 }
 
-export function calismaAlaniKaydet<T>(snapshot: T) {
-  return apiIstegi<{ durum: 'kaydedildi'; schema_version: number; boyut: number; saklama_gunu: number }>(
-    '/api/v1/veri/calisma-alani/kaydet',
-    { schema_version: 2, snapshot },
-  );
+export async function calismaAlaniKaydet<T>(
+  snapshot: T,
+  bazRevizyon?: number,
+): Promise<CalismaAlaniKayitSonucu> {
+  const kullanici = auth.currentUser;
+  const yerelKimlikDogrulamaKapali = import.meta.env.DEV
+    && import.meta.env.VITE_API_AUTH_DISABLED === 'true';
+  if (!kullanici && !yerelKimlikDogrulamaKapali) {
+    throw new Error('Bu işlem için giriş yapmanız gerekiyor.');
+  }
+  const token = kullanici ? await kullanici.getIdToken() : null;
+  const govde: Record<string, unknown> = { schema_version: 2, snapshot };
+  if (typeof bazRevizyon === 'number') govde.baz_revizyon = bazRevizyon;
+  const yanit = await fetch('/api/v1/veri/calisma-alani/kaydet', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      ...(token ? { Authorization: `Bearer ${token}` } : {}),
+    },
+    body: JSON.stringify(govde),
+  });
+  if (!yanit.ok) {
+    const hata = await yanit.json().catch(() => null);
+    const detay = hata?.detail;
+    // 409 çakışmasının detayı yapısal bir nesnedir (kod + mevcut_revizyon);
+    // düz string hata yolundan ayrı ele alınır ki arayüz yenilemeyi önersin.
+    if (yanit.status === 409 && detay && typeof detay === 'object' && detay.kod === 'calisma_alani_cakismasi') {
+      throw new CalismaAlaniCakismaHatasi(
+        Number(detay.mevcut_revizyon ?? 0),
+        String(detay.mesaj || 'Çalışma alanı başka bir oturumda güncellendi.'),
+      );
+    }
+    throw new Error(
+      (typeof detay === 'string' ? detay : detay?.mesaj) || 'Çalışma alanı kaydedilemedi.',
+    );
+  }
+  return yanit.json() as Promise<CalismaAlaniKayitSonucu>;
 }
 
 export function calismaAlaniSil() {

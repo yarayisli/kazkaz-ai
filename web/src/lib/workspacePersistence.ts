@@ -35,37 +35,49 @@ function cleanSnapshot(snapshot: WorkspaceSnapshot): WorkspaceSnapshot {
   return JSON.parse(JSON.stringify(snapshot)) as WorkspaceSnapshot;
 }
 
+export interface WorkspaceYuklemeSonucu {
+  snapshot: WorkspaceSnapshot | null;
+  /** Kaydederken geri gönderilecek optimistik kilit sürümü. */
+  revizyon: number;
+}
+
 export async function saveWorkspace(
   _companyId: string,
   _userId: string,
   snapshot: WorkspaceSnapshot,
-): Promise<void> {
+  bazRevizyon?: number,
+): Promise<{ revizyon: number }> {
   const cleaned = cleanSnapshot(snapshot);
   const byteSize = new TextEncoder().encode(JSON.stringify(cleaned)).byteLength;
   if (byteSize > MAX_WORKSPACE_BYTES) {
     throw new Error('Çalışma alanı güvenli kayıt sınırını aşıyor. Ham veriyi yeniden yükleyin veya daha küçük dönem seçin.');
   }
-  await calismaAlaniKaydet(cleaned);
+  const sonuc = await calismaAlaniKaydet(cleaned, bazRevizyon);
+  return { revizyon: sonuc.revizyon };
 }
 
-export async function loadWorkspace(_companyId: string): Promise<WorkspaceSnapshot | null> {
+export async function loadWorkspace(_companyId: string): Promise<WorkspaceYuklemeSonucu> {
   const sonuc = await calismaAlaniYukle<WorkspaceSnapshot>();
-  if (!sonuc.snapshot) return null;
+  const revizyon = sonuc.revizyon ?? 0;
+  if (!sonuc.snapshot) return { snapshot: null, revizyon };
   const data = sonuc.snapshot;
   if (!data.financialData || !Array.isArray(data.cashFlow)) {
     throw new Error('Kayıtlı çalışma alanının sürümü desteklenmiyor.');
   }
   return {
-    financialData: data.financialData as FinancialData,
-    cashFlow: data.cashFlow as CashFlowItem[],
-    debts: (data.debts || []) as DebtItem[],
-    customers: (data.customers || []) as CustomerRisk[],
-    budget: (data.budget || []) as BudgetItem[],
-    advancedData: data.advancedData as GelismisAjanGirdisi | undefined,
-    transactionAnalytics: data.transactionAnalytics as TransactionAnalytics | undefined,
-    financialAudit: (data.financialAudit || null) as FinansalDenetim | null,
-    isSampleData: Boolean(data.isSampleData),
-    approvalDecisions: (data.approvalDecisions || []) as ApprovalDecision[],
+    snapshot: {
+      financialData: data.financialData as FinancialData,
+      cashFlow: data.cashFlow as CashFlowItem[],
+      debts: (data.debts || []) as DebtItem[],
+      customers: (data.customers || []) as CustomerRisk[],
+      budget: (data.budget || []) as BudgetItem[],
+      advancedData: data.advancedData as GelismisAjanGirdisi | undefined,
+      transactionAnalytics: data.transactionAnalytics as TransactionAnalytics | undefined,
+      financialAudit: (data.financialAudit || null) as FinansalDenetim | null,
+      isSampleData: Boolean(data.isSampleData),
+      approvalDecisions: (data.approvalDecisions || []) as ApprovalDecision[],
+    },
+    revizyon,
   };
 }
 

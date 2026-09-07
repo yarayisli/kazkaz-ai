@@ -11,7 +11,7 @@ import {
   initialBudget
 } from './data/mockData';
 import { ApprovalDecision, BudgetItem, CashFlowItem, CustomerRisk, DebtItem, FinancialData, TransactionAnalytics } from './types';
-import { FinansalDenetim, GelismisAjanGirdisi, SaglikSkoru, zamanSerisiAnalizi } from './lib/api';
+import { CalismaAlaniCakismaHatasi, FinansalDenetim, GelismisAjanGirdisi, SaglikSkoru, zamanSerisiAnalizi } from './lib/api';
 import { workspaceDataFromAdvanced } from './lib/workspaceData';
 import { deleteWorkspace, exportWorkspace, loadWorkspace, saveWorkspace, WorkspaceSnapshot } from './lib/workspacePersistence';
 import { useAuth } from './context/AuthContext';
@@ -65,6 +65,11 @@ function WorkspaceApp() {
   const [approvalDecisions, setApprovalDecisions] = useState<ApprovalDecision[]>([]);
   const [persistenceStatus, setPersistenceStatus] = useState<'idle' | 'loading' | 'saved' | 'error'>('idle');
   const [persistenceMessage, setPersistenceMessage] = useState<string | null>(null);
+  // Optimistik kilit sürümü: yüklerken alınır, kaydederken geri gönderilir.
+  // Başka bir oturum araya girmişse sunucu 409 döner ve bu kayıt reddedilir.
+  const [workspaceRevizyon, setWorkspaceRevizyon] = useState(0);
+  // Kayıt bir başka oturumun güncellemesiyle çakıştı; banner "yenile" sunar.
+  const [workspaceCakismasi, setWorkspaceCakismasi] = useState(false);
   const [recentTabIds, setRecentTabIds] = useState<string[]>(defaultRecentTabIds);
   // Sağlık skoru zaman serisi ister; tek dönemlik görünümden hesaplanamaz.
   // Bu yüzden yalnızca Excel içe aktarımından sonra doldurulur.
@@ -98,6 +103,21 @@ function WorkspaceApp() {
     setActiveTab(tabId);
   };
 
+  // Yüklenen bir snapshot'ı tüm finans state'ine uygular. Hem kimlik
+  // değişimindeki yükleme hem de çakışma sonrası yenileme aynı yolu kullanır.
+  const uygulaSnapshot = (snapshot: WorkspaceSnapshot) => {
+    setFinancialData(snapshot.financialData);
+    setCashFlow(snapshot.cashFlow);
+    setDebts(snapshot.debts);
+    setCustomers(snapshot.customers);
+    setBudget(snapshot.budget);
+    setAdvancedData(snapshot.advancedData);
+    setTransactionAnalytics(snapshot.transactionAnalytics);
+    setFinancialAudit(snapshot.financialAudit);
+    setIsSampleData(snapshot.isSampleData);
+    setApprovalDecisions(snapshot.approvalDecisions || []);
+  };
+
   // Oturum kimliği: kullanıcı + şirket. Değeri değiştiğinde (giriş, çıkış,
   // şirket geçişi, misafir moduna geçiş) çalışma alanı state'i sıfırlanır.
   // Aksi halde A şirketinin gizli rakamları çıkıştan veya B'ye geçişten
@@ -124,6 +144,7 @@ function WorkspaceApp() {
     setApprovalDecisions([]);
     setHealthScore(null);
     setIsSampleData(true);
+    setWorkspaceRevizyon(0);
     setPersistenceStatus('idle');
     setPersistenceMessage(null);
 
@@ -140,19 +161,11 @@ function WorkspaceApp() {
     setPersistenceStatus('loading');
     setPersistenceMessage('Kayıtlı şirket çalışma alanı yükleniyor…');
     loadWorkspace(companyId)
-      .then((snapshot) => {
+      .then(({ snapshot, revizyon }) => {
         if (!active) return;
+        setWorkspaceRevizyon(revizyon);
         if (snapshot) {
-          setFinancialData(snapshot.financialData);
-          setCashFlow(snapshot.cashFlow);
-          setDebts(snapshot.debts);
-          setCustomers(snapshot.customers);
-          setBudget(snapshot.budget);
-          setAdvancedData(snapshot.advancedData);
-          setTransactionAnalytics(snapshot.transactionAnalytics);
-          setFinancialAudit(snapshot.financialAudit);
-          setIsSampleData(snapshot.isSampleData);
-          setApprovalDecisions(snapshot.approvalDecisions || []);
+          uygulaSnapshot(snapshot);
           setPersistenceMessage('Şirket çalışma alanı güvenli kayıttan yüklendi.');
         } else {
           setPersistenceMessage('Bu şirket için henüz kayıtlı finans çalışma alanı yok.');
@@ -174,13 +187,46 @@ function WorkspaceApp() {
     if (!currentUser || !userProfile?.companyId || isGuest) return;
     setPersistenceStatus('loading');
     setPersistenceMessage('Şirket çalışma alanı kaydediliyor…');
+    setWorkspaceCakismasi(false);
     try {
-      await saveWorkspace(userProfile.companyId, currentUser.uid, snapshot);
+      const sonuc = await saveWorkspace(userProfile.companyId, currentUser.uid, snapshot, workspaceRevizyon);
+      setWorkspaceRevizyon(sonuc.revizyon);
       setPersistenceStatus('saved');
       setPersistenceMessage('Değişiklikler şirket çalışma alanına kaydedildi.');
     } catch (error) {
+      // Çakışma: başka bir oturum araya girdi. Kullanıcının düzenlemeleri
+      // bellekte durur (sessizce ezilmez); banner "en son sürümü yükle"
+      // sunar ki kullanıcı değişikliklerini görüp yeniden uygulasın.
+      if (error instanceof CalismaAlaniCakismaHatasi) {
+        setWorkspaceRevizyon(error.mevcutRevizyon);
+        setWorkspaceCakismasi(true);
+        setPersistenceStatus('error');
+        setPersistenceMessage(
+          'Bu çalışma alanı siz düzenlerken başka bir oturumda güncellendi. Yaptığınız '
+          + 'değişiklikler kaydedilmedi. En son sürümü yükleyip değişikliklerinizi yeniden uygulayın.',
+        );
+        return;
+      }
       setPersistenceStatus('error');
       setPersistenceMessage(error instanceof Error ? error.message : 'Çalışma alanı kaydedilemedi.');
+    }
+  };
+
+  const calismaAlaniniYenile = async () => {
+    const companyId = userProfile?.companyId;
+    if (!companyId || isGuest) return;
+    setPersistenceStatus('loading');
+    setPersistenceMessage('En son sürüm yükleniyor…');
+    try {
+      const { snapshot, revizyon } = await loadWorkspace(companyId);
+      setWorkspaceRevizyon(revizyon);
+      if (snapshot) uygulaSnapshot(snapshot);
+      setWorkspaceCakismasi(false);
+      setPersistenceStatus('idle');
+      setPersistenceMessage('En son sürüm yüklendi. Değişikliklerinizi kontrol edip yeniden kaydedebilirsiniz.');
+    } catch (error) {
+      setPersistenceStatus('error');
+      setPersistenceMessage(error instanceof Error ? error.message : 'Çalışma alanı yüklenemedi.');
     }
   };
 
@@ -370,7 +416,18 @@ function WorkspaceApp() {
                       ? 'border-emerald-200 bg-emerald-50 text-emerald-700'
                       : 'border-sky-200 bg-sky-50 text-sky-700'
                 }`}>
-                  {persistenceMessage}
+                  <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+                    <span>{persistenceMessage}</span>
+                    {workspaceCakismasi && (
+                      <button
+                        type="button"
+                        onClick={() => void calismaAlaniniYenile()}
+                        className="shrink-0 self-start rounded-lg border border-red-300 bg-white px-3 py-1.5 text-xs font-bold text-red-700 hover:bg-red-50 sm:self-auto"
+                      >
+                        En son sürümü yükle
+                      </button>
+                    )}
+                  </div>
                 </div>
               )}
               {isSampleData && !['data-entry', 'platform-admin'].includes(activeTab) && (

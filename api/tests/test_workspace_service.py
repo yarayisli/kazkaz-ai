@@ -30,7 +30,9 @@ class FakeDocument:
     def collection(self, name):
         return FakeCollection(self.db, (*self.path, name))
 
-    def get(self):
+    def get(self, transaction=None):
+        # Gerçek SDK'da transaction okuması işlemin içindedir; sahte db
+        # tek iş parçacıklı testte doğrudan mağazadan okur.
         return FakeSnapshot(self.db.store.get(self.path))
 
     def set(self, data):
@@ -70,6 +72,22 @@ class FakeBatch:
                 self.db.store.pop(ref.path, None)
 
 
+class FakeTransaction:
+    """Oku-karşılaştır-yaz gövdesini doğrudan mağazaya uygular.
+
+    `firestore.transactional` testte kimlik dekoratörüyle değiştirildiği için
+    gövde bir kez çalışır; atomiklik SDK'nın işi, burada doğrulanan çakışma
+    mantığıdır.
+    """
+
+    def __init__(self, db):
+        self.db = db
+
+    def set(self, ref, data):
+        self.db.store[ref.path] = data
+        return self
+
+
 class FakeDb:
     def __init__(self):
         self.store = {}
@@ -80,6 +98,9 @@ class FakeDb:
 
     def batch(self):
         return FakeBatch(self)
+
+    def transaction(self):
+        return FakeTransaction(self)
 
 
 def snapshot():
@@ -107,8 +128,13 @@ class TestWorkspaceService(unittest.TestCase):
         self.db = FakeDb()
         self.db_patch = patch("api.workspace_service._db", return_value=self.db)
         self.db_patch.start()
+        # Gerçek transactional dekoratörü SDK işlem nesnesi bekler; testte
+        # gövdeyi doğrudan çalıştıran kimlik dekoratörüyle değiştiriyoruz.
+        self.txn_patch = patch("api.workspace_service.firestore.transactional", lambda fn: fn)
+        self.txn_patch.start()
 
     def tearDown(self):
+        self.txn_patch.stop()
         self.db_patch.stop()
 
     def test_admin_kaydeder_viewer_okur_ve_audit_olusur(self):
@@ -150,6 +176,45 @@ class TestWorkspaceService(unittest.TestCase):
                 kullanici("admin"),
             )
         self.assertEqual(context.exception.status_code, 422)
+
+    def test_ilk_kayit_revizyonu_bire_cikarir(self):
+        sonuc = calisma_alani_kaydet(
+            CalismaAlaniKaydetIstegi(snapshot=snapshot(), baz_revizyon=0),
+            kullanici("admin"),
+        )
+        self.assertEqual(sonuc["revizyon"], 1)
+        self.assertEqual(calisma_alani_yukle(kullanici("viewer"))["revizyon"], 1)
+
+    def test_eszamanli_eski_surume_kayit_409_ve_ilk_korunur(self):
+        # İki oturum da revizyon 0'ı görüyor. İlki kaydeder → revizyon 1.
+        calisma_alani_kaydet(CalismaAlaniKaydetIstegi(snapshot=snapshot(), baz_revizyon=0), kullanici("admin"))
+        # İkinci oturum hâlâ eski tabanla (0) kaydetmeye çalışır → çakışma.
+        ezen = {**snapshot(), "financialData": {"companyName": "Ezen Oturum"}}
+        with self.assertRaises(HTTPException) as context:
+            calisma_alani_kaydet(CalismaAlaniKaydetIstegi(snapshot=ezen, baz_revizyon=0), kullanici("cfo"))
+        self.assertEqual(context.exception.status_code, 409)
+        self.assertEqual(context.exception.detail["kod"], "calisma_alani_cakismasi")
+        self.assertEqual(context.exception.detail["mevcut_revizyon"], 1)
+        # İlk kayıt korunmalı; ezen oturumun verisi yazılmamalı.
+        yuklenen = calisma_alani_yukle(kullanici("viewer"))
+        self.assertEqual(yuklenen["snapshot"]["financialData"]["companyName"], "Test A.Ş.")
+        self.assertEqual(yuklenen["revizyon"], 1)
+
+    def test_dogru_taban_surumle_kayit_gecer(self):
+        calisma_alani_kaydet(CalismaAlaniKaydetIstegi(snapshot=snapshot(), baz_revizyon=0), kullanici("admin"))
+        guncel = {**snapshot(), "financialData": {"companyName": "Güncel A.Ş."}}
+        ikinci = calisma_alani_kaydet(CalismaAlaniKaydetIstegi(snapshot=guncel, baz_revizyon=1), kullanici("admin"))
+        self.assertEqual(ikinci["revizyon"], 2)
+        self.assertEqual(
+            calisma_alani_yukle(kullanici("viewer"))["snapshot"]["financialData"]["companyName"],
+            "Güncel A.Ş.",
+        )
+
+    def test_baz_revizyon_yoksa_kosulsuz_yazar(self):
+        # Geriye dönük uyum: sürüm göndermeyen eski istemci koşulsuz yazar.
+        calisma_alani_kaydet(CalismaAlaniKaydetIstegi(snapshot=snapshot()), kullanici("admin"))
+        sonuc = calisma_alani_kaydet(CalismaAlaniKaydetIstegi(snapshot=snapshot()), kullanici("admin"))
+        self.assertEqual(sonuc["revizyon"], 2)
 
     def test_yerel_gelistirici_buluta_yazamaz(self):
         dev = KimlikBilgisi(kullanici_id="dev", sirket_id="yerel-demo", roller={"gelistirici": True})

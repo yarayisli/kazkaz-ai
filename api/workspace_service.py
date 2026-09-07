@@ -75,25 +75,67 @@ def _snapshot_dogrula(snapshot: Dict[str, Any]) -> bytes:
     return kodlanmis
 
 
+def _cakisma_hatasi(mevcut_revizyon: int) -> HTTPException:
+    """Eşzamanlı kayıt çakışması: taban sürüm eskimiş, önceki kayıt korunur."""
+    return HTTPException(
+        status_code=status.HTTP_409_CONFLICT,
+        detail={
+            "kod": "calisma_alani_cakismasi",
+            "mevcut_revizyon": mevcut_revizyon,
+            "mesaj": (
+                "Çalışma alanı siz düzenlerken başka bir oturumda güncellendi. "
+                "Değişikliklerinizi kaybetmemek için önce yenileyip sonra tekrar kaydedin."
+            ),
+        },
+    )
+
+
 def calisma_alani_kaydet(istek: CalismaAlaniKaydetIstegi, kullanici: KimlikBilgisi) -> Dict[str, Any]:
     _rol_ister(kullanici, {"admin", "cfo", "analist"})
     kodlanmis = _snapshot_dogrula(istek.snapshot)
     db = _db()
     workspace_ref, audit_ref = _referanslar(db, str(kullanici.sirket_id))
     saklama_gunu = max(1, int(os.getenv("DATA_RETENTION_DAYS", "365")))
-    batch = db.batch()
-    batch.set(workspace_ref, {
-        "schemaVersion": 2,
-        "companyId": kullanici.sirket_id,
-        "snapshot": istek.snapshot,
-        "updatedBy": kullanici.kullanici_id,
-        "updatedAt": firestore.SERVER_TIMESTAMP,
-        "retentionUntil": datetime.now(timezone.utc) + timedelta(days=saklama_gunu),
-        "dataClassification": "confidential-financial",
-    })
-    batch.set(audit_ref, _audit("workspace.save", kullanici))
-    batch.commit()
-    return {"durum": "kaydedildi", "schema_version": 2, "boyut": len(kodlanmis), "saklama_gunu": saklama_gunu}
+
+    def _belge(revizyon: int) -> Dict[str, Any]:
+        return {
+            "schemaVersion": 2,
+            # Optimistik kilit sayacı: her başarılı kayıtta bir artar. İstemci
+            # yüklerken gördüğü sürümü baz_revizyon olarak geri gönderir.
+            "revision": revizyon,
+            "companyId": kullanici.sirket_id,
+            "snapshot": istek.snapshot,
+            "updatedBy": kullanici.kullanici_id,
+            "updatedAt": firestore.SERVER_TIMESTAMP,
+            "retentionUntil": datetime.now(timezone.utc) + timedelta(days=saklama_gunu),
+            "dataClassification": "confidential-financial",
+        }
+
+    # Oku-karşılaştır-yaz'ı tek Firestore işleminde atomik yürüt. İki oturum
+    # aynı sürümü açıp kaydetmeye çalışırsa yalnızca ilki geçer; ikincisi
+    # 409 alır ve ilk kayıt korunur. İşlem, gerçek eşzamanlılıkta yarışı
+    # engeller; sıralı testte gövde bir kez çalışıp aynı mantığı doğrular.
+    transaction = db.transaction()
+
+    @firestore.transactional
+    def _uygula(txn) -> int:
+        belge = workspace_ref.get(transaction=txn)
+        mevcut = int((belge.to_dict() or {}).get("revision", 0)) if belge.exists else 0
+        if istek.baz_revizyon is not None and istek.baz_revizyon != mevcut:
+            raise _cakisma_hatasi(mevcut)
+        yeni_revizyon = mevcut + 1
+        txn.set(workspace_ref, _belge(yeni_revizyon))
+        txn.set(audit_ref, _audit("workspace.save", kullanici))
+        return yeni_revizyon
+
+    yeni_revizyon = _uygula(transaction)
+    return {
+        "durum": "kaydedildi",
+        "schema_version": 2,
+        "revizyon": yeni_revizyon,
+        "boyut": len(kodlanmis),
+        "saklama_gunu": saklama_gunu,
+    }
 
 
 def calisma_alani_yukle(kullanici: KimlikBilgisi) -> Dict[str, Any]:
@@ -102,15 +144,20 @@ def calisma_alani_yukle(kullanici: KimlikBilgisi) -> Dict[str, Any]:
     workspace_ref, audit_ref = _referanslar(db, str(kullanici.sirket_id))
     belge = workspace_ref.get()
     if not belge.exists:
-        return {"durum": "bos", "snapshot": None}
+        return {"durum": "bos", "snapshot": None, "revizyon": 0}
     veri = belge.to_dict() or {}
     snapshot = veri.get("snapshot")
     if snapshot is None:  # Eski düz schemaVersion 1/2 kayıtlarını güvenli biçimde okuyup taşıyabilmek için.
         snapshot = {k: v for k, v in veri.items() if k not in {
-            "schemaVersion", "companyId", "updatedBy", "updatedAt", "retentionUntil", "dataClassification"
+            "schemaVersion", "revision", "companyId", "updatedBy", "updatedAt", "retentionUntil", "dataClassification"
         }}
     db.batch().set(audit_ref, _audit("workspace.read", kullanici)).commit()
-    return {"durum": "hazir", "schema_version": veri.get("schemaVersion", 1), "snapshot": snapshot}
+    return {
+        "durum": "hazir",
+        "schema_version": veri.get("schemaVersion", 1),
+        "revizyon": int(veri.get("revision", 0)),
+        "snapshot": snapshot,
+    }
 
 
 def calisma_alani_sil(kullanici: KimlikBilgisi) -> Dict[str, Any]:
