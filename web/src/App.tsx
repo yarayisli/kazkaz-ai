@@ -98,9 +98,44 @@ function WorkspaceApp() {
     setActiveTab(tabId);
   };
 
+  // Oturum kimliği: kullanıcı + şirket. Değeri değiştiğinde (giriş, çıkış,
+  // şirket geçişi, misafir moduna geçiş) çalışma alanı state'i sıfırlanır.
+  // Aksi halde A şirketinin gizli rakamları çıkıştan veya B'ye geçişten
+  // sonra bellekte kalır, ekranda görünür ve hatta B'ye kaydedilebilir.
+  // Nesne referansı değil kararlı bir dizeye bağlanır: token yenilenince
+  // currentUser referansı değişse de kimlik aynıysa gereksiz sıfırlama olmaz.
+  const workspaceIdentity = isGuest
+    ? 'misafir'
+    : currentUser
+      ? `${currentUser.uid}:${userProfile?.companyId ?? 'sirketsiz'}`
+      : 'anonim';
+
   useEffect(() => {
+    // 1) Kimlik her değiştiğinde çalışma alanını nötr örnek tabana sıfırla.
+    //    Önceki şirketin verisi hiçbir senaryoda taşınmaz.
+    setFinancialData(initialFinancialData);
+    setCashFlow(initialCashFlow);
+    setDebts(initialDebts);
+    setCustomers(initialCustomers);
+    setBudget(initialBudget);
+    setAdvancedData(undefined);
+    setTransactionAnalytics(undefined);
+    setFinancialAudit(null);
+    setApprovalDecisions([]);
+    setHealthScore(null);
+    setIsSampleData(true);
+    setPersistenceStatus('idle');
+    setPersistenceMessage(null);
+
     const companyId = userProfile?.companyId;
-    if (!currentUser || !companyId || isGuest) return;
+    // 2) Kimlik doğrulanmış bir şirket yoksa yükleme yapma. Oturumsuz
+    //    (misafir de değil) kullanıcıyı finans ekranından çıkarıp karşılama
+    //    sayfasına al; aksi halde çıkıştan sonra örnek panel açık kalır.
+    if (!currentUser || !companyId || isGuest) {
+      if (!currentUser && !isGuest) setActiveTab('landing');
+      return;
+    }
+
     let active = true;
     setPersistenceStatus('loading');
     setPersistenceMessage('Kayıtlı şirket çalışma alanı yükleniyor…');
@@ -130,7 +165,10 @@ function WorkspaceApp() {
         setPersistenceMessage(error instanceof Error ? error.message : 'Çalışma alanı yüklenemedi.');
       });
     return () => { active = false; };
-  }, [currentUser, isGuest, userProfile?.companyId]);
+    // workspaceIdentity, currentUser/isGuest/companyId'nin türevidir; tek
+    // bağımlılık olarak kimlik değişimini eksiksiz temsil eder.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [workspaceIdentity]);
 
   const persistWorkspace = async (snapshot: WorkspaceSnapshot) => {
     if (!currentUser || !userProfile?.companyId || isGuest) return;
@@ -310,7 +348,7 @@ function WorkspaceApp() {
             recentTabIds={recentTabIds}
           />
 
-          {activeTab === 'landing' ? (
+          {activeTab === 'landing' || (!isGuest && !currentUser) ? (
             <LandingPage
               onNavigateTab={navigateToTab}
               onOpenAuth={() => navigateToTab('data-entry')}
