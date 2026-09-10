@@ -58,6 +58,7 @@ from api.models import (
     PlatformGeriBildirimDurumIstegi,
     RaporIstegi,
     CalismaAlaniKaydetIstegi,
+    CalismaAlaniSilIstegi,
 )
 from api.company_service import sirket_olustur
 from api.membership_service import daveti_kabul_et, uye_cikar, uye_davet_et, uye_listesi, uye_rolunu_guncelle
@@ -412,7 +413,7 @@ async def finans_dosyasi_dogrula(
 
 
 @uygulama.get("/api/v1/veri/calisma-alani")
-def calisma_alani_getir(kullanici: KimlikBilgisi = Depends(mevcut_sirket_uyesi)):
+def calisma_alani_getir(kullanici: KimlikBilgisi = Depends(mevcut_sirket_uyesi_dogrulanmis)):
     return calisma_alani_yukle(kullanici)
 
 
@@ -425,12 +426,15 @@ def calisma_alani_kaydi(
 
 
 @uygulama.post("/api/v1/veri/calisma-alani/sil")
-def calisma_alani_silme(kullanici: KimlikBilgisi = Depends(mevcut_sirket_uyesi_dogrulanmis)):
-    return calisma_alani_sil(kullanici)
+def calisma_alani_silme(
+    istek: CalismaAlaniSilIstegi,
+    kullanici: KimlikBilgisi = Depends(mevcut_sirket_uyesi_dogrulanmis),
+):
+    return calisma_alani_sil(istek, kullanici)
 
 
 @uygulama.get("/api/v1/veri/calisma-alani/disa-aktar")
-def calisma_alani_export(kullanici: KimlikBilgisi = Depends(mevcut_sirket_uyesi)):
+def calisma_alani_export(kullanici: KimlikBilgisi = Depends(mevcut_sirket_uyesi_dogrulanmis)):
     return Response(
         content=calisma_alani_disa_aktar(kullanici),
         media_type="application/json",

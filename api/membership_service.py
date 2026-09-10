@@ -227,6 +227,7 @@ def uye_cikar(istek: UyeCikarmaIstegi, kullanici: KimlikBilgisi) -> Dict[str, An
     firebase_auth.set_custom_user_claims(istek.kullanici_id, claimler, app=app)
     batch = db.batch()
     batch.delete(uye_ref)
+    batch.delete(sirket.collection("bekleyenClaimGuncellemeleri").document(istek.kullanici_id))
     batch.set(db.collection("users").document(istek.kullanici_id), {"companyId": None, "companyName": "Şirket üyeliği bekleniyor", "role": "member"}, merge=True)
     batch.commit()
     _audit(db, kullanici, "member.remove", istek.kullanici_id)

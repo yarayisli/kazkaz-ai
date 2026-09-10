@@ -4,7 +4,7 @@ from unittest.mock import patch
 
 from fastapi.testclient import TestClient
 
-from api.auth import mevcut_kullanici, mevcut_sirket_uyesi
+from api.auth import mevcut_kullanici, mevcut_sirket_uyesi_dogrulanmis
 from api.main import uygulama
 from api.models import KimlikBilgisi
 from api.security_middleware import hiz_limitlerini_sifirla
@@ -59,7 +59,7 @@ class TestApi(unittest.TestCase):
             sirket_id="company-a",
             roller={"admin": True},
         )
-        uygulama.dependency_overrides[mevcut_sirket_uyesi] = lambda: kullanici
+        uygulama.dependency_overrides[mevcut_sirket_uyesi_dogrulanmis] = lambda: kullanici
         snapshot = {
             "financialData": {}, "cashFlow": [], "debts": [], "customers": [],
             "budget": [], "financialAudit": None, "isSampleData": False,
@@ -67,15 +67,16 @@ class TestApi(unittest.TestCase):
         with patch("api.main.calisma_alani_kaydet", return_value={"durum": "kaydedildi"}) as kaydet:
             yanit = self.client.post(
                 "/api/v1/veri/calisma-alani/kaydet",
-                json={"schema_version": 2, "snapshot": snapshot},
+                json={"schema_version": 2, "snapshot": snapshot, "baz_revizyon": 0},
             )
         self.assertEqual(yanit.status_code, 200)
         self.assertEqual(kaydet.call_args.args[1].sirket_id, "company-a")
 
         with patch("api.main.calisma_alani_sil", return_value={"durum": "silindi"}) as sil:
-            yanit = self.client.post("/api/v1/veri/calisma-alani/sil", json={})
+            yanit = self.client.post("/api/v1/veri/calisma-alani/sil", json={"baz_revizyon": 0})
         self.assertEqual(yanit.status_code, 200)
-        self.assertEqual(sil.call_args.args[0].kullanici_id, "workspace-admin")
+        self.assertEqual(sil.call_args.args[0].baz_revizyon, 0)
+        self.assertEqual(sil.call_args.args[1].kullanici_id, "workspace-admin")
 
     def test_saglik_ucu_acik(self):
         yanit = self.client.get("/api/health")

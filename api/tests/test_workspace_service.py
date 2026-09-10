@@ -4,7 +4,7 @@ from unittest.mock import patch
 
 from fastapi import HTTPException
 
-from api.models import CalismaAlaniKaydetIstegi, KimlikBilgisi
+from api.models import CalismaAlaniKaydetIstegi, CalismaAlaniSilIstegi, KimlikBilgisi
 from api.workspace_service import (
     calisma_alani_disa_aktar,
     calisma_alani_kaydet,
@@ -139,7 +139,7 @@ class TestWorkspaceService(unittest.TestCase):
 
     def test_admin_kaydeder_viewer_okur_ve_audit_olusur(self):
         sonuc = calisma_alani_kaydet(
-            CalismaAlaniKaydetIstegi(snapshot=snapshot()),
+            CalismaAlaniKaydetIstegi(snapshot=snapshot(), baz_revizyon=0),
             kullanici("admin"),
         )
         self.assertEqual(sonuc["durum"], "kaydedildi")
@@ -152,7 +152,7 @@ class TestWorkspaceService(unittest.TestCase):
         self.assertIn("workspace.read", aksiyonlar)
 
     def test_export_finansal_veriyi_json_olarak_dondurur_ve_loglar(self):
-        calisma_alani_kaydet(CalismaAlaniKaydetIstegi(snapshot=snapshot()), kullanici("cfo"))
+        calisma_alani_kaydet(CalismaAlaniKaydetIstegi(snapshot=snapshot(), baz_revizyon=0), kullanici("cfo"))
         paket = json.loads(calisma_alani_disa_aktar(kullanici("viewer")).decode("utf-8"))
         self.assertEqual(paket["companyId"], "company-a")
         self.assertEqual(paket["workspace"]["financialData"]["companyName"], "Test A.Ş.")
@@ -160,19 +160,20 @@ class TestWorkspaceService(unittest.TestCase):
         self.assertIn("workspace.export", aksiyonlar)
 
     def test_silme_yalniz_admin_ve_cfo_rolune_aciktir(self):
-        calisma_alani_kaydet(CalismaAlaniKaydetIstegi(snapshot=snapshot()), kullanici("admin"))
+        calisma_alani_kaydet(CalismaAlaniKaydetIstegi(snapshot=snapshot(), baz_revizyon=0), kullanici("admin"))
         with self.assertRaises(HTTPException) as context:
-            calisma_alani_sil(kullanici("analist"))
+            calisma_alani_sil(CalismaAlaniSilIstegi(baz_revizyon=1), kullanici("analist"))
         self.assertEqual(context.exception.status_code, 403)
 
-        sonuc = calisma_alani_sil(kullanici("cfo"))
+        sonuc = calisma_alani_sil(CalismaAlaniSilIstegi(baz_revizyon=1), kullanici("cfo"))
         self.assertEqual(sonuc["durum"], "silindi")
-        self.assertNotIn(("companies", "company-a", "workspaces", "current"), self.db.store)
+        self.assertIsNone(calisma_alani_yukle(kullanici())["snapshot"])
+        self.assertNotIn("snapshot", self.db.store[("companies", "company-a", "workspaces", "current")])
 
     def test_eksik_snapshot_reddedilir(self):
         with self.assertRaises(HTTPException) as context:
             calisma_alani_kaydet(
-                CalismaAlaniKaydetIstegi(snapshot={"financialData": {}}),
+                CalismaAlaniKaydetIstegi(snapshot={"financialData": {}}, baz_revizyon=0),
                 kullanici("admin"),
             )
         self.assertEqual(context.exception.status_code, 422)
@@ -210,16 +211,39 @@ class TestWorkspaceService(unittest.TestCase):
             "Güncel A.Ş.",
         )
 
-    def test_baz_revizyon_yoksa_kosulsuz_yazar(self):
-        # Geriye dönük uyum: sürüm göndermeyen eski istemci koşulsuz yazar.
-        calisma_alani_kaydet(CalismaAlaniKaydetIstegi(snapshot=snapshot()), kullanici("admin"))
-        sonuc = calisma_alani_kaydet(CalismaAlaniKaydetIstegi(snapshot=snapshot()), kullanici("admin"))
-        self.assertEqual(sonuc["revizyon"], 2)
+    def test_baz_revizyon_zorunlu(self):
+        from pydantic import ValidationError
+        for ek in ({}, {"baz_revizyon": None}):
+            with self.assertRaises(ValidationError):
+                CalismaAlaniKaydetIstegi(snapshot=snapshot(), **ek)
+
+    def test_silme_yeniden_olusturma_eski_oturumu_kabul_etmez(self):
+        calisma_alani_kaydet(CalismaAlaniKaydetIstegi(snapshot=snapshot(), baz_revizyon=0), kullanici())
+        silinen = calisma_alani_sil(CalismaAlaniSilIstegi(baz_revizyon=1), kullanici())
+        self.assertEqual(silinen["revizyon"], 2)
+        self.assertEqual(calisma_alani_yukle(kullanici())["revizyon"], 2)
+        calisma_alani_kaydet(CalismaAlaniKaydetIstegi(snapshot=snapshot(), baz_revizyon=2), kullanici())
+        with self.assertRaises(HTTPException) as hata:
+            calisma_alani_kaydet(CalismaAlaniKaydetIstegi(snapshot=snapshot(), baz_revizyon=1), kullanici())
+        self.assertEqual(hata.exception.status_code, 409)
+
+    def test_eski_oturum_guncel_calisma_alanini_silemez(self):
+        calisma_alani_kaydet(CalismaAlaniKaydetIstegi(snapshot=snapshot(), baz_revizyon=0), kullanici())
+        guncel = dict(snapshot())
+        guncel["financialData"] = {"companyName": "Korunacak A.Ş."}
+        calisma_alani_kaydet(CalismaAlaniKaydetIstegi(snapshot=guncel, baz_revizyon=1), kullanici())
+        with self.assertRaises(HTTPException) as hata:
+            calisma_alani_sil(CalismaAlaniSilIstegi(baz_revizyon=1), kullanici())
+        self.assertEqual(hata.exception.status_code, 409)
+        self.assertEqual(
+            calisma_alani_yukle(kullanici())["snapshot"]["financialData"]["companyName"],
+            "Korunacak A.Ş.",
+        )
 
     def test_yerel_gelistirici_buluta_yazamaz(self):
         dev = KimlikBilgisi(kullanici_id="dev", sirket_id="yerel-demo", roller={"gelistirici": True})
         with self.assertRaises(HTTPException) as context:
-            calisma_alani_kaydet(CalismaAlaniKaydetIstegi(snapshot=snapshot()), dev)
+            calisma_alani_kaydet(CalismaAlaniKaydetIstegi(snapshot=snapshot(), baz_revizyon=0), dev)
         self.assertEqual(context.exception.status_code, 409)
 
 

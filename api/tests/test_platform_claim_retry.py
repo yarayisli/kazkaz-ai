@@ -109,6 +109,7 @@ class TestClaimYenidenDeneme(unittest.TestCase):
         self.db.store[("companies", "c1")] = {"status": "active", "plan": "pro"}
         self.db.store[("companies", "c1", "members", "m1")] = {"role": "admin"}
         self.db.store[("companies", "c1", "members", "m2")] = {"role": "cfo"}
+        self.db.store[("users", "m2")] = {"companyId": "c1"}
 
         self.patches = [
             patch("api.platform_admin_service._db", return_value=self.db),

@@ -35,6 +35,7 @@ export const DataEntryTab: React.FC<DataEntryTabProps> = ({ initialData, onSave,
   const [syncError, setSyncError] = useState<string | null>(null);
   const [uploading, setUploading] = useState(false);
   const [importResult, setImportResult] = useState<VeriIceriAktarmaSonucu | null>(null);
+  const [importWarningsAccepted, setImportWarningsAccepted] = useState(false);
   const [eslemeGerekli, setEslemeGerekli] = useState<EslesmeGerekliSonucu | null>(null);
   const [bekleyenDosya, setBekleyenDosya] = useState<File | null>(null);
   const [entryMode, setEntryMode] = useState<'excel' | 'sheets' | 'manual'>('excel');
@@ -86,10 +87,12 @@ export const DataEntryTab: React.FC<DataEntryTabProps> = ({ initialData, onSave,
       setBekleyenDosya(dosya);
       setEslemeGerekli(sonuc);
       setImportResult(null);
+      setImportWarningsAccepted(false);
     } else {
       setEslemeGerekli(null);
       setBekleyenDosya(null);
       setImportResult(sonuc);
+      setImportWarningsAccepted(false);
     }
   };
 
@@ -98,6 +101,7 @@ export const DataEntryTab: React.FC<DataEntryTabProps> = ({ initialData, onSave,
     setUploading(true);
     setSyncError(null);
     setImportResult(null);
+    setImportWarningsAccepted(false);
     setEslemeGerekli(null);
     try {
       dogrulamaSonucunuIsle(await finansDosyasiDogrula(file, kayitliEslemeYukle()), file);
@@ -129,6 +133,7 @@ export const DataEntryTab: React.FC<DataEntryTabProps> = ({ initialData, onSave,
     setUploading(true);
     setSyncError(null);
     setImportResult(null);
+    setImportWarningsAccepted(false);
     setEslemeGerekli(null);
     setBekleyenDosya(null);
     try {
@@ -154,6 +159,14 @@ export const DataEntryTab: React.FC<DataEntryTabProps> = ({ initialData, onSave,
 
   const applyImport = async () => {
     if (!importResult || isReadOnly) return;
+    if (importResult.veri_kalitesi.aktarim_bloke) {
+      setSyncError('Dosyada düzeltilmesi gereken veri hataları var. Bulguları giderip dosyayı yeniden yükleyin.');
+      return;
+    }
+    if (importResult.hatalar.some((bulgu) => bulgu.seviye === 'uyari') && !importWarningsAccepted) {
+      setSyncError('Aktarmadan önce ölçek, KDV, tarih ve mükerrer işlem uyarılarını kontrol edip onaylayın.');
+      return;
+    }
     const imported = importedFinancialData(importResult);
     setIsSyncing(true);
     setSyncError(null);
@@ -249,10 +262,20 @@ export const DataEntryTab: React.FC<DataEntryTabProps> = ({ initialData, onSave,
         <button
           type="button"
           onClick={() => void applyImport()}
-          disabled={isSyncing}
+          disabled={
+            isSyncing
+            || Boolean(importResult.veri_kalitesi.aktarim_bloke)
+            || (importResult.hatalar.some((bulgu) => bulgu.seviye === 'uyari') && !importWarningsAccepted)
+          }
           className="rounded-xl bg-emerald-600 px-4 py-2.5 text-xs font-bold text-white hover:bg-emerald-700 disabled:cursor-not-allowed disabled:opacity-60"
         >
-          {isSyncing ? 'Kurumsal metrikler hesaplanıyor…' : 'Doğrulanan veriyi çalışma alanına aktar'}
+          {isSyncing
+            ? 'Kurumsal metrikler hesaplanıyor…'
+            : importResult.veri_kalitesi.aktarim_bloke
+              ? 'Önce veri hatalarını düzeltin'
+              : importResult.hatalar.some((bulgu) => bulgu.seviye === 'uyari') && !importWarningsAccepted
+                ? 'Uyarıları inceleyip onaylayın'
+              : 'Doğrulanan veriyi çalışma alanına aktar'}
         </button>
       </div>
       <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
@@ -269,6 +292,18 @@ export const DataEntryTab: React.FC<DataEntryTabProps> = ({ initialData, onSave,
         ))}
       </div>
       <DataQualityFindings kalite={importResult.veri_kalitesi} dosya={importResult.dosya} />
+      {!importResult.veri_kalitesi.aktarim_bloke
+        && importResult.hatalar.some((bulgu) => bulgu.seviye === 'uyari') && (
+        <label className="flex cursor-pointer items-start gap-2.5 rounded-xl border border-amber-200 bg-amber-50 p-3 text-[11px] leading-4 text-amber-900">
+          <input
+            type="checkbox"
+            checked={importWarningsAccepted}
+            onChange={(event) => setImportWarningsAccepted(event.target.checked)}
+            className="mt-0.5 h-4 w-4 rounded border-amber-300 text-amber-700"
+          />
+          Ölçek, KDV, tarih ve olası mükerrer işlem uyarılarını kontrol ettim; gösterilen varsayımlarla devam ediyorum.
+        </label>
+      )}
       {importResult.hatalar.length > 0 && (
         <div className="rounded-xl border border-amber-200 bg-amber-50 p-3">
           <p className="flex items-center gap-2 text-xs font-bold text-amber-900">

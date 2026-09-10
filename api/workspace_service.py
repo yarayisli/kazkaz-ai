@@ -16,7 +16,7 @@ from fastapi import HTTPException, status
 from firebase_admin import firestore
 
 from api.auth import _firebase_uygulamasi
-from api.models import CalismaAlaniKaydetIstegi, KimlikBilgisi
+from api.models import CalismaAlaniKaydetIstegi, CalismaAlaniSilIstegi, KimlikBilgisi
 
 
 ZORUNLU_SNAPSHOT_ALANLARI = {
@@ -121,7 +121,7 @@ def calisma_alani_kaydet(istek: CalismaAlaniKaydetIstegi, kullanici: KimlikBilgi
     def _uygula(txn) -> int:
         belge = workspace_ref.get(transaction=txn)
         mevcut = int((belge.to_dict() or {}).get("revision", 0)) if belge.exists else 0
-        if istek.baz_revizyon is not None and istek.baz_revizyon != mevcut:
+        if istek.baz_revizyon != mevcut:
             raise _cakisma_hatasi(mevcut)
         yeni_revizyon = mevcut + 1
         txn.set(workspace_ref, _belge(yeni_revizyon))
@@ -146,6 +146,8 @@ def calisma_alani_yukle(kullanici: KimlikBilgisi) -> Dict[str, Any]:
     if not belge.exists:
         return {"durum": "bos", "snapshot": None, "revizyon": 0}
     veri = belge.to_dict() or {}
+    if veri.get("deleted"):
+        return {"durum": "bos", "snapshot": None, "revizyon": int(veri["revision"])}
     snapshot = veri.get("snapshot")
     if snapshot is None:  # Eski düz schemaVersion 1/2 kayıtlarını güvenli biçimde okuyup taşıyabilmek için.
         snapshot = {k: v for k, v in veri.items() if k not in {
@@ -160,15 +162,24 @@ def calisma_alani_yukle(kullanici: KimlikBilgisi) -> Dict[str, Any]:
     }
 
 
-def calisma_alani_sil(kullanici: KimlikBilgisi) -> Dict[str, Any]:
+def calisma_alani_sil(istek: CalismaAlaniSilIstegi, kullanici: KimlikBilgisi) -> Dict[str, Any]:
     _rol_ister(kullanici, {"admin", "cfo"})
     db = _db()
     workspace_ref, audit_ref = _referanslar(db, str(kullanici.sirket_id))
-    batch = db.batch()
-    batch.delete(workspace_ref)
-    batch.set(audit_ref, _audit("workspace.delete", kullanici))
-    batch.commit()
-    return {"durum": "silindi", "kapsam": "workspace/current"}
+    @firestore.transactional
+    def _sil(txn):
+        belge = workspace_ref.get(transaction=txn)
+        mevcut = int((belge.to_dict() or {}).get("revision", 0)) if belge.exists else 0
+        if istek.baz_revizyon != mevcut:
+            raise _cakisma_hatasi(mevcut)
+        revizyon = mevcut + 1
+        # Finans içeriği silinir; eski oturumlar için yalnız revizyon mezar taşı kalır.
+        txn.set(workspace_ref, {"revision": revizyon, "deleted": True})
+        txn.set(audit_ref, _audit("workspace.delete", kullanici))
+        return revizyon
+
+    revizyon = _sil(db.transaction())
+    return {"durum": "silindi", "kapsam": "workspace/current", "revizyon": revizyon}
 
 
 def calisma_alani_disa_aktar(kullanici: KimlikBilgisi) -> bytes:

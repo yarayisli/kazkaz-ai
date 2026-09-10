@@ -281,8 +281,10 @@ class GeriBildirimIstegi(BaseModel):
 class CalismaAlaniKaydetIstegi(BaseModel):
     schema_version: int = Field(default=2, ge=2, le=2)
     snapshot: Dict[str, Any]
-    #: İstemcinin yüklerken gördüğü sürüm. Kayıt anında sunucudaki sürümle
-    #: eşleşmezse (başka bir oturum araya girdiyse) 409 döner ve önceki kayıt
-    #: korunur. None ise koşulsuz yazılır (sürüm bilgisi göndermeyen eski
-    #: istemcilerle geriye dönük uyum için).
-    baz_revizyon: Optional[int] = Field(default=None, ge=0)
+    #: İçerikle birlikte yüklenen taban sürüm; eski istemci önce yenilenmelidir.
+    baz_revizyon: int = Field(ge=0)
+
+
+class CalismaAlaniSilIstegi(BaseModel):
+    #: Silme de güncel çalışma alanı sürümüne bağlıdır; eski ekran yeni veriyi silemez.
+    baz_revizyon: int = Field(ge=0)

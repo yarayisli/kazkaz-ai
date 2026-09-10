@@ -21,6 +21,9 @@ def _temiz_sirket_adi(ad: str) -> str:
 def _claimleri_guncelle(kullanici_id: str, sirket_id: str, rol: str, app, plan: str = "free", deneme_bitis: str | None = None, sirket_durumu: str | None = None) -> None:
     firebase_kullanici = firebase_auth.get_user(kullanici_id, app=app)
     claimler = dict(firebase_kullanici.custom_claims or {})
+    # Eski boolean roller tekil yeni role ek yetki vermemeli.
+    for anahtar in ("admin", "cfo", "analist", "viewer", "companyId"):
+        claimler.pop(anahtar, None)
     claimler.update({"company_id": sirket_id, "role": rol, "plan": plan})
     if sirket_durumu:
         claimler["company_status"] = sirket_durumu

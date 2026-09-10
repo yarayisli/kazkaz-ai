@@ -1,4 +1,4 @@
-import React, { lazy, Suspense, useEffect, useState } from 'react';
+import React, { lazy, Suspense, useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { Navigation } from './components/Navigation';
 import { LandingPage } from './components/LandingPage';
 import { AuthProvider } from './context/AuthContext';
@@ -50,8 +50,17 @@ const WorkspaceFallback = () => (
   </div>
 );
 
-function WorkspaceApp() {
+export function WorkspaceApp() {
   const { currentUser, userProfile, isGuest } = useAuth();
+  const yasiyor = useRef(true);
+  const kayitKilidi = useRef(false);
+  const cakismaKilidi = useRef(false);
+  const yuklendi = useRef(false);
+  const yuklemeSirasi = useRef(0);
+  useLayoutEffect(() => {
+    yasiyor.current = true;
+    return () => { yasiyor.current = false; };
+  }, []);
   const [activeTab, setActiveTab] = useState<string>('landing');
   const [financialData, setFinancialData] = useState<FinancialData>(initialFinancialData);
   const [cashFlow, setCashFlow] = useState<CashFlowItem[]>(initialCashFlow);
@@ -158,12 +167,14 @@ function WorkspaceApp() {
     }
 
     let active = true;
+    const sira = ++yuklemeSirasi.current;
     setPersistenceStatus('loading');
     setPersistenceMessage('Kayıtlı şirket çalışma alanı yükleniyor…');
     loadWorkspace(companyId)
       .then(({ snapshot, revizyon }) => {
-        if (!active) return;
+        if (!active || !yasiyor.current || sira !== yuklemeSirasi.current) return;
         setWorkspaceRevizyon(revizyon);
+        yuklendi.current = true;
         if (snapshot) {
           uygulaSnapshot(snapshot);
           setPersistenceMessage('Şirket çalışma alanı güvenli kayıttan yüklendi.');
@@ -173,7 +184,7 @@ function WorkspaceApp() {
         setPersistenceStatus('idle');
       })
       .catch((error) => {
-        if (!active) return;
+        if (!active || !yasiyor.current || sira !== yuklemeSirasi.current) return;
         setPersistenceStatus('error');
         setPersistenceMessage(error instanceof Error ? error.message : 'Çalışma alanı yüklenemedi.');
       });
@@ -184,21 +195,25 @@ function WorkspaceApp() {
   }, [workspaceIdentity]);
 
   const persistWorkspace = async (snapshot: WorkspaceSnapshot) => {
-    if (!currentUser || !userProfile?.companyId || isGuest) return;
+    if (!yasiyor.current || !currentUser || !userProfile?.companyId || isGuest) return;
+    if (cakismaKilidi.current || kayitKilidi.current || !yuklendi.current) return;
+    kayitKilidi.current = true;
     setPersistenceStatus('loading');
     setPersistenceMessage('Şirket çalışma alanı kaydediliyor…');
     setWorkspaceCakismasi(false);
     try {
       const sonuc = await saveWorkspace(userProfile.companyId, currentUser.uid, snapshot, workspaceRevizyon);
+      if (!yasiyor.current) return;
       setWorkspaceRevizyon(sonuc.revizyon);
       setPersistenceStatus('saved');
       setPersistenceMessage('Değişiklikler şirket çalışma alanına kaydedildi.');
     } catch (error) {
+      if (!yasiyor.current) return;
       // Çakışma: başka bir oturum araya girdi. Kullanıcının düzenlemeleri
       // bellekte durur (sessizce ezilmez); banner "en son sürümü yükle"
       // sunar ki kullanıcı değişikliklerini görüp yeniden uygulasın.
       if (error instanceof CalismaAlaniCakismaHatasi) {
-        setWorkspaceRevizyon(error.mevcutRevizyon);
+        cakismaKilidi.current = true;
         setWorkspaceCakismasi(true);
         setPersistenceStatus('error');
         setPersistenceMessage(
@@ -209,22 +224,34 @@ function WorkspaceApp() {
       }
       setPersistenceStatus('error');
       setPersistenceMessage(error instanceof Error ? error.message : 'Çalışma alanı kaydedilemedi.');
+    } finally {
+      kayitKilidi.current = false;
     }
   };
 
   const calismaAlaniniYenile = async () => {
     const companyId = userProfile?.companyId;
-    if (!companyId || isGuest) return;
+    if (!yasiyor.current || !companyId || isGuest || kayitKilidi.current) return;
+    const sira = ++yuklemeSirasi.current;
+    yuklendi.current = false;
     setPersistenceStatus('loading');
     setPersistenceMessage('En son sürüm yükleniyor…');
     try {
       const { snapshot, revizyon } = await loadWorkspace(companyId);
+      if (!yasiyor.current || sira !== yuklemeSirasi.current) return;
       setWorkspaceRevizyon(revizyon);
-      if (snapshot) uygulaSnapshot(snapshot);
+      uygulaSnapshot(snapshot || {
+        financialData: initialFinancialData, cashFlow: [], debts: [], customers: [],
+        budget: [], financialAudit: null, isSampleData: true,
+      });
+      setHealthScore(null);
+      cakismaKilidi.current = false;
+      yuklendi.current = true;
       setWorkspaceCakismasi(false);
       setPersistenceStatus('idle');
       setPersistenceMessage('En son sürüm yüklendi. Değişikliklerinizi kontrol edip yeniden kaydedebilirsiniz.');
     } catch (error) {
+      if (!yasiyor.current || sira !== yuklemeSirasi.current) return;
       setPersistenceStatus('error');
       setPersistenceMessage(error instanceof Error ? error.message : 'Çalışma alanı yüklenemedi.');
     }
@@ -260,6 +287,7 @@ function WorkspaceApp() {
         kisa_vadeli_borc: finansal.shortTermDebt,
         stoklar: finansal.inventory,
       });
+      if (!yasiyor.current) return;
       setHealthScore(sonuc.finansal.saglik_skoru ?? null);
     } catch {
       // Skor hesaplanamazsa ekran skorsuz devam eder; yaklaşık değer üretilmez.
@@ -367,7 +395,9 @@ function WorkspaceApp() {
       try {
         const response = await fetch('/ornek-gelismis-ajan-verisi.json');
         if (!response.ok) throw new Error('Örnek ajan verisi alınamadı.');
-        applyAdvancedData(await response.json() as GelismisAjanGirdisi);
+        const ornek = await response.json() as GelismisAjanGirdisi;
+        if (!yasiyor.current) return;
+        applyAdvancedData(ornek);
         setIsSampleData(true);
       } catch {
         setPersistenceStatus('error');
@@ -583,7 +613,27 @@ function WorkspaceApp() {
                     }}
                     onDeleteWorkspace={async () => {
                       if (!userProfile?.companyId) throw new Error('Şirket çalışma alanı bulunamadı.');
-                      await deleteWorkspace(userProfile.companyId);
+                      if (kayitKilidi.current || !yuklendi.current) {
+                        throw new Error('Silmeden önce çalışma alanının yüklenmesini veya kaydın tamamlanmasını bekleyin.');
+                      }
+                      let silinen: { revizyon: number };
+                      try {
+                        silinen = await deleteWorkspace(userProfile.companyId, workspaceRevizyon);
+                      } catch (error) {
+                        if (error instanceof CalismaAlaniCakismaHatasi) {
+                          cakismaKilidi.current = true;
+                          setWorkspaceCakismasi(true);
+                          setPersistenceStatus('error');
+                          setPersistenceMessage(
+                            'Çalışma alanı başka bir oturumda değiştiği için silinmedi. Önce en son sürümü yükleyin.',
+                          );
+                        }
+                        throw error;
+                      }
+                      if (!yasiyor.current) return;
+                      setWorkspaceRevizyon(silinen.revizyon);
+                      cakismaKilidi.current = false;
+                      setWorkspaceCakismasi(false);
                       setFinancialData(initialFinancialData);
                       setCashFlow([]);
                       setDebts([]);
@@ -630,12 +680,19 @@ function WorkspaceApp() {
   );
 }
 
+export function WorkspaceOturumu() {
+  const { currentUser, userProfile, isGuest } = useAuth();
+  const kimlik = isGuest ? 'misafir' : `${currentUser?.uid || 'anonim'}:${userProfile?.companyId || ''}`;
+  // Kimlik değişimi bütün alt bileşenleri de kaldırır: eski yanıt yeni state'e erişemez.
+  return <WorkspaceApp key={kimlik} />;
+}
+
 export function App() {
   return (
     <ErrorBoundary>
       <AuthProvider>
         <AlertProvider>
-          <WorkspaceApp />
+          <WorkspaceOturumu />
         </AlertProvider>
       </AuthProvider>
     </ErrorBoundary>

@@ -388,6 +388,8 @@ export interface VeriIceriAktarmaSonucu {
     semantik_durum?: 'temiz' | 'uyarili' | 'hatali';
     semantik_hata_sayisi?: number;
     semantik_uyari_sayisi?: number;
+    aktarim_bloke?: boolean;
+    bloke_nedenleri?: string[];
   };
   gelismis_veri: GelismisAjanGirdisi;
   zaman_serisi: Array<Record<string, string | number>>;
@@ -634,7 +636,7 @@ export function calismaAlaniYukle<T>() {
 
 export async function calismaAlaniKaydet<T>(
   snapshot: T,
-  bazRevizyon?: number,
+  bazRevizyon: number,
 ): Promise<CalismaAlaniKayitSonucu> {
   const kullanici = auth.currentUser;
   const yerelKimlikDogrulamaKapali = import.meta.env.DEV
@@ -671,8 +673,11 @@ export async function calismaAlaniKaydet<T>(
   return yanit.json() as Promise<CalismaAlaniKayitSonucu>;
 }
 
-export function calismaAlaniSil() {
-  return apiIstegi<{ durum: 'silindi'; kapsam: string }>('/api/v1/veri/calisma-alani/sil', {});
+export function calismaAlaniSil(bazRevizyon: number) {
+  return apiIstegi<{ durum: 'silindi'; kapsam: string; revizyon: number }>(
+    '/api/v1/veri/calisma-alani/sil',
+    { baz_revizyon: bazRevizyon },
+  );
 }
 
 export async function calismaAlaniDisaAktar(): Promise<void> {
@@ -754,7 +759,14 @@ async function apiIstegi<T>(yol: string, govde: unknown): Promise<T> {
 
   if (!yanit.ok) {
     const hata = await yanit.json().catch(() => null);
-    throw new Error(hata?.detail || 'KazKaz API isteği tamamlanamadı.');
+    const detay = hata?.detail;
+    if (yanit.status === 409 && detay && typeof detay === 'object' && detay.kod === 'calisma_alani_cakismasi') {
+      throw new CalismaAlaniCakismaHatasi(
+        Number(detay.mevcut_revizyon ?? 0),
+        String(detay.mesaj || 'Çalışma alanı başka bir oturumda güncellendi.'),
+      );
+    }
+    throw new Error((typeof detay === 'string' ? detay : detay?.mesaj) || 'KazKaz API isteği tamamlanamadı.');
   }
   return yanit.json() as Promise<T>;
 }

@@ -97,6 +97,10 @@ class TestDosyaIceriAktarma(unittest.TestCase):
         sonuc = dosya_dogrula(veri_sablonu_olustur(), "sablon.xlsx")
         self.assertEqual(sonuc["finansal_veri"]["sirket_adi"], "Örnek Şirket A.Ş.")
         self.assertIn("İşlemler", sonuc["dosya"]["sayfalar"])
+        self.assertFalse(any(
+            hata["kod"] in {"olcek_tl_varsayimi", "kdv_durumu_belirsiz"}
+            for hata in sonuc["hatalar"]
+        ))
 
     def test_mukerrer_fatura_fazla_odeme_hatali_vade_ve_para_birimi_reddedilir(self):
         kitap = Workbook()
@@ -136,6 +140,62 @@ class TestDosyaIceriAktarma(unittest.TestCase):
         self.assertEqual(sonuc["ozet"]["islem_satirlari"], 1)
         self.assertEqual(sonuc["ozet"]["reddedilen_satirlar"], 2)
 
+    def test_acik_bin_tl_basligi_tutarlari_tlye_cevirir(self):
+        icerik = (
+            "Tarih,Kategori,Gelir (Bin TL),Gider (Bin TL)\n"
+            "2026-01-01,Satış,1250,400\n"
+        ).encode()
+        sonuc = dosya_dogrula(icerik, "bin_tl.csv")
+        self.assertEqual(sonuc["ozet"]["toplam_gelir"], 1_250_000)
+        self.assertEqual(sonuc["ozet"]["toplam_gider"], 400_000)
+        self.assertEqual(sonuc["zaman_serisi"][0]["gelir"], 1_250_000)
+
+    def test_finansal_gorunum_bin_tl_basligini_tlye_cevirir(self):
+        kitap = Workbook()
+        sayfa = kitap.active
+        sayfa.title = "Finansal_Gorunum"
+        sayfa.append(["Şirket_Adı", "Ciro (Bin TL, KDV Hariç)", "Net_Kâr (Bin TL)"])
+        sayfa.append(["Ölçek Testi", 1250, 150])
+        tampon = io.BytesIO()
+        kitap.save(tampon)
+
+        sonuc = dosya_dogrula(tampon.getvalue(), "finansal_bin.xlsx")
+        self.assertEqual(sonuc["finansal_veri"]["ciro"], 1_250_000)
+        self.assertEqual(sonuc["finansal_veri"]["net_kar"], 150_000)
+
+    def test_karisik_olcek_aktarimi_durdurur(self):
+        icerik = (
+            "Tarih,Kategori,Gelir (Bin TL),Gider\n"
+            "2026-01-01,Satış,1250,400000\n"
+        ).encode()
+        sonuc = dosya_dogrula(icerik, "karisik_olcek.csv")
+        self.assertTrue(sonuc["veri_kalitesi"]["aktarim_bloke"])
+        self.assertTrue(any(hata["kod"] == "olcek_tutarsiz" for hata in sonuc["hatalar"]))
+
+    def test_karisik_kdv_bazi_aktarimi_durdurur(self):
+        icerik = (
+            "Tarih,Kategori,Gelir KDV Dahil,Gider KDV Hariç\n"
+            "2026-01-01,Satış,1200,800\n"
+        ).encode()
+        sonuc = dosya_dogrula(icerik, "karisik_kdv.csv")
+        self.assertTrue(sonuc["veri_kalitesi"]["aktarim_bloke"])
+        self.assertTrue(any(hata["kod"] == "kdv_bazi_tutarsiz" for hata in sonuc["hatalar"]))
+
+    def test_belirsiz_tarih_ara_toplam_ve_olasi_mukerrer_gorunur(self):
+        icerik = (
+            "Tarih,Kategori,Gelir,Gider\n"
+            "01/02/2026,Satış,1000,0\n"
+            "01/02/2026,Satış,1000,0\n"
+            "2026-02-28,Genel Toplam,2000,0\n"
+        ).encode()
+        sonuc = dosya_dogrula(icerik, "sessiz_riskler.csv")
+        kodlar = {hata["kod"] for hata in sonuc["hatalar"]}
+        self.assertIn("belirsiz_tarih", kodlar)
+        self.assertIn("olasi_mukerrer_islem", kodlar)
+        self.assertIn("ara_toplam_reddedildi", kodlar)
+        self.assertEqual(sonuc["ozet"]["islem_satirlari"], 2)
+        self.assertTrue(sonuc["veri_kalitesi"]["aktarim_bloke"])
+
     def test_dosya_dogrula_kalite_bulgularini_gosterir(self):
         """Response artık cross-field + anomali bulgularını taşımalı."""
         # Bilanço eşitsizliği: 1000 varlık, 400+500=900 pasif
@@ -161,6 +221,7 @@ class TestDosyaIceriAktarma(unittest.TestCase):
         ))
         self.assertGreaterEqual(vk["semantik_hata_sayisi"], 1)
         self.assertEqual(vk["semantik_durum"], "hatali")
+        self.assertTrue(vk["aktarim_bloke"])
 
     def test_dosya_dogrula_sayfa_eslesmesini_ozetler(self):
         """Bilinmeyen sayfalar 'atlanan_sayfalar' listesinde görünmeli."""

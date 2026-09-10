@@ -39,6 +39,42 @@ def _anahtar(deger: Any) -> str:
     return re.sub(r"[^a-z0-9]+", "_", metin).strip("_")
 
 
+def _baslik_bilgisi(anahtar: str) -> Tuple[str, int, str]:
+    """Başlıktaki açık ölçek/KDV bilgisini ayırır; hiçbir değeri tahmin etmez."""
+    parcalar = [parca for parca in anahtar.split("_") if parca]
+    carpan = 1
+    if any(parca in {"milyon", "mn"} for parca in parcalar):
+        carpan = 1_000_000
+    elif "bin" in parcalar or "000" in parcalar:
+        carpan = 1_000
+    kdv = "belirsiz"
+    if "kdv" in parcalar:
+        if "dahil" in parcalar:
+            kdv = "dahil"
+        elif "haric" in parcalar:
+            kdv = "haric"
+    atilacak = {"bin", "milyon", "mn", "000", "tl", "try", "kdv", "dahil", "haric"}
+    taban = "_".join(parca for parca in parcalar if parca not in atilacak)
+    return taban or anahtar, carpan, kdv
+
+
+def _olcek_acikca_belirtilmis(anahtar: str) -> bool:
+    parcalar = set(anahtar.split("_"))
+    return bool(parcalar & {"tl", "try", "bin", "milyon", "mn", "000"})
+
+
+def _belirsiz_tarih_mi(deger: Any) -> bool:
+    """01/02/2026 gibi gün ve ayı yer değiştirebilen metinleri işaretler."""
+    if not isinstance(deger, str):
+        return False
+    eslesme = re.fullmatch(r"\s*(\d{1,2})[./-](\d{1,2})[./-](\d{4})\s*", deger)
+    return bool(eslesme and 1 <= int(eslesme.group(1)) <= 12 and 1 <= int(eslesme.group(2)) <= 12)
+
+
+def _ara_toplam_mi(kategori: str) -> bool:
+    return _anahtar(kategori) in {"toplam", "ara_toplam", "genel_toplam", "subtotal", "grand_total", "total"}
+
+
 ALANLAR = {
     "tarih": "tarih", "date": "tarih", "islem_tarihi": "tarih",
     "kategori": "kategori", "category": "kategori", "aciklama": "kategori",
@@ -87,17 +123,20 @@ def veri_sablonu_olustur() -> bytes:
     rehber.title = "Rehber"
     rehber.append(["KazKaz AI V1 Veri Şablonu"])
     rehber.append(["Tutarları pozitif girin; iade/düzeltmeleri negatif gelir veya gider olarak işaretleyin."])
+    rehber.append(["Tutar başlıklarında TL/bin/milyon ve gelir-gider için KDV dahil/hariç bazını açıkça belirtin."])
     rehber.append(["Zorunlu olmayan sayfaları silebilirsiniz. Formül yerine değer yüklenmesi önerilir."])
 
     finans = kitap.create_sheet("Finansal_Gorunum")
     finans.append([
-        "Şirket_Adı", "Sektör", "Dönem", "Ciro", "Satış_Maliyeti", "Faaliyet_Giderleri",
-        "Net_Kâr", "Nakit", "Kısa_Vadeli_Borç", "Uzun_Vadeli_Borç", "Alacaklar",
-        "Borçlar", "Stoklar", "Özkaynak", "Faiz_Gideri", "Vergi_Gideri", "Amortisman",
-        "CapEx", "Dönen_Varlıklar", "Toplam_Varlıklar", "Toplam_Yükümlülükler",
-        "Dağıtılmamış_Kârlar", "Operasyonel_Nakit_Akışı", "Dönem_Başı_Nakit",
-        "Yatırım_Nakit_Akışı", "Finansman_Nakit_Akışı", "Dönem_Gün_Sayısı", "Etkin_Vergi_Oranı",
-        "Rapor_Tarihi", "Minimum_Nakit_Eşiği",
+        "Şirket_Adı", "Sektör", "Dönem", "Ciro (TL, KDV Hariç)",
+        "Satış_Maliyeti (TL, KDV Hariç)", "Faaliyet_Giderleri (TL, KDV Hariç)",
+        "Net_Kâr (TL)", "Nakit (TL)", "Kısa_Vadeli_Borç (TL)", "Uzun_Vadeli_Borç (TL)",
+        "Alacaklar (TL)", "Borçlar (TL)", "Stoklar (TL)", "Özkaynak (TL)",
+        "Faiz_Gideri (TL)", "Vergi_Gideri (TL)", "Amortisman (TL)", "CapEx (TL)",
+        "Dönen_Varlıklar (TL)", "Toplam_Varlıklar (TL)", "Toplam_Yükümlülükler (TL)",
+        "Dağıtılmamış_Kârlar (TL)", "Operasyonel_Nakit_Akışı (TL)", "Dönem_Başı_Nakit (TL)",
+        "Yatırım_Nakit_Akışı (TL)", "Finansman_Nakit_Akışı (TL)", "Dönem_Gün_Sayısı",
+        "Etkin_Vergi_Oranı", "Rapor_Tarihi", "Minimum_Nakit_Eşiği (TL)",
     ])
     finans.append([
         "Örnek Şirket A.Ş.", "İmalat", "2026", 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
@@ -106,7 +145,7 @@ def veri_sablonu_olustur() -> bytes:
     ])
 
     islemler = kitap.create_sheet("İşlemler")
-    islemler.append(["Tarih", "Kategori", "Gelir", "Gider", "Müşteri", "Ürün", "Gider_Tipi", "Vade_Tarihi"])
+    islemler.append(["Tarih", "Kategori", "Gelir (TL, KDV Hariç)", "Gider (TL, KDV Hariç)", "Müşteri", "Ürün", "Gider_Tipi", "Vade_Tarihi"])
     islemler.append(["2026-01-01", "Satış", 0, 0, "", "", "", ""])
 
     sayfalar = {
@@ -203,7 +242,7 @@ def _baslik_satiri(satirlar: Iterable[Tuple[Any, ...]], bilinen: set[str]) -> Tu
     en_iyi: Tuple[int, int, Dict[int, str]] = (-1, 0, {})
     for sira, satir in enumerate(satirlar, start=1):
         esleme = {indeks: _anahtar(deger) for indeks, deger in enumerate(satir) if deger is not None}
-        puan = sum(1 for alan in esleme.values() if alan in bilinen)
+        puan = sum(1 for alan in esleme.values() if _baslik_bilgisi(alan)[0] in bilinen)
         if puan > en_iyi[1]:
             en_iyi = (sira, puan, esleme)
         if sira >= 15:
@@ -223,9 +262,14 @@ def _model_sayfasi(ws: Any, sayfa_adi: str, model: Type[BaseModel], alanlar: Dic
             continue
         ham: Dict[str, Any] = {}
         for indeks, deger in enumerate(hucreler):
-            kaynak = basliklar.get(indeks)
+            kaynak_ham = basliklar.get(indeks, "")
+            kaynak, carpan, _ = _baslik_bilgisi(kaynak_ham)
             if kaynak in alanlar:
-                ham[alanlar[kaynak]] = deger
+                ham[alanlar[kaynak]] = (
+                    _sayi(deger) * carpan
+                    if carpan != 1 and deger not in (None, "")
+                    else deger
+                )
         try:
             kayit = model.model_validate(ham).model_dump(mode="json")
             hedef.append(kayit)
@@ -267,6 +311,11 @@ def _islem_satirlari(satirlar: List[List[Any]], sayfa_adi: str, hatalar: List[Di
     # Kayıtlı eşleme yerleşik eş anlamlıları ezebilir; kullanıcı bir kez
     # "Firma Adı → Müşteri" derse sonraki yüklemelerde tekrar sorulmaz.
     standart = sutunlari_coz(basliklar, ALANLAR, kayitli_esleme)
+    # "Gelir (Bin TL)" / "Gider KDV Dahil" gibi açık niteleyicileri,
+    # kullanıcı eşlemesini ezmeden yerleşik alanlara bağla.
+    for indeks, anahtar in basliklar.items():
+        if not standart.get(indeks):
+            standart[indeks] = ALANLAR.get(_baslik_bilgisi(anahtar)[0])
     # Kullanıcıya normalize değil gerçek başlık metnini göster.
     ham_basliklar = {indeks: deger for indeks, deger in enumerate(satirlar[baslik_no - 1])} \
         if baslik_no - 1 < len(satirlar) else {}
@@ -283,8 +332,45 @@ def _islem_satirlari(satirlar: List[List[Any]], sayfa_adi: str, hatalar: List[Di
         rapor["zorunlu_eksik"] = sorted(eksik)
         hata.sutun_eslemesi = rapor  # type: ignore[attr-defined]
         raise hata
+    carpanlar = {
+        alan: _baslik_bilgisi(basliklar[indeks])[1]
+        for indeks, alan in standart.items() if alan in {"gelir", "gider"}
+    }
+    kdv_durumlari = {
+        alan: _baslik_bilgisi(basliklar[indeks])[2]
+        for indeks, alan in standart.items() if alan in {"gelir", "gider"}
+    }
+    if len(set(carpanlar.values())) > 1:
+        _hata(
+            hatalar, sayfa_adi, baslik_no, "tutar_olcegi",
+            "Gelir ve gider sütunları farklı ölçeklerde (TL/bin/milyon). Aynı ölçeğe çevrilmeden aktarım yapılamaz.",
+            "hata", "olcek_tutarsiz",
+        )
+    elif not all(
+        _olcek_acikca_belirtilmis(basliklar[indeks])
+        for indeks, alan in standart.items() if alan in {"gelir", "gider"}
+    ):
+        _hata(
+            hatalar, sayfa_adi, baslik_no, "tutar_olcegi",
+            "Başlıkta bin/milyon ölçeği belirtilmedi; tutarlar TL kabul edildi.",
+            "uyari", "olcek_tl_varsayimi",
+        )
+    bilinen_kdv = {durum for durum in kdv_durumlari.values() if durum != "belirsiz"}
+    if len(bilinen_kdv) > 1:
+        _hata(
+            hatalar, sayfa_adi, baslik_no, "kdv_durumu",
+            "Gelir ve gider farklı KDV bazında (dahil/hariç). Tek baza çevrilmeden aktarım yapılamaz.",
+            "hata", "kdv_bazi_tutarsiz",
+        )
+    elif "belirsiz" in kdv_durumlari.values():
+        _hata(
+            hatalar, sayfa_adi, baslik_no, "kdv_durumu",
+            "KDV dahil/hariç bilgisi başlıklarda yok; değerler değiştirilmeden korunacak.",
+            "uyari", "kdv_durumu_belirsiz",
+        )
     sonuc: List[Dict[str, Any]] = []
     reddedilen = 0
+    gorulen_islemler: Dict[Tuple[Any, ...], int] = {}
     for satir_no, hucreler in enumerate(satirlar[baslik_no:], start=baslik_no + 1):
         if len(sonuc) >= MAKSIMUM_SATIR:
             _hata(hatalar, sayfa_adi, satir_no, "satir", "50.000 satır sınırından sonrası alınmadı.", "uyari", "satir_siniri")
@@ -298,10 +384,24 @@ def _islem_satirlari(satirlar: List[List[Any]], sayfa_adi: str, hatalar: List[Di
             kategori = str(ham.get("kategori") or "").strip()
             if not tarih or not kategori:
                 raise ValueError("Tarih ve kategori boş bırakılamaz")
+            if _ara_toplam_mi(kategori):
+                reddedilen += 1
+                _hata(
+                    hatalar, sayfa_adi, satir_no, "kategori",
+                    "Ara/genel toplam satırı çift sayımı önlemek için reddedildi.",
+                    "hata", "ara_toplam_reddedildi",
+                )
+                continue
+            if _belirsiz_tarih_mi(ham.get("tarih")):
+                _hata(
+                    hatalar, sayfa_adi, satir_no, "tarih",
+                    "Tarih gün/ay açısından belirsiz; Türkiye biçimi GG/AA/YYYY olarak okundu. ISO YYYY-AA-GG kullanın.",
+                    "uyari", "belirsiz_tarih",
+                )
             kayit = {
                 "tarih": tarih.isoformat(), "kategori": kategori,
-                "gelir": _sayi(ham.get("gelir"), 0) or 0,
-                "gider": _sayi(ham.get("gider"), 0) or 0,
+                "gelir": (_sayi(ham.get("gelir"), 0) or 0) * carpanlar.get("gelir", 1),
+                "gider": (_sayi(ham.get("gider"), 0) or 0) * carpanlar.get("gider", 1),
             }
             for alan in ("musteri", "urun", "gider_tipi"):
                 if ham.get(alan) not in (None, ""):
@@ -310,6 +410,17 @@ def _islem_satirlari(satirlar: List[List[Any]], sayfa_adi: str, hatalar: List[Di
                 kayit["vade_tarihi"] = _tarih(ham["vade_tarihi"]).isoformat()
             if kayit["gelir"] < 0 or kayit["gider"] < 0:
                 _hata(hatalar, sayfa_adi, satir_no, "tutar", "Negatif tutar iade/düzeltme olarak korundu.", "uyari", "negatif_tutar")
+            parmak_izi = tuple(kayit.get(alan) for alan in (
+                "tarih", "kategori", "gelir", "gider", "musteri", "urun", "gider_tipi", "vade_tarihi",
+            ))
+            if parmak_izi in gorulen_islemler:
+                _hata(
+                    hatalar, sayfa_adi, satir_no, "satir",
+                    f"Satır {gorulen_islemler[parmak_izi]} ile aynı işlem bulundu; mükerrer olup olmadığını doğrulayın.",
+                    "uyari", "olasi_mukerrer_islem",
+                )
+            else:
+                gorulen_islemler[parmak_izi] = satir_no
             sonuc.append(kayit)
             if len(onizleme) < 30:
                 onizleme.append({"sayfa": sayfa_adi, "satir": satir_no, **kayit})
@@ -371,9 +482,15 @@ def _finansal_gorunum(ws: Any, hatalar: List[Dict[str, Any]], onizleme: List[Dic
     }
     baslik_no, basliklar = _baslik_satiri(ws.iter_rows(values_only=True), set(alanlar))
     for satir_no, hucreler in enumerate(ws.iter_rows(min_row=baslik_no + 1, values_only=True), start=baslik_no + 1):
-        ham = {alanlar[basliklar[i]]: deger for i, deger in enumerate(hucreler)
-               if i in basliklar and basliklar[i] in alanlar}
-        if not ham or ham.get("ciro") in (None, ""):
+        ham: Dict[str, Tuple[Any, str]] = {}
+        for indeks, deger in enumerate(hucreler):
+            if indeks not in basliklar:
+                continue
+            baslik = basliklar[indeks]
+            taban, _, _ = _baslik_bilgisi(baslik)
+            if taban in alanlar:
+                ham[alanlar[taban]] = (deger, baslik)
+        if not ham or ham.get("ciro", (None, ""))[0] in (None, ""):
             continue
         try:
             metinler = {"sirket_adi", "sektor", "donem"}
@@ -384,16 +501,45 @@ def _finansal_gorunum(ws: Any, hatalar: List[Dict[str, Any]], onizleme: List[Dic
                 "finansman_nakit_akisi", "donem_gun_sayisi", "etkin_vergi_orani",
                 "minimum_nakit_esigi",
             }
-            kayit = {
-                alan: (
-                    _tarih(deger).isoformat()
-                    if alan == "rapor_tarihi" and _tarih(deger) is not None
-                    else str(deger).strip()
-                    if alan in metinler
-                    else _sayi(deger, None if alan in opsiyonel_sayilar else 0)
+            kayit: Dict[str, Any] = {}
+            for alan, (deger, baslik) in ham.items():
+                if alan == "rapor_tarihi":
+                    tarih = _tarih(deger)
+                    kayit[alan] = tarih.isoformat() if tarih is not None else None
+                elif alan in metinler:
+                    kayit[alan] = str(deger).strip()
+                else:
+                    sayi = _sayi(deger, None if alan in opsiyonel_sayilar else 0)
+                    if sayi is not None and alan not in {"donem_gun_sayisi", "etkin_vergi_orani"}:
+                        sayi *= _baslik_bilgisi(baslik)[1]
+                    kayit[alan] = sayi
+            para_basliklari = [
+                baslik for alan, (_, baslik) in ham.items()
+                if alan not in metinler | {"rapor_tarihi", "donem_gun_sayisi", "etkin_vergi_orani"}
+            ]
+            if para_basliklari and not all(_olcek_acikca_belirtilmis(baslik) for baslik in para_basliklari):
+                _hata(
+                    hatalar, ws.title, baslik_no, "tutar_olcegi",
+                    "Başlıkta bin/milyon ölçeği belirtilmedi; finansal tutarlar TL kabul edildi.",
+                    "uyari", "olcek_tl_varsayimi",
                 )
-                for alan, deger in ham.items()
+            kdvler = {
+                _baslik_bilgisi(ham[alan][1])[2]
+                for alan in ("ciro", "satis_maliyeti", "faaliyet_giderleri") if alan in ham
             }
+            bilinen_kdv = {durum for durum in kdvler if durum != "belirsiz"}
+            if len(bilinen_kdv) > 1:
+                _hata(
+                    hatalar, ws.title, baslik_no, "kdv_durumu",
+                    "Ciro ve gider kalemleri farklı KDV bazında. Tek baza çevrilmeden aktarım yapılamaz.",
+                    "hata", "kdv_bazi_tutarsiz",
+                )
+            elif "belirsiz" in kdvler:
+                _hata(
+                    hatalar, ws.title, baslik_no, "kdv_durumu",
+                    "KDV dahil/hariç bilgisi başlıklarda yok; değerler değiştirilmeden korunacak.",
+                    "uyari", "kdv_durumu_belirsiz",
+                )
             kayit.setdefault("sirket_adi", "İçe Aktarılan Şirket")
             kayit.setdefault("sektor", "Belirtilmedi")
             kayit.setdefault("donem", "Güncel")
@@ -576,6 +722,18 @@ def dosya_dogrula(icerik: bytes, dosya_adi: str,
         zaman_serisi=islemler,
         musteri_cirolari=finansal.get("musteri_cirolari") if finansal else None,
     )
+    bloke_nedenleri: List[str] = []
+    if reddedilen > 0:
+        bloke_nedenleri.append(
+            f"{reddedilen} satır doğrulamadan geçmedi; eksik veriyle analiz yapılmamalı."
+        )
+    if kalite["toplam_hata"] > 0:
+        bloke_nedenleri.append(
+            f"{kalite['toplam_hata']} kesin finansal tutarsızlık düzeltilmeli."
+        )
+    ham_hata_sayisi = sum(1 for hata in hatalar if hata["seviye"] == "hata")
+    if ham_hata_sayisi > 0:
+        bloke_nedenleri.append(f"{ham_hata_sayisi} dosya doğrulama hatası düzeltilmeli.")
 
     return {
         "durum": "hazir" if not hatalar else "uyarili",
@@ -617,6 +775,8 @@ def dosya_dogrula(icerik: bytes, dosya_adi: str,
             "semantik_durum": kalite["durum"],  # temiz | uyarili | hatali
             "semantik_hata_sayisi": kalite["toplam_hata"],
             "semantik_uyari_sayisi": kalite["toplam_uyari"],
+            "aktarim_bloke": bool(bloke_nedenleri),
+            "bloke_nedenleri": bloke_nedenleri,
         },
         "gelismis_veri": gelismis,
         "zaman_serisi": islemler,
@@ -625,6 +785,10 @@ def dosya_dogrula(icerik: bytes, dosya_adi: str,
         "hatalar": hatalar,
         "metodoloji": {
             "negatif_tutarlar": "İade/düzeltme olarak korunur.",
+            "tutar_olcegi": "Başlıkta bin/milyon belirtilirse TL'ye çevrilir; belirtilmezse TL varsayılır ve uyarı verilir.",
+            "kdv": "KDV oranı tahmin edilmez; dahil/hariç bazları karışırsa aktarım engellenir.",
+            "tarih": "Belirsiz kısa tarihler GG/AA/YYYY okunur ve ISO biçimine dönüştürülmesi istenir.",
+            "mukerrer": "Kimlikli mükerrerler reddedilir; aynı görünen işlemler kullanıcı doğrulamasına sunulur.",
             "favok": "Net kâr + faiz + vergi + amortisman; yalnızca ayrıştırılmış alanlarla.",
             "ai": "Dosya okuma ve hesaplama deterministiktir; AI veri ayrıştırmasında kullanılmaz.",
         },

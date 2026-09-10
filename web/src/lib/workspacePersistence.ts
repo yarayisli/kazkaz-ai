@@ -45,7 +45,7 @@ export async function saveWorkspace(
   _companyId: string,
   _userId: string,
   snapshot: WorkspaceSnapshot,
-  bazRevizyon?: number,
+  bazRevizyon: number,
 ): Promise<{ revizyon: number }> {
   const cleaned = cleanSnapshot(snapshot);
   const byteSize = new TextEncoder().encode(JSON.stringify(cleaned)).byteLength;
@@ -81,9 +81,9 @@ export async function loadWorkspace(_companyId: string): Promise<WorkspaceYuklem
   };
 }
 
-export async function deleteWorkspace(companyId: string): Promise<void> {
+export async function deleteWorkspace(companyId: string, bazRevizyon: number): Promise<{ revizyon: number }> {
   void companyId;
-  await calismaAlaniSil();
+  return calismaAlaniSil(bazRevizyon);
 }
 
 export async function exportWorkspace(): Promise<void> {

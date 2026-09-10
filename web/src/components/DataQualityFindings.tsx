@@ -65,7 +65,9 @@ export const DataQualityFindings: React.FC<DataQualityFindingsProps> = ({ kalite
 
   const hataSayisi = kalite.semantik_hata_sayisi ?? bulgular.filter((b) => b.seviye === 'hata').length;
   const uyariSayisi = kalite.semantik_uyari_sayisi ?? bulgular.filter((b) => b.seviye === 'uyari').length;
-  const temiz = bulgular.length === 0;
+  const aktarimBloke = Boolean(kalite.aktarim_bloke);
+  const blokeNedenleri = kalite.bloke_nedenleri || [];
+  const temiz = bulgular.length === 0 && !aktarimBloke;
 
   return (
     <section className={`rounded-xl border p-4 ${temiz ? 'border-emerald-200 bg-emerald-50/60' : 'border-slate-200 bg-white'}`}>
@@ -96,6 +98,8 @@ export const DataQualityFindings: React.FC<DataQualityFindingsProps> = ({ kalite
         >
           {temiz
             ? 'Temiz'
+            : aktarimBloke && hataSayisi === 0 && uyariSayisi === 0
+              ? 'Aktarım durdu'
             : [hataSayisi > 0 ? `${hataSayisi} hata` : null, uyariSayisi > 0 ? `${uyariSayisi} uyarı` : null]
                 .filter(Boolean)
                 .join(' · ')}
@@ -110,6 +114,15 @@ export const DataQualityFindings: React.FC<DataQualityFindingsProps> = ({ kalite
         </ul>
       )}
 
+      {aktarimBloke && (
+        <div className="mt-3 rounded-xl border border-red-200 bg-red-50 p-3">
+          <p className="text-xs font-bold text-red-900">Çalışma alanına aktarım durduruldu</p>
+          <ul className="mt-1.5 list-disc space-y-1 pl-4 text-[11px] leading-4 text-red-800">
+            {blokeNedenleri.map((neden) => <li key={neden}>{neden}</li>)}
+          </ul>
+        </div>
+      )}
+
       {atlanan.length > 0 && (
         <div className="mt-3 flex gap-2.5 rounded-xl border border-slate-200 bg-slate-50 p-3">
           <FileWarning className="mt-0.5 h-3.5 w-3.5 shrink-0 text-slate-400" />
@@ -122,8 +135,7 @@ export const DataQualityFindings: React.FC<DataQualityFindingsProps> = ({ kalite
 
       {hataSayisi > 0 && (
         <p className="mt-3 border-t border-slate-100 pt-3 text-[11px] leading-4 text-slate-500">
-          Bulgular içe aktarmayı engellemez, ancak düzeltilmeden yapılan analiz yanıltıcı olabilir.
-          Excel dosyanızı düzeltip yeniden yüklemeniz önerilir.
+          Kesin tutarsızlıklar düzeltilmeden analiz başlatılmaz. Excel dosyanızı düzeltip yeniden yükleyin.
         </p>
       )}
     </section>

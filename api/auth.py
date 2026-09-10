@@ -156,10 +156,8 @@ def sirket_durumu_guvenilir(sirket_id: str) -> "str | None":
     """Şirket durumunu token yerine güvenilir kaynaktan (Firestore) okur.
 
     Token claim'i askı işlemi sırasında iptal edilemeyen üyeler için eski
-    kalabilir (~1 saat). Kritik uçlar bu yüzden durumu doğrudan companies
-    belgesinden doğrular. Firestore ulaşılamazsa None döner ve çağıran taraf
-    token kararına düşer: geçici bir Firestore hatası tüm kullanıcıları
-    kilitlemez, token zaten yaygın durumu (başarılı iptal) zorlar.
+    kalabilir. Finans uçları durumu companies belgesinden doğrular.
+    Okuma başarısızsa None döner; çağıran işlem erişimi açmadan 503 verir.
     """
     if not sirket_id:
         return None
@@ -171,7 +169,7 @@ def sirket_durumu_guvenilir(sirket_id: str) -> "str | None":
         if not belge.exists:
             return None
         return str((belge.to_dict() or {}).get("status") or "").lower() or None
-    except Exception as exc:  # noqa: BLE001 — güvenilir okuma başarısızsa token'a düş.
+    except Exception as exc:  # Güvenilir okuma yoksa çağıran işlemi durdurur.
         logger.warning("Şirket durumu güvenilir kaynaktan okunamadı: %s", type(exc).__name__)
         return None
 
@@ -183,12 +181,14 @@ def mevcut_sirket_uyesi_dogrulanmis(
 
     mevcut_sirket_uyesi token claim'ini kontrol eder; bu bağımlılık ek olarak
     companies belgesindeki güncel durumu okur. Böylece token'ı hâlâ 'active'
-    diyen ama şirketi askıya alınmış bir üye kritik uçlara giremez. Okuma
-    uçları (salt görüntüleme) token'a güvenmeye devam eder.
+    diyen ama şirketi askıya alınmış bir üye finans uçlarına giremez.
+    Durum okunamazsa token kararına geri dönülmez.
     """
     if kullanici.roller.get("gelistirici"):
         return kullanici
     guncel_durum = sirket_durumu_guvenilir(kullanici.sirket_id or "")
+    if guncel_durum not in {"active", "pilot", "suspended", "closed"}:
+        raise HTTPException(status_code=503, detail="Şirket erişimi doğrulanamıyor. Lütfen yeniden deneyin.")
     if guncel_durum in {"suspended", "closed"}:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,

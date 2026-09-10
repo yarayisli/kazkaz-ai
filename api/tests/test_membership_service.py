@@ -155,9 +155,12 @@ class TestMembershipService(unittest.TestCase):
         self.db.store[("companies", "company-a", "members", "target-user")] = {
             "email": "target@example.com", "role": "analyst",
         }
+        kuyruk = ("companies", "company-a", "bekleyenClaimGuncellemeleri", "target-user")
+        self.db.store[kuyruk] = {"role": "admin", "attempts": 1}
         get_user.return_value.custom_claims = {"company_id": "company-a", "role": "analyst"}
         uye_cikar(UyeCikarmaIstegi(kullanici_id="target-user"), user())
         revoke.assert_called_once_with("target-user", app=_app.return_value)
+        self.assertNotIn(kuyruk, self.db.store)
 
 
 if __name__ == "__main__":

@@ -47,13 +47,14 @@ class TestSirketYetkilendirmesi(unittest.TestCase):
             self.assertEqual(mevcut_sirket_uyesi_dogrulanmis(kullanici), kullanici)
 
     def test_guvenilir_kaynak_okunamazsa_token_karari_gecerli(self):
-        # Firestore ulaşılamaz (None): token zaten sirket_uyeligini_dogrula'da
-        # kontrol edildiğinden ek blok yok, kullanıcı geçer.
+        # Firestore ulaşılamazsa eski active token erişimi açamaz.
         kullanici = KimlikBilgisi(
             kullanici_id="u1", sirket_id="c1", roller={"admin": True}, sirket_durumu="active",
         )
         with patch("api.auth.sirket_durumu_guvenilir", return_value=None):
-            self.assertEqual(mevcut_sirket_uyesi_dogrulanmis(kullanici), kullanici)
+            with self.assertRaises(HTTPException) as hata:
+                mevcut_sirket_uyesi_dogrulanmis(kullanici)
+            self.assertEqual(hata.exception.status_code, 503)
 
     def test_gercek_token_yerel_bypasstan_once_gelir(self):
         firebase_app = MagicMock()

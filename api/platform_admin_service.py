@@ -476,7 +476,15 @@ def platform_bekleyen_claimleri_yeniden_dene(sirket_id: str, yonetici: KimlikBil
     cozulen = 0
     kalan = 0
     for bekleyen in sirket_ref.collection("bekleyenClaimGuncellemeleri").limit(500).stream():
-        rol = str((bekleyen.to_dict() or {}).get("role") or "viewer")
+        uye = sirket_ref.collection("members").document(bekleyen.id).get()
+        profil = db.collection("users").document(bekleyen.id).get()
+        rol = str((uye.to_dict() or {}).get("role") or "")
+        # Kuyruk geçmiş niyeti taşır; yetki kaynağı güncel üyelik ve profildir.
+        if (not uye.exists or not profil.exists
+                or (profil.to_dict() or {}).get("companyId") != sirket_id
+                or rol not in {"admin", "cfo", "analyst", "viewer"}):
+            sirket_ref.collection("bekleyenClaimGuncellemeleri").document(bekleyen.id).delete()
+            continue
         if _uye_claimini_yenile(app, bekleyen.id, sirket_id, rol, hedef):
             sirket_ref.collection("bekleyenClaimGuncellemeleri").document(bekleyen.id).delete()
             cozulen += 1
