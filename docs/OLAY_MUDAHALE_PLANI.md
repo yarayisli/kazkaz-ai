@@ -22,7 +22,10 @@
 - SEV-1 ilk yanıt: 15 dakika; durum güncellemesi: 30 dakika.
 - SEV-2 ilk yanıt: 1 saat; durum güncellemesi: 2 saat.
 - SEV-3 ilk yanıt: 1 iş günü.
-- RPO/RTO: canlı mimari ve geri yükleme tatbikatından sonra kesinleştirilecek.
+- RPO hedefi `BACKUP_RPO_TARGET_HOURS`, gerçekleşen en büyük yedek aralığı
+  `BACKUP_MAX_OBSERVED_INTERVAL_HOURS`; RTO hedefi `BACKUP_RTO_TARGET_SECONDS`, son
+  tatbikatta ölçülen süre `BACKUP_RESTORE_RTO_SECONDS` ile izlenir. Hedefler gerçek ardışık
+  yedek ve ayrı test projesi tatbikatı kanıtından sonra kesinleşir.
 
 ## Kapanış kanıtı
 

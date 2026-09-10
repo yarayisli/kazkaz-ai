@@ -44,6 +44,18 @@ services:
         sync: false
       - key: FIRESTORE_BACKUP_BUCKET
         sync: false
+      - key: FIRESTORE_DATABASE_ID
+        value: "(default)"
+      - key: BACKUP_RPO_TARGET_HOURS
+        value: "24"
+      - key: BACKUP_MAX_OBSERVED_INTERVAL_HOURS
+        sync: false
+      - key: BACKUP_SCHEDULE_VERIFIED_AT
+        sync: false
+      - key: BACKUP_RTO_TARGET_SECONDS
+        value: "3600"
+      - key: BACKUP_RESTORE_RTO_SECONDS
+        sync: false
       - key: DATA_RETENTION_DAYS
         value: "365"
       - key: REPORT_RETENTION_DAYS

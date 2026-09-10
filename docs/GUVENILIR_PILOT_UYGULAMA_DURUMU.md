@@ -49,9 +49,20 @@ Bu kayıt, `codex/guvenilir-pilot` dalında uygulanan yol haritası adımların�
 - Dosya silinemediğinde Firestore kaydı korunur; böylece yetim ve görünmez finans dosyası oluşmaz.
 - Canlı hazırlık kapısı hem Storage bucket yapılandırmasını hem de saklama süresiyle uyumlu yaşam döngüsü kuralının doğrulandığını arar.
 
+## Aşama 5 — Yedekleme ve geri yükleme kanıtı
+
+- Yedek betiği tamamlanmış Firestore export metadata dosyasını doğrular; komutun yalnızca başlamasını başarı saymaz.
+- Sabit doğrulama belgesinin içeriği kanıt dosyasına yazılmaz; kaynakta SHA-256 parmak izi alınır.
+- Geri yükleme yalnız açıkça ayrı ve silinebilir olduğu belirtilen test projesine yapılabilir; kaynak proje hedef olarak reddedilir.
+- Import sonrasında aynı belgenin parmak izi yeniden hesaplanır. Kaynak ve hedef eşleşmeden tatbikat başarılı sayılmaz.
+- Yedek süresi, yedek yaşı ve geri yükleme süresi makinece okunabilir kanıt dosyalarına yazılır.
+- Ardışık iki başarılı yedek arasındaki gerçek süre RPO hedefiyle; geri yükleme süresi RTO hedefiyle karşılaştırılır.
+- Yönetim hazırlık paneli 35 günden eski tatbikatı ve aşılmış RPO/RTO hedefini hazır saymaz.
+- Betikler sahte `gcloud` ve parmak izi uçlarıyla uçtan uca çalıştırıldı. Bu yalnız akış doğrulamasıdır; gerçek bulut tatbikatı değildir.
+
 ## Doğrulama kanıtı
 
-- API, yetkilendirme ve veri kalite testleri: **248 geçti**.
+- API, yetkilendirme, veri kalite ve işletim kanıtı testleri: **255 geçti**.
 - Kök finans motorları ve kullanım sayacı: **139 geçti**.
 - React davranış testleri: **11 geçti**.
 - Masaüstü/mobil Playwright kabul senaryoları: **6 geçti**.
@@ -65,5 +76,5 @@ Bu kayıt, `codex/guvenilir-pilot` dalında uygulanan yol haritası adımların�
 
 1. Güncel canlı/test adresini doğrula; aynı commit'i sağlık, oturum, askı, kayıt çakışması ve geri yükleme senaryolarıyla sınayarak Aşama 0'ı kapat.
 2. Firebase Storage bucket yaşam döngüsünü `REPORT_RETENTION_DAYS` ile uyumlu kurup `REPORT_STORAGE_LIFECYCLE_CONFIGURED=true` ile doğrula.
-3. Yedekleme ve geri yükleme tatbikatını ölç; RPO/RTO kanıtını kaydet.
+3. Gerçek Google Cloud kimliğiyle iki ardışık yedeği ve ayrı test projesi geri yüklemesini çalıştır; üretilen RPO/RTO kanıtını canlı ayarlara kaydet.
 4. Üç ila beş müşteriyle dört haftalık ücretli pilotta görev tamamlama, destek çözüm süresi, hata oranı ve devam niyetini ölç.

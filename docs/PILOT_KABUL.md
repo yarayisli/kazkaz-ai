@@ -44,8 +44,12 @@ onayı anlamına gelmez.
 
 - Sentry 5xx alarmı kontrollü test hatasıyla doğrulanır.
 - Firestore günlük yedeği oluşur.
-- Ayrı test projesinde geri yükleme tatbikatı tamamlanır ve tarih
-  `BACKUP_RESTORE_TESTED_AT` olarak kaydedilir.
+- Ardışık iki tamamlanmış yedek arasındaki süre ölçülür; hedef ve gerçekleşen değer
+  `BACKUP_RPO_TARGET_HOURS` ile `BACKUP_MAX_OBSERVED_INTERVAL_HOURS` alanlarında kaydedilir.
+- Ayrı ve silinebilir test projesinde geri yükleme tamamlanır; sabit doğrulama belgesinin
+  kaynak ve hedef SHA-256 parmak izleri eşleşir.
+- Tatbikat tarihi ve ölçülen süre `BACKUP_RESTORE_TESTED_AT` ile
+  `BACKUP_RESTORE_RTO_SECONDS` olarak kaydedilir. 35 günden eski tatbikat hazır sayılmaz.
 - Alan adı üzerinde HTTPS giriş, Excel yükleme, analiz, AI CFO, rapor indirme,
   dışa aktarma, silme ve çıkış smoke testi tamamlanır.
 

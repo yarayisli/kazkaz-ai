@@ -31,10 +31,19 @@ destekler; hukukçu, mali müşavir/CFO ve güvenlik uzmanı onayının yerine g
   alanı için etkinleştirin; TTL silmesinin gecikmeli olabileceğini kullanıcı metninde açıklayın.
 - Ayrı, sürümlemeli bir Cloud Storage bucket oluşturup adını
   `FIRESTORE_BACKUP_BUCKET` olarak tanımlayın.
-- Günlük zamanlanmış işte `gcloud firestore export gs://BUCKET/kazkaz-YYYY-MM-DD`
-  çalıştırın; servis hesabına yalnız gerekli Firestore export ve bucket yazma rollerini verin.
-- Ayda bir ayrı test projesine `gcloud firestore import gs://BUCKET/YEDEK` ile geri
-  yükleme tatbikatı yapın. Tarih, süre, kayıt adedi ve sonucu denetim kaydına yazın.
+- Değişmeyecek ve finansal değer taşımayan bir doğrulama belgesi oluşturun. Yolunu
+  `BACKUP_VERIFY_DOCUMENT_PATH` olarak tanımlayıp günlük zamanlanmış işte
+  `scripts/firestore_backup.sh` çalıştırın. Betik tamamlanmış export metadata dosyasını
+  arar, doğrulama belgesinin yalnız SHA-256 parmak izini kaydeder ve kanıtı yedeğe ekler.
+- Ardışık iki başarılı yedek kanıtını `scripts/verify_backup_cadence.sh` ile karşılaştırın.
+  Ölçülen en büyük aralık RPO hedefini aşarsa canlı hazırlıkta `rpo_hedefi` kapanır.
+- Ayda bir ayrı ve silinebilir test projesinde `scripts/firestore_restore_drill.sh` çalıştırın.
+  Betik kaynak projeye dönüşü engeller, import sonrası doğrulama belgesinin parmak izini
+  karşılaştırır ve ölçülen RTO’yu kanıt dosyasına yazar. Import işleminin başarılı dönmesi
+  tek başına tatbikat başarısı sayılmaz.
+- Firestore yönetilen export işleminin çok yeni yazmaları içermeyebileceğini hesaba katın;
+  doğrulama belgesi sabit olmalı ve RPO, ardışık tamamlanmış yedekler üzerinden ölçülmelidir.
+- Export işlemi belge başına okuma maliyeti oluşturur; zamanlamayı ve bütçe alarmını birlikte ayarlayın.
 - Yedek yaşam döngüsü ve silme süresi KVKK saklama politikasıyla aynı olmalıdır.
 
 ## 4. İzleme ve olay yönetimi

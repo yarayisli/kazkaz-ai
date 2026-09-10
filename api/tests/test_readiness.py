@@ -1,5 +1,6 @@
 import os
 import unittest
+from datetime import datetime, timezone
 from unittest.mock import patch
 
 from api.readiness import canli_hazirlik_durumu
@@ -22,6 +23,7 @@ class TestCanliHazirlik(unittest.TestCase):
         self.assertTrue(sonuc["kritik_kontroller"]["firebase_servis_hesabi"])
 
     def test_kritik_ayarlar_tamamlaninca_hazir(self):
+        now = datetime.now(timezone.utc).isoformat()
         with patch.dict(os.environ, {
             "APP_ENV": "production",
             "KAZKAZ_AUTH_DISABLED": "false",
@@ -39,10 +41,30 @@ class TestCanliHazirlik(unittest.TestCase):
             "REPORT_STORAGE_LIFECYCLE_CONFIGURED": "true",
             "FINANCIAL_METHODOLOGY_APPROVED": "true",
             "KVKK_REVIEW_APPROVED": "true",
+            "BACKUP_SCHEDULE_VERIFIED_AT": now,
+            "BACKUP_MAX_OBSERVED_INTERVAL_HOURS": "23.5",
+            "BACKUP_RPO_TARGET_HOURS": "24",
+            "BACKUP_RESTORE_TESTED_AT": now,
+            "BACKUP_RESTORE_RTO_SECONDS": "0",
+            "BACKUP_RTO_TARGET_SECONDS": "3600",
         }, clear=False):
             sonuc = canli_hazirlik_durumu()
         self.assertEqual(sonuc["durum"], "hazir")
         self.assertEqual(sonuc["kritik_eksikler"], [])
+
+    def test_eski_tatbikat_ve_asilan_rpo_rto_hazir_sayilmaz(self):
+        with patch.dict(os.environ, {
+            "BACKUP_SCHEDULE_VERIFIED_AT": "2020-01-01T00:00:00Z",
+            "BACKUP_MAX_OBSERVED_INTERVAL_HOURS": "25",
+            "BACKUP_RPO_TARGET_HOURS": "24",
+            "BACKUP_RESTORE_TESTED_AT": "2020-01-01T00:00:00Z",
+            "BACKUP_RESTORE_RTO_SECONDS": "3601",
+            "BACKUP_RTO_TARGET_SECONDS": "3600",
+        }, clear=False):
+            operasyon = canli_hazirlik_durumu()["operasyon_kontrolleri"]
+        self.assertFalse(operasyon["rpo_hedefi"])
+        self.assertFalse(operasyon["geri_yukleme_tatbikati"])
+        self.assertFalse(operasyon["rto_hedefi"])
 
     def test_localhost_cors_canlida_eksik_sayilir(self):
         with patch.dict(os.environ, {

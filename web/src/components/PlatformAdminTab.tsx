@@ -17,6 +17,7 @@ const labelMap: Record<string, string> = {
   rapor_arsiv_deposu: 'Değişmez rapor arşivi',
   rapor_arsiv_yasam_dongusu: 'Rapor arşivi otomatik imha kuralı',
   kvkk_hukuk_onayi: 'KVKK hukuk onayı', hata_izleme: 'Hata izleme', yedekleme_hedefi: 'Yedekleme hedefi',
+  rpo_hedefi: 'Yedekleme sıklığı (RPO)', rto_hedefi: 'Geri yükleme süresi (RTO)',
   odeme_saglayicisi: 'Ödeme sağlayıcısı', google_sheets: 'Google Sheets', ai_saglayicisi: 'AI sağlayıcısı',
   ai_yedek_saglayicisi: 'AI yedek sağlayıcısı', geri_yukleme_tatbikati: 'Geri yükleme tatbikatı',
 };
