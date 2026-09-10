@@ -30,11 +30,19 @@ Bu kayıt, `codex/guvenilir-pilot` dalında uygulanan yol haritası adımların�
 - Uyarılı dosyada kullanıcı ölçek, KDV, tarih ve mükerrer risklerini gördüğünü işaretlemeden analiz başlatılamaz.
 - İndirilebilir KazKaz şablonu TL ve KDV bazını açıkça belirten başlıklar üretir.
 
+## Aşama 3 — Kritik arayüz ve destek davranışları
+
+- React birim/davranış test altyapısı CI kapısına eklendi.
+- Oturum değişimi, geç yanıt, kayıt/silme çakışması ve yükleme öncesi kayıt senaryoları test edildi.
+- Kesin veri hatasında aktarımın kapanması ve uyarıların kullanıcı onayı olmadan geçilememesi test edildi.
+- Admin panelinde A şirketinin geç ayrıntı yanıtının B şirketini ezmediği test edildi.
+- Destek talep numarası, çözüm yanıtı ve müşteri memnuniyeti akışı tarayıcı bileşeninde test edildi.
+
 ## Doğrulama kanıtı
 
 - API, yetkilendirme ve veri kalite testleri: **244 geçti**.
 - Kök finans motorları ve kullanım sayacı: **139 geçti**.
-- React davranış testleri: **8 geçti**.
+- React davranış testleri: **10 geçti**.
 - Masaüstü/mobil Playwright kabul senaryoları: **6 geçti**.
 - TypeScript tip kontrolü: geçti.
 - Vite üretim derlemesi: geçti.
@@ -45,7 +53,6 @@ Bu kayıt, `codex/guvenilir-pilot` dalında uygulanan yol haritası adımların�
 ## Sıradaki işler
 
 1. Güncel canlı/test adresini doğrula; aynı commit'i sağlık, oturum, askı, kayıt çakışması ve geri yükleme senaryolarıyla sınayarak Aşama 0'ı kapat.
-2. React kapsamını admin ayrıntı yarışı, destek talebi yaşam döngüsü ve veri içe aktarma onay akışlarının tamamına genişlet.
-3. Arşiv raporunda yalnız girdiyi değil üretilmiş özgün PDF/Excel çıktısını da değişmez sakla.
-4. Yedekleme ve geri yükleme tatbikatını ölç; RPO/RTO kanıtını kaydet.
-5. Üç ila beş müşteriyle dört haftalık ücretli pilotta görev tamamlama, destek çözüm süresi, hata oranı ve devam niyetini ölç.
+2. Arşiv raporunda yalnız girdiyi değil üretilmiş özgün PDF/Excel çıktısını da değişmez sakla.
+3. Yedekleme ve geri yükleme tatbikatını ölç; RPO/RTO kanıtını kaydet.
+4. Üç ila beş müşteriyle dört haftalık ücretli pilotta görev tamamlama, destek çözüm süresi, hata oranı ve devam niyetini ölç.
