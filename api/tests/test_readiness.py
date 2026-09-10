@@ -35,6 +35,8 @@ class TestCanliHazirlik(unittest.TestCase):
             "TENANT_ISOLATION_TEST_PASSED": "true",
             "DATA_RETENTION_DAYS": "365",
             "REPORT_RETENTION_DAYS": "365",
+            "FIREBASE_STORAGE_BUCKET": "kazkaz-live.firebasestorage.app",
+            "REPORT_STORAGE_LIFECYCLE_CONFIGURED": "true",
             "FINANCIAL_METHODOLOGY_APPROVED": "true",
             "KVKK_REVIEW_APPROVED": "true",
         }, clear=False):
@@ -55,6 +57,9 @@ class TestCanliHazirlik(unittest.TestCase):
             "FIRESTORE_RULES_DEPLOYED": "true",
             "TENANT_ISOLATION_TEST_PASSED": "true",
             "DATA_RETENTION_DAYS": "365",
+            "REPORT_RETENTION_DAYS": "365",
+            "FIREBASE_STORAGE_BUCKET": "kazkaz-live.firebasestorage.app",
+            "REPORT_STORAGE_LIFECYCLE_CONFIGURED": "true",
             "FINANCIAL_METHODOLOGY_APPROVED": "true",
             "KVKK_REVIEW_APPROVED": "true",
         }, clear=False):
@@ -75,6 +80,9 @@ class TestCanliHazirlik(unittest.TestCase):
             "FIRESTORE_RULES_DEPLOYED": "false",
             "TENANT_ISOLATION_TEST_PASSED": "false",
             "DATA_RETENTION_DAYS": "0",
+            "REPORT_RETENTION_DAYS": "0",
+            "FIREBASE_STORAGE_BUCKET": "",
+            "REPORT_STORAGE_LIFECYCLE_CONFIGURED": "false",
             "FINANCIAL_METHODOLOGY_APPROVED": "false",
             "KVKK_REVIEW_APPROVED": "false",
         }, clear=False):
@@ -84,6 +92,8 @@ class TestCanliHazirlik(unittest.TestCase):
         self.assertIn("kvkk_hukuk_onayi", sonuc["kritik_eksikler"])
         self.assertIn("izinli_hostlar", sonuc["kritik_eksikler"])
         self.assertIn("https_zorunlu", sonuc["kritik_eksikler"])
+        self.assertIn("rapor_arsiv_deposu", sonuc["kritik_eksikler"])
+        self.assertIn("rapor_arsiv_yasam_dongusu", sonuc["kritik_eksikler"])
 
 
 if __name__ == "__main__":

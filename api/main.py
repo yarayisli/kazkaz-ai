@@ -134,7 +134,7 @@ uygulama.add_middleware(
     expose_headers=[
         "X-KazKaz-Report-Id", "X-Request-ID",
         "X-KazKaz-Report-Engine-Archived", "X-KazKaz-Report-Engine-Current",
-        "X-KazKaz-Report-Regenerated",
+        "X-KazKaz-Report-Regenerated", "X-KazKaz-Report-Original",
     ],
 )
 
@@ -490,9 +490,10 @@ def pdf_raporu(
     istek: RaporIstegi,
     kullanici: KimlikBilgisi = Depends(ozellik_kapisi("rapor")),
 ):
-    report_id = rapor_arsivle(istek.finansal_veri, kullanici, "pdf") if istek.arsivle else ""
+    content = pdf_raporu_olustur(istek.finansal_veri)
+    report_id = rapor_arsivle(istek.finansal_veri, kullanici, "pdf", content) if istek.arsivle else ""
     return Response(
-        content=pdf_raporu_olustur(istek.finansal_veri),
+        content=content,
         media_type="application/pdf",
         headers={
             "Content-Disposition": 'attachment; filename="KazKaz_AI_Yonetici_Raporu.pdf"',
@@ -506,9 +507,10 @@ def excel_raporu(
     istek: RaporIstegi,
     kullanici: KimlikBilgisi = Depends(ozellik_kapisi("rapor")),
 ):
-    report_id = rapor_arsivle(istek.finansal_veri, kullanici, "excel") if istek.arsivle else ""
+    content = excel_raporu_olustur(istek.finansal_veri)
+    report_id = rapor_arsivle(istek.finansal_veri, kullanici, "excel", content) if istek.arsivle else ""
     return Response(
-        content=excel_raporu_olustur(istek.finansal_veri),
+        content=content,
         media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
         headers={
             "Content-Disposition": 'attachment; filename="KazKaz_AI_Yonetici_Raporu.xlsx"',
@@ -535,11 +537,10 @@ def arsiv_raporu_indir(
     media = "application/pdf" if tur == "pdf" else "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
     return Response(content=content, media_type=media, headers={
         "Content-Disposition": f'attachment; filename="KazKaz_AI_Arsiv_{rapor_id}.{extension}"',
-        # Rapor saklı girdiden yeniden üretildi; motor sürümü arşivdekinden
-        # farklıysa çıktı özgün rapordan sapabilir — indirene açıkça bildir.
         "X-KazKaz-Report-Engine-Archived": bilgi["motor_surumu_arsiv"],
         "X-KazKaz-Report-Engine-Current": bilgi["motor_surumu_guncel"],
         "X-KazKaz-Report-Regenerated": "true" if bilgi["yeniden_uretildi"] else "false",
+        "X-KazKaz-Report-Original": "true" if bilgi["ozgun_cikti"] else "false",
     })
 
 

@@ -26,6 +26,10 @@ services:
         sync: false
       - key: FIREBASE_SERVICE_ACCOUNT_JSON
         sync: false
+      - key: FIREBASE_STORAGE_BUCKET
+        sync: false
+      - key: REPORT_STORAGE_LIFECYCLE_CONFIGURED
+        value: "false"
       - key: GOOGLE_SHEETS_SERVICE_ACCOUNT_JSON
         sync: false
       - key: NVIDIA_API_KEY

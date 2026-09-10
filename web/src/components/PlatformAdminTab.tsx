@@ -14,6 +14,8 @@ const labelMap: Record<string, string> = {
   https_zorunlu: 'HTTPS zorunlu', paket_kapilari: 'Paket kapıları', firebase_kurallari_dagitildi: 'Firebase kuralları',
   tenant_izolasyon_testi: 'Şirket izolasyon testi', veri_saklama_politikasi: 'Veri saklama politikası',
   rapor_saklama_politikasi: 'Rapor saklama politikası', finans_metodoloji_onayi: 'Finans uzman onayı',
+  rapor_arsiv_deposu: 'Değişmez rapor arşivi',
+  rapor_arsiv_yasam_dongusu: 'Rapor arşivi otomatik imha kuralı',
   kvkk_hukuk_onayi: 'KVKK hukuk onayı', hata_izleme: 'Hata izleme', yedekleme_hedefi: 'Yedekleme hedefi',
   odeme_saglayicisi: 'Ödeme sağlayıcısı', google_sheets: 'Google Sheets', ai_saglayicisi: 'AI sağlayıcısı',
   ai_yedek_saglayicisi: 'AI yedek sağlayıcısı', geri_yukleme_tatbikati: 'Geri yükleme tatbikatı',

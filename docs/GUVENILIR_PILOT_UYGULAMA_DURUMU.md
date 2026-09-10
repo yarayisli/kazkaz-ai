@@ -38,11 +38,22 @@ Bu kayıt, `codex/guvenilir-pilot` dalında uygulanan yol haritası adımların�
 - Admin panelinde A şirketinin geç ayrıntı yanıtının B şirketini ezmediği test edildi.
 - Destek talep numarası, çözüm yanıtı ve müşteri memnuniyeti akışı tarayıcı bileşeninde test edildi.
 
+## Aşama 4 — Değişmez rapor arşivi
+
+- Yeni PDF ve Excel raporları yalnız finansal girdilerle değil, kullanıcıya teslim edilen özgün dosya baytlarıyla arşivlenir.
+- Her dosyanın SHA-256 bütünlük özeti ve boyutu kayıt altına alınır; indirme sırasında ikisi de doğrulanır. Değişmiş veya eksik dosya kullanıcıya sunulmaz.
+- Depo yolu şirket ve rapor kapsamıyla doğrulanır; bozulmuş bir kayıt başka şirketin nesnesini okutamaz.
+- Aynı depo nesnesinin üzerine yazmayı engelleyen oluşturma önkoşulu kullanılır.
+- Rapor motoru sonradan değişse bile yeni arşiv kayıtları üretim anındaki özgün çıktıyı döndürür.
+- Önceki sürümlerden kalan, özgün dosya içermeyen kayıtlar açıkça “Eski arşiv kaydı” olarak gösterilir ve uyumluluk için saklı girdiden yeniden üretilir.
+- Dosya silinemediğinde Firestore kaydı korunur; böylece yetim ve görünmez finans dosyası oluşmaz.
+- Canlı hazırlık kapısı hem Storage bucket yapılandırmasını hem de saklama süresiyle uyumlu yaşam döngüsü kuralının doğrulandığını arar.
+
 ## Doğrulama kanıtı
 
-- API, yetkilendirme ve veri kalite testleri: **244 geçti**.
+- API, yetkilendirme ve veri kalite testleri: **248 geçti**.
 - Kök finans motorları ve kullanım sayacı: **139 geçti**.
-- React davranış testleri: **10 geçti**.
+- React davranış testleri: **11 geçti**.
 - Masaüstü/mobil Playwright kabul senaryoları: **6 geçti**.
 - TypeScript tip kontrolü: geçti.
 - Vite üretim derlemesi: geçti.
@@ -53,6 +64,6 @@ Bu kayıt, `codex/guvenilir-pilot` dalında uygulanan yol haritası adımların�
 ## Sıradaki işler
 
 1. Güncel canlı/test adresini doğrula; aynı commit'i sağlık, oturum, askı, kayıt çakışması ve geri yükleme senaryolarıyla sınayarak Aşama 0'ı kapat.
-2. Arşiv raporunda yalnız girdiyi değil üretilmiş özgün PDF/Excel çıktısını da değişmez sakla.
+2. Firebase Storage bucket yaşam döngüsünü `REPORT_RETENTION_DAYS` ile uyumlu kurup `REPORT_STORAGE_LIFECYCLE_CONFIGURED=true` ile doğrula.
 3. Yedekleme ve geri yükleme tatbikatını ölç; RPO/RTO kanıtını kaydet.
 4. Üç ila beş müşteriyle dört haftalık ücretli pilotta görev tamamlama, destek çözüm süresi, hata oranı ve devam niyetini ölç.

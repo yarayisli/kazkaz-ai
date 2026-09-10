@@ -40,6 +40,8 @@ def canli_hazirlik_durumu() -> dict:
         "tenant_izolasyon_testi": _evet("TENANT_ISOLATION_TEST_PASSED"),
         "veri_saklama_politikasi": _saklama_suresi_gecerli(),
         "rapor_saklama_politikasi": _saklama_suresi_gecerli("REPORT_RETENTION_DAYS"),
+        "rapor_arsiv_deposu": bool(os.getenv("FIREBASE_STORAGE_BUCKET", "").strip()),
+        "rapor_arsiv_yasam_dongusu": _evet("REPORT_STORAGE_LIFECYCLE_CONFIGURED"),
         "finans_metodoloji_onayi": _evet("FINANCIAL_METHODOLOGY_APPROVED"),
         "kvkk_hukuk_onayi": _evet("KVKK_REVIEW_APPROVED"),
     }

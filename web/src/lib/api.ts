@@ -821,8 +821,10 @@ export interface ArsivRaporu {
   surum: string;
   /** Raporun üretildiği rapor motoru sürümü. */
   motor_surumu?: string;
-  /** Arşivdeki motor güncel motorla aynı mı? false ise indirmede rapor yeniden üretilir. */
+  /** Arşivdeki motor güncel motorla aynı mı? */
   guncel_motor?: boolean;
+  /** Üretilen dosyanın değişmez özgün kopyası saklanıyor mu? */
+  ozgun_cikti?: boolean;
   formatlar: Array<'pdf' | 'excel'>;
   ozet: { revenue?: number; netProfit?: number; cash?: number; totalDebt?: number; equity?: number; netMargin?: number | null; currentRatio?: number | null };
   olusturan: string;
@@ -861,8 +863,10 @@ export function raporArsiviniGetir() {
 }
 
 export interface ArsivIndirmeSonucu {
-  /** Rapor arşivdekinden farklı bir motor sürümüyle yeniden üretildi mi? */
+  /** Yalnız eski arşiv kaydı için rapor tekrar üretildi mi? */
   yenidenUretildi: boolean;
+  /** İndirilen baytlar üretim anında saklanan ve bütünlüğü doğrulanan özgün çıktı mı? */
+  ozgunCikti: boolean;
   motorArsiv: string | null;
   motorGuncel: string | null;
 }
@@ -887,6 +891,7 @@ export async function arsivRaporuIndir(raporId: string, tur: 'pdf' | 'excel'): P
   URL.revokeObjectURL(adres);
   return {
     yenidenUretildi: yanit.headers.get('X-KazKaz-Report-Regenerated') === 'true',
+    ozgunCikti: yanit.headers.get('X-KazKaz-Report-Original') === 'true',
     motorArsiv: yanit.headers.get('X-KazKaz-Report-Engine-Archived'),
     motorGuncel: yanit.headers.get('X-KazKaz-Report-Engine-Current'),
   };

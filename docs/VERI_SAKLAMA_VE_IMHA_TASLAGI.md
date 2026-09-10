@@ -14,7 +14,7 @@ girmez.
 ## Teknik süreler
 
 - Aktif finans çalışma alanı: `DATA_RETENTION_DAYS` — öneri 365 gün, hukuk onayı bekler.
-- Rapor arşivi: `REPORT_RETENTION_DAYS` — öneri 365 gün, hukuk onayı bekler.
+- Rapor arşivi: `REPORT_RETENTION_DAYS` — öneri 365 gün, hukuk onayı bekler. Firestore rapor kaydı ve Firebase Storage altındaki özgün PDF/Excel aynı süreyle silinmelidir; bucket yaşam döngüsü doğrulandıktan sonra `REPORT_STORAGE_LIFECYCLE_CONFIGURED=true` yapılır.
 - Operasyon telemetrisi: en fazla `PERFORMANCE_WINDOW_SIZE` anonim ölçüm; kalıcı
   kullanıcı/şirket kimliği tutulmaz.
 - Güvenlik denetim kayıtları: **süre belirlenecek.**

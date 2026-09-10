@@ -22,7 +22,7 @@ yayını ve veri işleyen sözleşmelerinin tamamlanmasından sonra kullanılmal
 | Kimlik ve oturum | Hesap güvenliği | Sözleşmenin kurulması/ifası | Hesap süresi + onaylı dönem | Firebase token doğrulaması, iptal kontrolü |
 | Şirket üyeliği ve rol | Yetkilendirme | Sözleşmenin ifası, meşru menfaat | Üyelik + denetim süresi | Admin/CFO/analist/izleyici rolleri |
 | Finansal çalışma alanı | Analiz ve raporlama | Sözleşmenin ifası | `DATA_RETENTION_DAYS` | Şirket altında backend-only kayıt |
-| Rapor arşivi | Sürümlü rapor | Sözleşmenin ifası | `REPORT_RETENTION_DAYS` | Şirket izolasyonu ve yetki kontrolü |
+| Rapor arşivi | Özgün PDF/Excel, finansal girdi ve özet | Sözleşmenin ifası | `REPORT_RETENTION_DAYS` | Şirket izolasyonu, rol kontrolü, özel Storage bucket ve SHA-256 bütünlük doğrulaması |
 | AI istemi ve yanıtı | Yönetici açıklaması | Sözleşmenin ifası | **Sağlayıcı sözleşmesine göre belirlenecek** | Finans motoru sonucu gönderilir; anahtarlar gizli |
 | Geri bildirim | Destek ve iyileştirme | Meşru menfaat / iletişim izni | **Belirlenecek** | Şirket altında backend-only kayıt |
 | Operasyon telemetrisi | Hız ve hata ölçümü | Meşru menfaat | Süreç içi 5.000 örnek | Kullanıcı, şirket, dosya adı ve finansal değer yok |
