@@ -42,7 +42,7 @@ export const CashflowDebtTab: React.FC<CashflowDebtTabProps> = ({ cashFlow, debt
           </div>
           <div>
             <div className="flex items-center gap-2">
-              <span className="bg-amber-500/20 text-amber-400 text-[10px] font-mono font-bold px-2 py-0.5 rounded-xs uppercase tracking-wider border border-amber-500/30">
+              <span className="bg-amber-500/20 text-amber-400 text-xs font-mono font-bold px-2 py-0.5 rounded-xs uppercase tracking-wider border border-amber-500/30">
                 LİKİDİTE & NAKİT DÜŞÜŞ KORUMASI
               </span>
             </div>
@@ -173,7 +173,7 @@ export const CashflowDebtTab: React.FC<CashflowDebtTabProps> = ({ cashFlow, debt
                   </td>
                   <td className="p-3 text-center text-slate-400">{debt.dueDate}</td>
                   <td className="p-3 text-center">
-                    <span className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-xs text-[10px] font-bold ${
+                    <span className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-xs text-xs font-bold ${
                       debt.status === 'critical'
                         ? 'bg-red-500/20 text-red-400 border border-red-500/40'
                         : debt.status === 'warning'
@@ -190,7 +190,7 @@ export const CashflowDebtTab: React.FC<CashflowDebtTabProps> = ({ cashFlow, debt
             </tbody>
           </table>
         </div>
-        <p className="rounded-lg bg-amber-50 p-3 text-[11px] leading-5 text-amber-800">Yapılandırma önerisi üretmek için aylık anapara/faiz planı, para birimi, operasyonel nakit akışı ve DSCR hesabı doğrulanmalıdır. Bu tablo yalnızca vade riskini işaretler.</p>
+        <p className="rounded-lg bg-amber-50 p-3 text-xs leading-5 text-amber-800">Yapılandırma önerisi üretmek için aylık anapara/faiz planı, para birimi, operasyonel nakit akışı ve DSCR hesabı doğrulanmalıdır. Bu tablo yalnızca vade riskini işaretler.</p>
       </div>
     </div>
   );

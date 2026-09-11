@@ -33,7 +33,7 @@ const SaglikSkoruKarti: React.FC<{ skor: SaglikSkoru }> = ({ skor }) => {
           {skor.skor.toLocaleString('tr-TR', { maximumFractionDigits: 1 })}
         </span>
         <span className="text-[15px] font-semibold text-slate-400">/ 100</span>
-        <span className="ml-auto rounded-full border border-slate-200 bg-slate-50 px-2.5 py-1 text-[11px] font-bold text-slate-600">
+        <span className="ml-auto rounded-full border border-slate-200 bg-slate-50 px-2.5 py-1 text-xs font-bold text-slate-600">
           {skor.kategori}
         </span>
       </div>
@@ -58,7 +58,7 @@ const SaglikSkoruKarti: React.FC<{ skor: SaglikSkoru }> = ({ skor }) => {
         ))}
       </div>
 
-      <p className="mt-4 border-t border-slate-100 pt-3 text-[10px] leading-4 text-slate-400">
+      <p className="mt-4 border-t border-slate-100 pt-3 text-xs leading-4 text-slate-400">
         {boyutSayisi} boyutlu ağırlıklı skor.{' '}
         {boyutSayisi < 5
           ? 'Müşteri sütununu yüklerseniz konsantrasyon riski de skorlanır.'
@@ -119,7 +119,7 @@ export const DurumOzeti: React.FC<DurumOzetiProps> = ({ audit, healthScore, onNa
           <ul className="divide-y divide-slate-100">
             {riskler.map((risk, index) => (
               <li key={`${index}-${risk.slice(0, 24)}`} className="flex gap-3 py-3.5">
-                <span className="mt-0.5 grid h-6 w-6 shrink-0 place-items-center rounded-md bg-red-50 text-[10px] font-black text-red-600">
+                <span className="mt-0.5 grid h-6 w-6 shrink-0 place-items-center rounded-md bg-red-50 text-xs font-black text-red-600">
                   {index + 1}
                 </span>
                 <p className="text-xs leading-5 text-slate-700">{risk}</p>
@@ -139,7 +139,7 @@ export const DurumOzeti: React.FC<DurumOzetiProps> = ({ audit, healthScore, onNa
         <ol className="flex-1 divide-y divide-slate-100">
           {aksiyonlar.map((aksiyon, index) => (
             <li key={`${index}-${aksiyon.slice(0, 24)}`} className="flex gap-3 py-3.5">
-              <span className="mt-0.5 grid h-6 w-6 shrink-0 place-items-center rounded-md bg-[#0f2252] text-[10px] font-black text-white">
+              <span className="mt-0.5 grid h-6 w-6 shrink-0 place-items-center rounded-md bg-[#0f2252] text-xs font-black text-white">
                 {index + 1}
               </span>
               <p className="text-xs leading-5 text-slate-700">{aksiyon}</p>
@@ -155,7 +155,7 @@ export const DurumOzeti: React.FC<DurumOzetiProps> = ({ audit, healthScore, onNa
           CFO'ya sor <ArrowRight className="h-3.5 w-3.5" />
         </button>
 
-        <p className="mt-3 flex items-start gap-2 text-[10px] leading-4 text-slate-400">
+        <p className="mt-3 flex items-start gap-2 text-xs leading-4 text-slate-400">
           <Info className="mt-px h-3 w-3 shrink-0" />
           Bu adımlar kurallı finans motorundan gelir; uygulanmadan önce insan onayı gerektirir.
         </p>

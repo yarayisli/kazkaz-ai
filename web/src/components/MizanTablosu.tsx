@@ -103,7 +103,7 @@ export const MizanTablosu: React.FC<MizanTablosuProps> = ({
           </div>
         </div>
         <span
-          className={`inline-flex shrink-0 items-center gap-1.5 rounded-full border px-2.5 py-1 text-[10px] font-bold ${
+          className={`inline-flex shrink-0 items-center gap-1.5 rounded-full border px-2.5 py-1 text-xs font-bold ${
             denk
               ? 'border-emerald-200 bg-emerald-50 text-emerald-700'
               : 'border-amber-200 bg-amber-50 text-amber-800'
@@ -146,7 +146,7 @@ export const MizanTablosu: React.FC<MizanTablosuProps> = ({
       {(yansitmaHesaplari.length > 0 || eslesmeyenHesaplar.length > 0) && (
         <div className="mt-4 space-y-2 border-t border-slate-100 pt-4">
           {yansitmaHesaplari.length > 0 && (
-            <p className="flex items-start gap-2 text-[11px] leading-4 text-slate-500">
+            <p className="flex items-start gap-2 text-xs leading-4 text-slate-500">
               <Info className="mt-px h-3 w-3 shrink-0 text-slate-400" />
               <span>
                 <strong className="text-slate-700">{yansitmaHesaplari.length} maliyet hesabı</strong> toplama
@@ -157,7 +157,7 @@ export const MizanTablosu: React.FC<MizanTablosuProps> = ({
             </p>
           )}
           {eslesmeyenHesaplar.length > 0 && (
-            <p className="flex items-start gap-2 text-[11px] leading-4 text-amber-800">
+            <p className="flex items-start gap-2 text-xs leading-4 text-amber-800">
               <CircleAlert className="mt-px h-3 w-3 shrink-0 text-amber-600" />
               <span>
                 <strong>{eslesmeyenHesaplar.length} hesap eşleşmedi</strong> (
@@ -170,7 +170,7 @@ export const MizanTablosu: React.FC<MizanTablosuProps> = ({
         </div>
       )}
 
-      <p className="mt-3 text-[10px] leading-4 text-slate-400">
+      <p className="mt-3 text-xs leading-4 text-slate-400">
         Hesap kodları Tekdüzen Hesap Planı'na göre otomatik eşlenir; mizandaki Eşleme sütunu
         doldurulmuşsa o önceliklidir.
         {tabloSurumu && <> Tablo sürümü {tabloSurumu}.</>}

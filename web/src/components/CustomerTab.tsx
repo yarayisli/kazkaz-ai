@@ -74,7 +74,7 @@ export const CustomerTab: React.FC<CustomerTabProps> = ({ customers, analytics, 
                   <td className="p-3 text-right font-bold text-slate-900">{formatTRY(cust.receivableAmount)}</td>
                   <td className="p-3 text-center font-semibold text-slate-800">{cust.avgPaymentDays} gün</td>
                   <td className="p-3 text-center">
-                    <span className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[10px] font-bold ${
+                    <span className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-bold ${
                       cust.riskLevel === 'kritik'
                         ? 'bg-red-100 text-red-800'
                         : cust.riskLevel === 'yüksek'
@@ -137,7 +137,7 @@ export const CustomerTab: React.FC<CustomerTabProps> = ({ customers, analytics, 
               <div key={urun.urun} className="rounded-xl border border-slate-200 bg-slate-50 p-4">
                 <p className="text-xs font-bold text-slate-900">{urun.urun}</p>
                 <p className="mt-2 text-lg font-extrabold text-slate-900">{formatTRY(urun.gelir)}</p>
-                <p className="text-[11px] text-slate-500">Gelir payı %{urun.gelir_payi} · {urun.musteri_sayisi} müşteri</p>
+                <p className="text-xs text-slate-500">Gelir payı %{urun.gelir_payi} · {urun.musteri_sayisi} müşteri</p>
               </div>
             ))}
           </div>

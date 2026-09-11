@@ -174,7 +174,7 @@ export const ScenarioTab: React.FC<ScenarioTabProps> = ({ baseData, analytics })
                 ? 'Tahsilat gecikmesinin nakit etkisi için dönem gün sayısı gereklidir.'
                 : `${signed(collectionDelay, ' günlük')} değişimin yaklaşık nakit etkisi ${formatTRY(collectionCashImpact)} olarak hesaplanır.`}
             </p>
-            <p className="mt-2 border-t border-blue-200 pt-2 text-[10px] text-blue-700">Tahsilat etkisi formülü: dönem cirosu / dönem gün sayısı × gecikme günü. Kredili satış oranı ayrıca sağlanırsa yalnızca kredili satış tutarı kullanılmalıdır.</p>
+            <p className="mt-2 border-t border-blue-200 pt-2 text-xs text-blue-700">Tahsilat etkisi formülü: dönem cirosu / dönem gün sayısı × gecikme günü. Kredili satış oranı ayrıca sağlanırsa yalnızca kredili satış tutarı kullanılmalıdır.</p>
           </div>
         </div>
       </div>
@@ -188,24 +188,24 @@ export const ScenarioTab: React.FC<ScenarioTabProps> = ({ baseData, analytics })
               </h3>
               <p className="text-xs text-slate-500">Yüklenen aylık işlem serisinden üretilir.</p>
             </div>
-            {analytics?.tahmin.guven && <span className="rounded-full bg-amber-50 px-2 py-1 text-[10px] font-bold uppercase text-amber-700">{analytics.tahmin.guven} güven</span>}
+            {analytics?.tahmin.guven && <span className="rounded-full bg-amber-50 px-2 py-1 text-xs font-bold uppercase text-amber-700">{analytics.tahmin.guven} güven</span>}
           </div>
           {analytics?.tahmin.durum === 'hazir' ? (
             <div className="space-y-3">
               <div className="grid grid-cols-3 gap-2">
                 {analytics.tahmin.noktalar.map((point) => (
                   <div key={point.donem} className="rounded-xl border border-slate-200 bg-slate-50 p-3">
-                    <p className="text-[10px] font-bold text-slate-500">{point.donem}</p>
+                    <p className="text-xs font-bold text-slate-500">{point.donem}</p>
                     <p className="mt-1 text-sm font-extrabold text-slate-900">{formatTRY(point.tahmin)}</p>
-                    <p className="text-[10px] text-slate-500">{formatTRY(point.alt)} – {formatTRY(point.ust)}</p>
-                    <p className="mt-0.5 text-[9px] font-semibold uppercase tracking-wide text-slate-400">senaryo aralığı</p>
+                    <p className="text-xs text-slate-500">{formatTRY(point.alt)} – {formatTRY(point.ust)}</p>
+                    <p className="mt-0.5 text-xs font-semibold uppercase tracking-wide text-slate-400">senaryo aralığı</p>
                   </div>
                 ))}
               </div>
               <p className="text-xs text-slate-600">
                 Geçmiş tahmin hatası (MAPE): <strong>{analytics.tahmin.gecmis_hata_mape ?? 'ölçülemedi'}{analytics.tahmin.gecmis_hata_mape != null ? '%' : ''}</strong> · {analytics.tahmin.yontem}
               </p>
-              <p className="rounded-lg bg-amber-50 p-2 text-[11px] text-amber-800">{analytics.tahmin.uyari}</p>
+              <p className="rounded-lg bg-amber-50 p-2 text-xs text-amber-800">{analytics.tahmin.uyari}</p>
             </div>
           ) : (
             <p className="rounded-xl bg-amber-50 p-4 text-xs text-amber-900">{analytics?.tahmin.gereken || 'Tahmin için aylık işlem verisi yükleyin.'}</p>
@@ -231,11 +231,11 @@ export const ScenarioTab: React.FC<ScenarioTabProps> = ({ baseData, analytics })
             </label>
           </div>
           <div className="mt-4 grid grid-cols-3 gap-2">
-            <div className="rounded-xl bg-slate-50 p-3"><p className="text-[10px] text-slate-500">NPV</p><p className={`text-sm font-extrabold ${!investmentReady ? 'text-slate-400' : investmentNpv >= 0 ? 'text-emerald-700' : 'text-red-700'}`}>{investmentReady ? formatTRY(investmentNpv) : 'Veri gerekli'}</p></div>
-            <div className="rounded-xl bg-slate-50 p-3"><p className="text-[10px] text-slate-500">Toplam ROI</p><p className="text-sm font-extrabold text-slate-900">{investmentReady ? `%${investmentRoi.toFixed(1)}` : 'Veri gerekli'}</p></div>
-            <div className="rounded-xl bg-slate-50 p-3"><p className="text-[10px] text-slate-500">Basit geri ödeme</p><p className="text-sm font-extrabold text-slate-900">{investmentReady ? (paybackIndex >= 0 ? `${paybackIndex + 1}. yıl` : 'Ufuk dışında') : 'Veri gerekli'}</p></div>
+            <div className="rounded-xl bg-slate-50 p-3"><p className="text-xs text-slate-500">NPV</p><p className={`text-sm font-extrabold ${!investmentReady ? 'text-slate-400' : investmentNpv >= 0 ? 'text-emerald-700' : 'text-red-700'}`}>{investmentReady ? formatTRY(investmentNpv) : 'Veri gerekli'}</p></div>
+            <div className="rounded-xl bg-slate-50 p-3"><p className="text-xs text-slate-500">Toplam ROI</p><p className="text-sm font-extrabold text-slate-900">{investmentReady ? `%${investmentRoi.toFixed(1)}` : 'Veri gerekli'}</p></div>
+            <div className="rounded-xl bg-slate-50 p-3"><p className="text-xs text-slate-500">Basit geri ödeme</p><p className="text-sm font-extrabold text-slate-900">{investmentReady ? (paybackIndex >= 0 ? `${paybackIndex + 1}. yıl` : 'Ufuk dışında') : 'Veri gerekli'}</p></div>
           </div>
-          <p className="mt-3 flex items-start gap-2 rounded-lg bg-blue-50 p-2 text-[11px] text-blue-900"><ShieldCheck className="mt-0.5 h-3.5 w-3.5 shrink-0" /> Vergi, enflasyon, finansman ve terminal değer ayrıca doğrulanmadan yatırım kararı verilmemelidir.</p>
+          <p className="mt-3 flex items-start gap-2 rounded-lg bg-blue-50 p-2 text-xs text-blue-900"><ShieldCheck className="mt-0.5 h-3.5 w-3.5 shrink-0" /> Vergi, enflasyon, finansman ve terminal değer ayrıca doğrulanmadan yatırım kararı verilmemelidir.</p>
         </div>
       </div>
     </div>

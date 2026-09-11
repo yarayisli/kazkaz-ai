@@ -58,7 +58,7 @@ const NumberField = ({ label, value, onChange, suffix }: { label: string; value:
     {label}
     <div className="flex overflow-hidden rounded-xl border border-slate-200 bg-white focus-within:border-violet-400 focus-within:ring-2 focus-within:ring-violet-100">
       <input type="number" min="0" value={value ?? ''} onChange={(event) => onChange(event.target.value === '' ? null : Number(event.target.value))} className="min-w-0 flex-1 px-3 py-2.5 text-sm font-semibold text-slate-800 outline-none" />
-      <span className="grid place-items-center border-l border-slate-200 bg-slate-50 px-3 text-[10px] text-slate-500">{suffix}</span>
+      <span className="grid place-items-center border-l border-slate-200 bg-slate-50 px-3 text-xs text-slate-500">{suffix}</span>
     </div>
   </label>
 );
@@ -73,7 +73,7 @@ const Result = ({ result }: { result: UyumHazirlikSonucu }) => {
           <div className="grid h-16 w-16 place-items-center rounded-full bg-white text-lg font-black text-[#0f2252]">%{result.hazirlik_orani}</div>
         </div>
         <div>
-          <div className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[10px] font-extrabold uppercase tracking-wider ${completed ? 'bg-emerald-50 text-emerald-700' : expertPending ? 'bg-amber-50 text-amber-700' : 'bg-violet-50 text-violet-700'}`}>
+          <div className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-extrabold uppercase tracking-wider ${completed ? 'bg-emerald-50 text-emerald-700' : expertPending ? 'bg-amber-50 text-amber-700' : 'bg-violet-50 text-violet-700'}`}>
             {completed ? <CheckCircle2 className="h-3.5 w-3.5" /> : <ClipboardCheck className="h-3.5 w-3.5" />}
             {completed ? 'Hazırlık tamamlandı' : expertPending ? 'Uzman onayı bekleniyor' : 'Veri hazırlığı sürüyor'}
           </div>
@@ -85,7 +85,7 @@ const Result = ({ result }: { result: UyumHazirlikSonucu }) => {
         {result.basliklar.filter((item) => item.uygulanabilir).map((item) => (
           <div key={item.kod} className={`flex gap-2.5 rounded-xl border p-3 ${item.hazir ? 'border-emerald-100 bg-emerald-50/60' : 'border-amber-100 bg-amber-50/60'}`}>
             {item.hazir ? <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0 text-emerald-600" /> : <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0 text-amber-600" />}
-            <div><p className="text-xs font-extrabold text-slate-700">{item.ad}</p>{!item.hazir && <p className="mt-1 text-[11px] leading-4 text-slate-500">Gerekli: {item.gereken}</p>}</div>
+            <div><p className="text-xs font-extrabold text-slate-700">{item.ad}</p>{!item.hazir && <p className="mt-1 text-xs leading-4 text-slate-500">Gerekli: {item.gereken}</p>}</div>
           </div>
         ))}
       </div>
@@ -116,7 +116,7 @@ export const ComplianceReadinessTab: React.FC = () => {
   return (
     <div className="space-y-5">
       <header className="overflow-hidden rounded-2xl bg-[#0f2252] p-6 text-white shadow-[0_18px_45px_rgba(15,34,82,.15)]">
-        <div className="flex items-start gap-4"><div className="grid h-11 w-11 shrink-0 place-items-center rounded-xl bg-white/10"><ShieldCheck className="h-5 w-5" /></div><div><p className="text-[10px] font-extrabold uppercase tracking-[.18em] text-violet-200">Kanıt temelli hazırlık</p><h1 className="mt-1 text-2xl font-black">ESG ve TFRS hazırlık merkezi</h1><p className="mt-2 max-w-3xl text-sm leading-6 text-slate-300">Eksik veri ve belgeleri görün; mevzuat uyumu veya performans skoru iddiası üretmeden uzman incelemesine hazırlan.</p></div></div>
+        <div className="flex items-start gap-4"><div className="grid h-11 w-11 shrink-0 place-items-center rounded-xl bg-white/10"><ShieldCheck className="h-5 w-5" /></div><div><p className="text-xs font-extrabold uppercase tracking-[.18em] text-violet-200">Kanıt temelli hazırlık</p><h1 className="mt-1 text-2xl font-black">ESG ve TFRS hazırlık merkezi</h1><p className="mt-2 max-w-3xl text-sm leading-6 text-slate-300">Eksik veri ve belgeleri görün; mevzuat uyumu veya performans skoru iddiası üretmeden uzman incelemesine hazırlan.</p></div></div>
       </header>
 
       <div className="grid grid-cols-2 gap-2 rounded-2xl border border-slate-200 bg-white p-2 shadow-sm">

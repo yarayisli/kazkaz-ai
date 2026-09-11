@@ -303,22 +303,22 @@ export const CfoAgentTab: React.FC<CfoAgentTabProps> = ({ financialData, cashFlo
             <div className="flex items-center gap-2 text-sm font-bold text-slate-900">
               <ShieldAlert className="h-4 w-4 text-amber-600" /> İnsan onay kuyruğu
             </div>
-            <span className="rounded-full bg-amber-50 px-2 py-1 text-[10px] font-bold text-amber-700">{approvals.filter((item) => item.status === 'pending').length} bekliyor</span>
+            <span className="rounded-full bg-amber-50 px-2 py-1 text-xs font-bold text-amber-700">{approvals.filter((item) => item.status === 'pending').length} bekliyor</span>
           </div>
           <div className="mt-3 max-h-72 space-y-2 overflow-auto">
             {approvals.slice().reverse().slice(0, 10).map((record) => (
               <article key={record.id} className="rounded-lg border border-slate-200 bg-slate-50 p-2.5">
                 <div className="flex items-start justify-between gap-2">
-                  <p className="text-[10px] font-bold leading-4 text-slate-800">{record.action}</p>
-                  <span className={`shrink-0 rounded-full px-2 py-1 text-[8px] font-extrabold uppercase ${record.status === 'completed' ? 'bg-violet-100 text-violet-700' : record.status === 'approved' ? 'bg-emerald-100 text-emerald-700' : record.status === 'rejected' ? 'bg-red-100 text-red-700' : 'bg-amber-100 text-amber-700'}`}>{record.status === 'completed' ? 'ölçüldü' : record.status === 'approved' ? 'onaylandı' : record.status === 'rejected' ? 'reddedildi' : 'bekliyor'}</span>
+                  <p className="text-xs font-bold leading-4 text-slate-800">{record.action}</p>
+                  <span className={`shrink-0 rounded-full px-2 py-1 text-xs font-extrabold uppercase ${record.status === 'completed' ? 'bg-violet-100 text-violet-700' : record.status === 'approved' ? 'bg-emerald-100 text-emerald-700' : record.status === 'rejected' ? 'bg-red-100 text-red-700' : 'bg-amber-100 text-amber-700'}`}>{record.status === 'completed' ? 'ölçüldü' : record.status === 'approved' ? 'onaylandı' : record.status === 'rejected' ? 'reddedildi' : 'bekliyor'}</span>
                 </div>
-                <p className="mt-1 text-[9px] leading-4 text-slate-500">Dayanak: {record.evidence.slice(0, 3).map((item) => `${item.metric} (${item.formulaId})`).join(' · ') || 'Hesaplanmış metrik bulunamadı'}</p>
+                <p className="mt-1 text-xs leading-4 text-slate-500">Dayanak: {record.evidence.slice(0, 3).map((item) => `${item.metric} (${item.formulaId})`).join(' · ') || 'Hesaplanmış metrik bulunamadı'}</p>
                 {record.status === 'pending' && <div className="mt-2 grid grid-cols-2 gap-2">
-                  <button type="button" disabled={!canDecide} onClick={() => decide(record.id, 'approved')} className="rounded-md bg-emerald-700 px-2 py-1.5 text-[9px] font-bold text-white disabled:cursor-not-allowed disabled:opacity-40">İnceleyip onayla</button>
-                  <button type="button" disabled={!canDecide} onClick={() => decide(record.id, 'rejected')} className="rounded-md border border-red-200 bg-white px-2 py-1.5 text-[9px] font-bold text-red-700 disabled:cursor-not-allowed disabled:opacity-40">Reddet</button>
+                  <button type="button" disabled={!canDecide} onClick={() => decide(record.id, 'approved')} className="rounded-md bg-emerald-700 px-2 py-1.5 text-xs font-bold text-white disabled:cursor-not-allowed disabled:opacity-40">İnceleyip onayla</button>
+                  <button type="button" disabled={!canDecide} onClick={() => decide(record.id, 'rejected')} className="rounded-md border border-red-200 bg-white px-2 py-1.5 text-xs font-bold text-red-700 disabled:cursor-not-allowed disabled:opacity-40">Reddet</button>
                 </div>}
-                {record.status === 'approved' && <button type="button" disabled={!canDecide} onClick={() => openOutcomeEditor(record)} className="mt-2 w-full rounded-md border border-violet-200 bg-white px-2 py-1.5 text-[9px] font-bold text-violet-700 disabled:cursor-not-allowed disabled:opacity-40">Gerçekleşen sonucu kaydet</button>}
-                {record.status === 'completed' && <div className="mt-2 rounded-md border border-violet-100 bg-violet-50 p-2 text-[9px] leading-4 text-violet-950">
+                {record.status === 'approved' && <button type="button" disabled={!canDecide} onClick={() => openOutcomeEditor(record)} className="mt-2 w-full rounded-md border border-violet-200 bg-white px-2 py-1.5 text-xs font-bold text-violet-700 disabled:cursor-not-allowed disabled:opacity-40">Gerçekleşen sonucu kaydet</button>}
+                {record.status === 'completed' && <div className="mt-2 rounded-md border border-violet-100 bg-violet-50 p-2 text-xs leading-4 text-violet-950">
                   <div className="grid grid-cols-2 gap-1">
                     <span>Beklenen: <strong>₺{(record.expectedImpact || 0).toLocaleString('tr-TR')}</strong></span>
                     <span>Gerçekleşen: <strong>₺{(record.actualImpact || 0).toLocaleString('tr-TR')}</strong></span>
@@ -331,22 +331,22 @@ export const CfoAgentTab: React.FC<CfoAgentTabProps> = ({ financialData, cashFlo
                 </div>}
                 {outcomeEditor?.id === record.id && <div className="mt-2 space-y-2 rounded-lg border border-violet-200 bg-white p-2.5">
                   <div className="grid grid-cols-2 gap-2">
-                    <input aria-label="Aksiyon sorumlusu" value={outcomeEditor.owner} onChange={(event) => setOutcomeEditor({ ...outcomeEditor, owner: event.target.value })} placeholder="Sorumlu kişi" className="rounded-md border border-slate-200 px-2 py-1.5 text-[10px]" />
-                    <input aria-label="Hedef tarih" type="date" value={outcomeEditor.dueDate} onChange={(event) => setOutcomeEditor({ ...outcomeEditor, dueDate: event.target.value })} className="rounded-md border border-slate-200 px-2 py-1.5 text-[10px]" />
-                    <input aria-label="Beklenen finansal etki" inputMode="decimal" value={outcomeEditor.expectedImpact} onChange={(event) => setOutcomeEditor({ ...outcomeEditor, expectedImpact: event.target.value })} placeholder="Beklenen etki ₺" className="rounded-md border border-slate-200 px-2 py-1.5 text-[10px]" />
-                    <input aria-label="Uygulama maliyeti" inputMode="decimal" value={outcomeEditor.implementationCost} onChange={(event) => setOutcomeEditor({ ...outcomeEditor, implementationCost: event.target.value })} placeholder="Uygulama maliyeti ₺" className="rounded-md border border-slate-200 px-2 py-1.5 text-[10px]" />
-                    <input aria-label="Gerçekleşen finansal etki" inputMode="decimal" value={outcomeEditor.actualImpact} onChange={(event) => setOutcomeEditor({ ...outcomeEditor, actualImpact: event.target.value })} placeholder="Gerçekleşen etki ₺" className="col-span-2 rounded-md border border-slate-200 px-2 py-1.5 text-[10px]" />
+                    <input aria-label="Aksiyon sorumlusu" value={outcomeEditor.owner} onChange={(event) => setOutcomeEditor({ ...outcomeEditor, owner: event.target.value })} placeholder="Sorumlu kişi" className="rounded-md border border-slate-200 px-2 py-1.5 text-xs" />
+                    <input aria-label="Hedef tarih" type="date" value={outcomeEditor.dueDate} onChange={(event) => setOutcomeEditor({ ...outcomeEditor, dueDate: event.target.value })} className="rounded-md border border-slate-200 px-2 py-1.5 text-xs" />
+                    <input aria-label="Beklenen finansal etki" inputMode="decimal" value={outcomeEditor.expectedImpact} onChange={(event) => setOutcomeEditor({ ...outcomeEditor, expectedImpact: event.target.value })} placeholder="Beklenen etki ₺" className="rounded-md border border-slate-200 px-2 py-1.5 text-xs" />
+                    <input aria-label="Uygulama maliyeti" inputMode="decimal" value={outcomeEditor.implementationCost} onChange={(event) => setOutcomeEditor({ ...outcomeEditor, implementationCost: event.target.value })} placeholder="Uygulama maliyeti ₺" className="rounded-md border border-slate-200 px-2 py-1.5 text-xs" />
+                    <input aria-label="Gerçekleşen finansal etki" inputMode="decimal" value={outcomeEditor.actualImpact} onChange={(event) => setOutcomeEditor({ ...outcomeEditor, actualImpact: event.target.value })} placeholder="Gerçekleşen etki ₺" className="col-span-2 rounded-md border border-slate-200 px-2 py-1.5 text-xs" />
                   </div>
-                  <textarea aria-label="Gerçekleşen sonuç açıklaması" value={outcomeEditor.outcomeNote} onChange={(event) => setOutcomeEditor({ ...outcomeEditor, outcomeNote: event.target.value })} placeholder="Sonucun nasıl ölçüldüğünü açıklayın" rows={2} className="w-full resize-none rounded-md border border-slate-200 px-2 py-1.5 text-[10px]" />
-                  <label className="flex items-start gap-2 text-[9px] leading-4 text-slate-600"><input type="checkbox" checked={outcomeEditor.publicationConsent} onChange={(event) => setOutcomeEditor({ ...outcomeEditor, publicationConsent: event.target.checked })} className="mt-0.5" /> Sonucun şirket adı gösterilmeden anonim vaka çalışmasında kullanılmasına izin veriyorum.</label>
-                  {outcomeError && <p className="text-[9px] font-bold text-red-700">{outcomeError}</p>}
-                  <div className="grid grid-cols-2 gap-2"><button type="button" onClick={saveOutcome} className="rounded-md bg-violet-700 px-2 py-1.5 text-[9px] font-bold text-white">Sonucu doğrula</button><button type="button" onClick={() => { setOutcomeEditor(null); setOutcomeError(null); }} className="rounded-md border border-slate-200 px-2 py-1.5 text-[9px] font-bold text-slate-600">Vazgeç</button></div>
+                  <textarea aria-label="Gerçekleşen sonuç açıklaması" value={outcomeEditor.outcomeNote} onChange={(event) => setOutcomeEditor({ ...outcomeEditor, outcomeNote: event.target.value })} placeholder="Sonucun nasıl ölçüldüğünü açıklayın" rows={2} className="w-full resize-none rounded-md border border-slate-200 px-2 py-1.5 text-xs" />
+                  <label className="flex items-start gap-2 text-xs leading-4 text-slate-600"><input type="checkbox" checked={outcomeEditor.publicationConsent} onChange={(event) => setOutcomeEditor({ ...outcomeEditor, publicationConsent: event.target.checked })} className="mt-0.5" /> Sonucun şirket adı gösterilmeden anonim vaka çalışmasında kullanılmasına izin veriyorum.</label>
+                  {outcomeError && <p className="text-xs font-bold text-red-700">{outcomeError}</p>}
+                  <div className="grid grid-cols-2 gap-2"><button type="button" onClick={saveOutcome} className="rounded-md bg-violet-700 px-2 py-1.5 text-xs font-bold text-white">Sonucu doğrula</button><button type="button" onClick={() => { setOutcomeEditor(null); setOutcomeError(null); }} className="rounded-md border border-slate-200 px-2 py-1.5 text-xs font-bold text-slate-600">Vazgeç</button></div>
                 </div>}
               </article>
             ))}
-            {!approvals.length && <p className="rounded-lg bg-slate-50 p-2.5 text-[10px] leading-4 text-slate-500">AI CFO bir aksiyon önerdiğinde burada metrik ve formül dayanağıyla kayıt oluşur.</p>}
+            {!approvals.length && <p className="rounded-lg bg-slate-50 p-2.5 text-xs leading-4 text-slate-500">AI CFO bir aksiyon önerdiğinde burada metrik ve formül dayanağıyla kayıt oluşur.</p>}
           </div>
-          {!canDecide && <p className="mt-2 text-[9px] leading-4 text-slate-500">Onay veya ret kararı yalnızca Admin ve CFO rollerine açıktır.</p>}
+          {!canDecide && <p className="mt-2 text-xs leading-4 text-slate-500">Onay veya ret kararı yalnızca Admin ve CFO rollerine açıktır.</p>}
         </div>
 
         <div className="rounded-xl border border-slate-200 bg-white p-4 shadow-xs">
@@ -355,7 +355,7 @@ export const CfoAgentTab: React.FC<CfoAgentTabProps> = ({ financialData, cashFlo
               <Workflow className="h-4 w-4 text-violet-600" />
               Kontrollü ajanlar
             </div>
-            <span className="rounded-full bg-violet-50 px-2 py-1 text-[10px] font-bold text-violet-700">
+            <span className="rounded-full bg-violet-50 px-2 py-1 text-xs font-bold text-violet-700">
               {!hasVerifiedSession ? 'Giriş gerekli' : agentLoading ? 'Kontrol ediliyor' : `${agentAnalysis?.araclar.length || 0} araç aktif`}
             </span>
           </div>
@@ -364,29 +364,29 @@ export const CfoAgentTab: React.FC<CfoAgentTabProps> = ({ financialData, cashFlo
             <div className="mt-3 space-y-2">
               {agentAnalysis.uyarilar.slice(0, 3).map((warning) => (
                 <div key={`${warning.arac}-${warning.baslik}`} className="rounded-lg border border-amber-200 bg-amber-50 p-2.5">
-                  <p className="text-[11px] font-bold text-amber-900">{warning.baslik}</p>
-                  <p className="mt-1 text-[10px] leading-4 text-amber-800">{warning.mesaj}</p>
-                  <p className="mt-1 text-[9px] font-semibold uppercase tracking-wide text-amber-600">
+                  <p className="text-xs font-bold text-amber-900">{warning.baslik}</p>
+                  <p className="mt-1 text-xs leading-4 text-amber-800">{warning.mesaj}</p>
+                  <p className="mt-1 text-xs font-semibold uppercase tracking-wide text-amber-600">
                     {warning.arac} · insan onayı
                   </p>
                 </div>
               ))}
               {agentAnalysis.uyarilar.length === 0 && (
-                <p className="rounded-lg bg-emerald-50 p-2.5 text-[11px] text-emerald-800">
+                <p className="rounded-lg bg-emerald-50 p-2.5 text-xs text-emerald-800">
                   Girilen verilerde tanımlı kritik eşik uyarısı oluşmadı.
                 </p>
               )}
-              <div className="rounded-lg border border-slate-200 bg-slate-50 p-2.5 text-[10px] leading-4 text-slate-600">
+              <div className="rounded-lg border border-slate-200 bg-slate-50 p-2.5 text-xs leading-4 text-slate-600">
                 <strong className="text-slate-800">Uzman onayı:</strong>{' '}
                 {agentAnalysis.metodoloji_onaylari.filter((item) => item.uzman_onayi.includes('bekliyor')).length} metodoloji başlığı bekliyor.
               </div>
             </div>
           ) : !agentLoading ? (
-            <p className="mt-3 text-[11px] leading-5 text-slate-500">
+            <p className="mt-3 text-xs leading-5 text-slate-500">
               Ajan analizi için doğrulanmış kullanıcı oturumu gerekiyor.
             </p>
           ) : (
-            <div className="mt-3 flex items-center gap-2 text-[11px] text-slate-500">
+            <div className="mt-3 flex items-center gap-2 text-xs text-slate-500">
               <RefreshCw className="h-3.5 w-3.5 animate-spin" /> Araçlar hazırlanıyor…
             </div>
           )}
@@ -398,7 +398,7 @@ export const CfoAgentTab: React.FC<CfoAgentTabProps> = ({ financialData, cashFlo
               <Sparkles className="h-4 w-4 text-orange-600" />
               Gelişmiş ajanlar
             </div>
-            <span className={`rounded-full px-2 py-1 text-[10px] font-bold ${
+            <span className={`rounded-full px-2 py-1 text-xs font-bold ${
               completedAdvancedAgents === totalAdvancedAgents
                 ? 'bg-emerald-50 text-emerald-700'
                 : 'bg-orange-50 text-orange-700'
@@ -415,16 +415,16 @@ export const CfoAgentTab: React.FC<CfoAgentTabProps> = ({ financialData, cashFlo
                   : 'border-amber-200 bg-amber-50'
             }`}>
               <div className="flex items-center justify-between gap-2">
-                <p className="text-[10px] font-extrabold text-slate-900">Baş denetçi</p>
-                <span className="rounded-full bg-white/80 px-2 py-1 text-[8px] font-extrabold uppercase text-slate-700">
+                <p className="text-xs font-extrabold text-slate-900">Baş denetçi</p>
+                <span className="rounded-full bg-white/80 px-2 py-1 text-xs font-extrabold uppercase text-slate-700">
                   {advancedAnalysis.bas_denetim.durum.replaceAll('_', ' ')}
                 </span>
               </div>
-              <p className="mt-1 text-[9px] leading-4 text-slate-700">
+              <p className="mt-1 text-xs leading-4 text-slate-700">
                 {advancedAnalysis.bas_denetim.kritik_sorun_sayisi} kritik · {advancedAnalysis.bas_denetim.uyari_sayisi} uyarı · AI {advancedAnalysis.bas_denetim.ai_kullanilabilir ? `uygun (${advancedAnalysis.bas_denetim.ai_kapsami.replaceAll('_', ' ')})` : 'durduruldu'}
               </p>
               {(advancedAnalysis.bas_denetim.kritikler[0] || advancedAnalysis.bas_denetim.uyarilar[0]) && (
-                <p className="mt-1 text-[9px] leading-4 text-slate-600">
+                <p className="mt-1 text-xs leading-4 text-slate-600">
                   {(advancedAnalysis.bas_denetim.kritikler[0] || advancedAnalysis.bas_denetim.uyarilar[0]).mesaj}
                 </p>
               )}
@@ -432,26 +432,26 @@ export const CfoAgentTab: React.FC<CfoAgentTabProps> = ({ financialData, cashFlo
           )}
           {advancedAnalysis?.veri_ufku && hasAdvancedData && (
             <div className="mt-3 rounded-lg border border-slate-200 bg-slate-50 p-3">
-              <p className="text-[10px] font-extrabold text-slate-900">Veri zaman kapsamı</p>
-              <div className="mt-2 grid grid-cols-2 gap-1.5 text-[9px] text-slate-600">
+              <p className="text-xs font-extrabold text-slate-900">Veri zaman kapsamı</p>
+              <div className="mt-2 grid grid-cols-2 gap-1.5 text-xs text-slate-600">
                 <span className="rounded-md bg-white p-2">Mizan <strong className="block text-slate-900">{advancedAnalysis.veri_ufku.mizan.donem_sayisi} dönem</strong></span>
                 <span className="rounded-md bg-white p-2">Nakit <strong className="block text-slate-900">{advancedAnalysis.veri_ufku.nakit.kayit_sayisi} hafta</strong></span>
                 <span className="rounded-md bg-white p-2">Alacak <strong className="block text-slate-900">{advancedAnalysis.veri_ufku.alacak.kayit_sayisi} tarih</strong></span>
                 <span className="rounded-md bg-white p-2">Bütçe <strong className="block text-slate-900">{advancedAnalysis.veri_ufku.butce.kayit_sayisi} ay</strong></span>
               </div>
-              <p className="mt-2 text-[9px] leading-4 text-slate-500">
+              <p className="mt-2 text-xs leading-4 text-slate-500">
                 {advancedAnalysis.veri_ufku.nakit.tam_13_hafta_penceresi ? 'Kayan 13 haftalık nakit penceresi hazır.' : '13 haftalık nakit için ek haftalar gerekli.'}
               </p>
             </div>
           )}
           {!hasAdvancedData && advancedAnalysis && (
             <div className="mt-3 rounded-lg border border-amber-200 bg-amber-50 p-3">
-              <p className="text-[10px] font-bold text-amber-900">Gelişmiş finans verisi henüz yüklenmedi</p>
-              <p className="mt-1 text-[9px] leading-4 text-amber-800">
+              <p className="text-xs font-bold text-amber-900">Gelişmiş finans verisi henüz yüklenmedi</p>
+              <p className="mt-1 text-xs leading-4 text-amber-800">
                 Tek Excel dosyasını Veri Girişi ekranından yükleyip “çalışma alanına aktar” adımını tamamlayın. Ajanlar otomatik çalışır; ayrıca JSON yüklemeniz gerekmez.
               </p>
               {onNavigateDataEntry && (
-                <button type="button" onClick={onNavigateDataEntry} className="mt-2 rounded-md bg-amber-900 px-2.5 py-1.5 text-[9px] font-bold text-white hover:bg-amber-800">
+                <button type="button" onClick={onNavigateDataEntry} className="mt-2 rounded-md bg-amber-900 px-2.5 py-1.5 text-xs font-bold text-white hover:bg-amber-800">
                   Veri Girişi'ne git
                 </button>
               )}
@@ -461,14 +461,14 @@ export const CfoAgentTab: React.FC<CfoAgentTabProps> = ({ financialData, cashFlo
             {advancedAnalysis && Object.values(advancedAnalysis.ajanlar).map((agent) => (
               <div key={agent.ajan} className="flex items-start justify-between gap-3 rounded-lg border border-slate-200 bg-slate-50 p-2.5">
                 <div className="min-w-0">
-                  <p className="truncate text-[10px] font-bold text-slate-800">
+                  <p className="truncate text-xs font-bold text-slate-800">
                     {agent.ajan.replaceAll('_', ' ')}
                   </p>
-                  <p className="mt-1 line-clamp-2 text-[9px] leading-4 text-slate-500">
+                  <p className="mt-1 line-clamp-2 text-xs leading-4 text-slate-500">
                     {agent.bulgular?.[0] || agent.gerekenler?.slice(0, 2).join(' · ') || 'Kontrol hazır'}
                   </p>
                 </div>
-                <span className={`shrink-0 rounded-full px-2 py-1 text-[8px] font-extrabold uppercase ${
+                <span className={`shrink-0 rounded-full px-2 py-1 text-xs font-extrabold uppercase ${
                   agent.durum === 'tamamlandi'
                     ? 'bg-emerald-100 text-emerald-700'
                     : agent.durum === 'veri_bekliyor'
@@ -482,12 +482,12 @@ export const CfoAgentTab: React.FC<CfoAgentTabProps> = ({ financialData, cashFlo
             {tabloAjani?.son_donem && (
               <div className="rounded-lg border border-blue-200 bg-blue-50/60 p-3">
                 <div className="flex items-center justify-between gap-2">
-                  <div className="flex items-center gap-1.5 text-[10px] font-extrabold text-blue-950">
+                  <div className="flex items-center gap-1.5 text-xs font-extrabold text-blue-950">
                     <Scale className="h-3.5 w-3.5" /> Finansal tablo mutabakatı
                   </div>
-                  <span className="text-[8px] font-bold text-blue-700">{tabloAjani.tablo_surumu}</span>
+                  <span className="text-xs font-bold text-blue-700">{tabloAjani.tablo_surumu}</span>
                 </div>
-                <div className="mt-2 grid grid-cols-2 gap-1.5 text-[9px]">
+                <div className="mt-2 grid grid-cols-2 gap-1.5 text-xs">
                   <div className="rounded-md bg-white p-2 text-slate-600">
                     Net kâr <strong className="block text-slate-900">₺{tabloAjani.son_donem.gelir_tablosu.net_kar.toLocaleString('tr-TR')}</strong>
                   </div>
@@ -502,36 +502,36 @@ export const CfoAgentTab: React.FC<CfoAgentTabProps> = ({ financialData, cashFlo
                   </div>
                 </div>
                 {tabloAjani.finansal_gorunum_mutabakati?.uyusmayan_alanlar.length ? (
-                  <p className="mt-2 text-[9px] leading-4 text-amber-800">
+                  <p className="mt-2 text-xs leading-4 text-amber-800">
                     Kontrol bekleyen: {tabloAjani.finansal_gorunum_mutabakati.uyusmayan_alanlar.join(', ')}
                   </p>
                 ) : (
-                  <p className="mt-2 text-[9px] font-semibold text-emerald-700">Mizan ve finansal özet mutabık.</p>
+                  <p className="mt-2 text-xs font-semibold text-emerald-700">Mizan ve finansal özet mutabık.</p>
                 )}
               </div>
             )}
             {!advancedAnalysis && hasVerifiedSession && (
-              <div className="flex items-center gap-2 py-2 text-[10px] text-slate-500">
+              <div className="flex items-center gap-2 py-2 text-xs text-slate-500">
                 <RefreshCw className="h-3.5 w-3.5 animate-spin" /> Gelişmiş kontroller hazırlanıyor…
               </div>
             )}
             {advancedError && (
-              <p className="rounded-lg border border-red-200 bg-red-50 p-2 text-[9px] leading-4 text-red-700">{advancedError}</p>
+              <p className="rounded-lg border border-red-200 bg-red-50 p-2 text-xs leading-4 text-red-700">{advancedError}</p>
             )}
             {advancedDataApplied && (
-              <p className="rounded-lg border border-emerald-200 bg-emerald-50 p-2 text-[9px] leading-4 text-emerald-700">
+              <p className="rounded-lg border border-emerald-200 bg-emerald-50 p-2 text-xs leading-4 text-emerald-700">
                 Ek ajan verisi doğrulandı ve çalışma alanına uygulandı.
               </p>
             )}
             {hasVerifiedSession && <details className="rounded-lg border border-slate-200 bg-white p-2.5">
-              <summary className="cursor-pointer text-[9px] font-bold text-slate-600">İleri seviye: JSON ile ek ajan verisi</summary>
-              <p className="mt-2 text-[9px] leading-4 text-slate-500">Normal kullanımda gerekli değildir. Ana veri kaynağı Veri Girişi ekranındaki Excel yüklemesidir.</p>
+              <summary className="cursor-pointer text-xs font-bold text-slate-600">İleri seviye: JSON ile ek ajan verisi</summary>
+              <p className="mt-2 text-xs leading-4 text-slate-500">Normal kullanımda gerekli değildir. Ana veri kaynağı Veri Girişi ekranındaki Excel yüklemesidir.</p>
               <div className="mt-2 grid grid-cols-2 gap-2">
-              <label className="flex cursor-pointer items-center justify-center gap-1.5 rounded-lg bg-slate-900 px-2 py-2 text-[9px] font-bold text-white transition hover:bg-slate-800">
+              <label className="flex cursor-pointer items-center justify-center gap-1.5 rounded-lg bg-slate-900 px-2 py-2 text-xs font-bold text-white transition hover:bg-slate-800">
                 <FileUp className="h-3 w-3" /> JSON ek veri yükle
                 <input type="file" accept="application/json,.json" className="hidden" onChange={handleAdvancedData} />
               </label>
-              <a href="/ornek-gelismis-ajan-verisi.json" download className="flex items-center justify-center rounded-lg border border-slate-200 bg-white px-2 py-2 text-center text-[9px] font-bold text-slate-600 hover:bg-slate-50">
+              <a href="/ornek-gelismis-ajan-verisi.json" download className="flex items-center justify-center rounded-lg border border-slate-200 bg-white px-2 py-2 text-center text-xs font-bold text-slate-600 hover:bg-slate-50">
                 Örnek şablon
               </a>
               </div>
@@ -572,15 +572,15 @@ export const CfoAgentTab: React.FC<CfoAgentTabProps> = ({ financialData, cashFlo
             </div>
             <div>
               <h3 className="font-bold text-sm">CFO Yapay Zeka Danışmanı</h3>
-              <p className="text-[11px] text-slate-300">KazKaz Finans Motoru + Yapay Zeka</p>
+              <p className="text-xs text-slate-300">KazKaz Finans Motoru + Yapay Zeka</p>
             </div>
           </div>
-          <span className="bg-emerald-500/20 text-emerald-300 text-[10px] font-bold px-2.5 py-1 rounded-full border border-emerald-500/30">
+          <span className="bg-emerald-500/20 text-emerald-300 text-xs font-bold px-2.5 py-1 rounded-full border border-emerald-500/30">
             {lastDecision ? `${lastDecision.kaynak} · güven ${lastDecision.guven}` : 'Finans motoru aktif'}
           </span>
         </div>
 
-        <div className="grid grid-cols-1 gap-2 border-b border-slate-200 bg-white px-4 py-3 text-[11px] text-slate-600 sm:grid-cols-2 xl:grid-cols-4">
+        <div className="grid grid-cols-1 gap-2 border-b border-slate-200 bg-white px-4 py-3 text-xs text-slate-600 sm:grid-cols-2 xl:grid-cols-4">
           <div className="flex items-center gap-1.5">
             <CheckCircle2 className="h-3.5 w-3.5 text-emerald-600" />
             <span>Hesaplama: kurallı finans motoru</span>
@@ -645,7 +645,7 @@ export const CfoAgentTab: React.FC<CfoAgentTabProps> = ({ financialData, cashFlo
                       </React.Fragment>
                     ))}
                   </p>
-                  <span className={`text-[10px] block mt-2 text-right ${isAi ? 'text-slate-400' : 'text-orange-100'}`}>
+                  <span className={`text-xs block mt-2 text-right ${isAi ? 'text-slate-400' : 'text-orange-100'}`}>
                     {msg.timestamp}
                   </span>
                 </div>

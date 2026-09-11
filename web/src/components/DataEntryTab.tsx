@@ -255,7 +255,7 @@ export const DataEntryTab: React.FC<DataEntryTabProps> = ({ initialData, onSave,
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <p className="text-xs font-bold text-slate-900">{importResult.dosya.ad}</p>
-          <p className="text-[11px] text-slate-500">
+          <p className="text-xs text-slate-500">
             {importResult.dosya.sayfalar.length} sayfa · {(importResult.dosya.boyut / 1024).toFixed(1)} KB
           </p>
         </div>
@@ -286,7 +286,7 @@ export const DataEntryTab: React.FC<DataEntryTabProps> = ({ initialData, onSave,
           ['İşlem gideri', `₺${importResult.ozet.toplam_gider.toLocaleString('tr-TR')}`],
         ].map(([label, value]) => (
           <div key={label} className="rounded-xl border border-slate-200 bg-white p-3">
-            <p className="text-[10px] font-semibold uppercase tracking-wide text-slate-500">{label}</p>
+            <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">{label}</p>
             <p className="mt-1 text-sm font-extrabold text-slate-900">{value}</p>
           </div>
         ))}
@@ -294,7 +294,7 @@ export const DataEntryTab: React.FC<DataEntryTabProps> = ({ initialData, onSave,
       <DataQualityFindings kalite={importResult.veri_kalitesi} dosya={importResult.dosya} />
       {!importResult.veri_kalitesi.aktarim_bloke
         && importResult.hatalar.some((bulgu) => bulgu.seviye === 'uyari') && (
-        <label className="flex cursor-pointer items-start gap-2.5 rounded-xl border border-amber-200 bg-amber-50 p-3 text-[11px] leading-4 text-amber-900">
+        <label className="flex cursor-pointer items-start gap-2.5 rounded-xl border border-amber-200 bg-amber-50 p-3 text-xs leading-4 text-amber-900">
           <input
             type="checkbox"
             checked={importWarningsAccepted}
@@ -310,7 +310,7 @@ export const DataEntryTab: React.FC<DataEntryTabProps> = ({ initialData, onSave,
             <AlertTriangle className="h-4 w-4" />
             {importResult.hatalar.length} doğrulama bulgusu
           </p>
-          <div className="mt-2 max-h-32 space-y-1 overflow-auto text-[11px] text-amber-900/80">
+          <div className="mt-2 max-h-32 space-y-1 overflow-auto text-xs text-amber-900/80">
             {importResult.hatalar.slice(0, 20).map((hata, index) => (
               <p key={`${hata.sayfa}-${hata.satir}-${index}`}>
                 <strong>{hata.sayfa} · satır {hata.satir || 'genel'}:</strong> {hata.mesaj}
@@ -351,7 +351,7 @@ export const DataEntryTab: React.FC<DataEntryTabProps> = ({ initialData, onSave,
         ].map(([step, title, detail], index) => (
           <div key={step} className={`flex items-center gap-3 rounded-xl border p-3 ${index === 0 || (index === 1 && importResult) ? 'border-violet-200 bg-white' : 'border-transparent bg-transparent'}`}>
             <span className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-xs font-black ${index === 0 || (index === 1 && importResult) ? 'bg-violet-700 text-white' : 'bg-slate-200 text-slate-500'}`}>{step}</span>
-            <div><p className="text-xs font-extrabold text-slate-900">{title}</p><p className="mt-0.5 text-[10px] text-slate-500">{detail}</p></div>
+            <div><p className="text-xs font-extrabold text-slate-900">{title}</p><p className="mt-0.5 text-xs text-slate-500">{detail}</p></div>
           </div>
         ))}
       </div>
@@ -426,7 +426,7 @@ export const DataEntryTab: React.FC<DataEntryTabProps> = ({ initialData, onSave,
           </div>
         </div>
         <div className="mt-4 rounded-xl border border-emerald-200 bg-white p-3">
-          <p className="text-[10px] font-bold uppercase tracking-wide text-slate-500">Paylaşılacak servis hesabı</p>
+          <p className="text-xs font-bold uppercase tracking-wide text-slate-500">Paylaşılacak servis hesabı</p>
           <p className="mt-1 break-all text-xs font-bold text-emerald-800">{sheetsStatus?.servis_hesabi_epostasi || (sheetsStatus?.yapilandirildi === false ? 'Sunucuda henüz yapılandırılmadı' : 'Bağlantı durumu kontrol ediliyor…')}</p>
         </div>
         <div className="mt-4 grid gap-3 lg:grid-cols-[minmax(0,2fr)_minmax(0,1fr)_auto]">
@@ -434,13 +434,13 @@ export const DataEntryTab: React.FC<DataEntryTabProps> = ({ initialData, onSave,
           <input type="text" value={sheetName} onChange={(event) => setSheetName(event.target.value)} disabled={isReadOnly || uploading || !sheetsStatus?.yapilandirildi} placeholder="Sayfa adı (isteğe bağlı)" aria-label="Google Sheets sayfa adı" className="min-h-11 rounded-xl border border-slate-300 bg-white px-3 text-xs text-slate-900 outline-none focus:ring-2 focus:ring-emerald-500 disabled:opacity-60" />
           <button type="button" onClick={() => void handleGoogleSheet()} disabled={isReadOnly || uploading || !sheetUrl.trim() || !sheetsStatus?.yapilandirildi} className="min-h-11 rounded-xl bg-emerald-700 px-4 text-xs font-extrabold text-white hover:bg-emerald-800 disabled:cursor-not-allowed disabled:opacity-50">{uploading ? 'Doğrulanıyor…' : 'Bağla ve doğrula'}</button>
         </div>
-        <p className="mt-3 text-[11px] leading-5 text-slate-500">Bu ilk bağlantı standart Tarih / Kategori / Gelir / Gider işlem sayfasını okur. Mizan, 13 haftalık nakit, alacaklar ve bütçe gibi çok sayfalı kurumsal veri için Excel şablonunu kullanın.</p>
+        <p className="mt-3 text-xs leading-5 text-slate-500">Bu ilk bağlantı standart Tarih / Kategori / Gelir / Gider işlem sayfasını okur. Mizan, 13 haftalık nakit, alacaklar ve bütçe gibi çok sayfalı kurumsal veri için Excel şablonunu kullanın.</p>
         {importPreview}
       </section>}
 
       {entryMode === 'manual' && <form onSubmit={handleSubmit} className="space-y-6">
         <div className="flex flex-col gap-3 rounded-xl border border-violet-200 bg-violet-50/70 p-4 sm:flex-row sm:items-center sm:justify-between">
-          <div className="flex items-center gap-3"><CircleCheckBig className="h-5 w-5 text-violet-700" /><div><p className="text-xs font-extrabold text-violet-950">Temel veri hazırlığı %{coreCompletion}</p><p className="mt-0.5 text-[10px] text-violet-800">Boş bırakılan gelişmiş alanlarda sistem tahmin üretmez.</p></div></div>
+          <div className="flex items-center gap-3"><CircleCheckBig className="h-5 w-5 text-violet-700" /><div><p className="text-xs font-extrabold text-violet-950">Temel veri hazırlığı %{coreCompletion}</p><p className="mt-0.5 text-xs text-violet-800">Boş bırakılan gelişmiş alanlarda sistem tahmin üretmez.</p></div></div>
           <div className="h-2 w-full overflow-hidden rounded-full bg-violet-100 sm:w-40"><div className="h-full rounded-full bg-violet-700 transition-[width]" style={{ width: `${coreCompletion}%` }} /></div>
         </div>
         {/* Basic Info */}
@@ -496,14 +496,14 @@ export const DataEntryTab: React.FC<DataEntryTabProps> = ({ initialData, onSave,
           <div className="flex flex-col gap-3 lg:flex-row lg:items-end lg:justify-between">
             <div>
               <p className="text-xs font-extrabold text-sky-950">Tarihsel TCMB kur referansı</p>
-              <p className="mt-1 text-[11px] leading-5 text-sky-900/70">Dönüşüm otomatik ve sessiz yapılmaz. Kur tarihini kontrol edin; muhasebe politikanıza göre tutarları raporlama para birimine çevirdikten sonra girin.</p>
+              <p className="mt-1 text-xs leading-5 text-sky-900/70">Dönüşüm otomatik ve sessiz yapılmaz. Kur tarihini kontrol edin; muhasebe politikanıza göre tutarları raporlama para birimine çevirdikten sonra girin.</p>
             </div>
             <div className="flex gap-2">
               <input type="date" value={fxDate} max={new Date().toISOString().slice(0, 10)} onChange={(event) => setFxDate(event.target.value)} className="rounded-lg border border-sky-200 bg-white px-3 py-2 text-xs" />
               <button type="button" disabled={fxLoading} onClick={() => void handleFxLookup()} className="rounded-lg bg-sky-700 px-3 py-2 text-xs font-bold text-white disabled:opacity-50">{fxLoading ? 'Alınıyor…' : 'Resmi kuru getir'}</button>
             </div>
           </div>
-          {fxResult && <div className="mt-3 flex flex-wrap gap-2">{Object.entries(fxResult.kurlar).filter(([kod]) => kod !== 'TRY').map(([kod, deger]) => <span key={kod} className="rounded-full border border-sky-200 bg-white px-3 py-1.5 text-[11px] font-bold text-sky-950">1 {kod} = {deger.toLocaleString('tr-TR', { maximumFractionDigits: 6 })} TRY</span>)}<span className="w-full text-[10px] text-sky-900/60">Kaynak: {fxResult.kaynak} · Kur tarihi: {fxResult.kur_tarihi}</span></div>}
+          {fxResult && <div className="mt-3 flex flex-wrap gap-2">{Object.entries(fxResult.kurlar).filter(([kod]) => kod !== 'TRY').map(([kod, deger]) => <span key={kod} className="rounded-full border border-sky-200 bg-white px-3 py-1.5 text-xs font-bold text-sky-950">1 {kod} = {deger.toLocaleString('tr-TR', { maximumFractionDigits: 6 })} TRY</span>)}<span className="w-full text-xs text-sky-900/60">Kaynak: {fxResult.kaynak} · Kur tarihi: {fxResult.kur_tarihi}</span></div>}
         </section>
 
         {/* Income Statement Fields */}
@@ -683,7 +683,7 @@ export const DataEntryTab: React.FC<DataEntryTabProps> = ({ initialData, onSave,
           <h3 className="text-xs font-bold text-slate-900 uppercase tracking-wider border-b border-slate-100 pb-1">
             Kurumsal Metrik Parametreleri
           </h3>
-          <p className="text-[11px] leading-5 text-slate-500">
+          <p className="text-xs leading-5 text-slate-500">
             Bu alanlar Altman, ROIC, serbest nakit akışı ve tam nakit dönüşüm döngüsü için kullanılır. Boş alanlarda sonuç tahmin edilmez.
           </p>
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">

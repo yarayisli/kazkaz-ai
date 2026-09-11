@@ -120,6 +120,23 @@ class TestFeedbackLoop(unittest.TestCase):
             geri_bildirim_memnuniyeti(GeriBildirimMemnuniyetIstegi(geri_bildirim_id=fb_id, memnun=False), _user("user-b"))
         self.assertEqual(ctx.exception.status_code, 403)
 
+    def test_cozulmedi_yaniti_talebi_destek_kuyruguna_yeniden_alir(self):
+        kayit = self._gonder()
+        fb_id = kayit["kayit_id"]
+        self.db.store[("companies", "company-a", "feedback", fb_id)]["status"] = "resolved"
+
+        sonuc = geri_bildirim_memnuniyeti(
+            GeriBildirimMemnuniyetIstegi(geri_bildirim_id=fb_id, memnun=False),
+            _user(),
+        )
+
+        belge = self.db.store[("companies", "company-a", "feedback", fb_id)]
+        self.assertEqual(sonuc["durum"], "yeniden_acildi")
+        self.assertEqual(sonuc["talep_durumu"], "in_review")
+        self.assertEqual(belge["status"], "in_review")
+        self.assertIn("reopenedAt", belge)
+        self.assertEqual(belge["reopenedBy"], "user-a")
+
 
 if __name__ == "__main__":
     unittest.main()

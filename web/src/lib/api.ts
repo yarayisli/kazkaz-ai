@@ -1019,7 +1019,10 @@ export function destekTaleplerim() {
 }
 
 export function destekTalebiMemnuniyeti(geriBildirimId: string, memnun: boolean) {
-  return apiIstegi<{ durum: 'kaydedildi'; talep_no: string; memnun: boolean }>(
+  return apiIstegi<{
+    durum: 'kaydedildi' | 'yeniden_acildi'; talep_no: string; memnun: boolean;
+    talep_durumu: 'resolved' | 'in_review';
+  }>(
     '/api/v1/geri-bildirim/memnuniyet',
     { geri_bildirim_id: geriBildirimId, memnun },
   );

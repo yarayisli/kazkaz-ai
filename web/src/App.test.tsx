@@ -7,7 +7,8 @@ vi.mock('./context/AlertContext',()=>({AlertProvider:({children}:any)=>children}
 vi.mock('./lib/workspacePersistence',()=>({loadWorkspace:m.load,saveWorkspace:m.save,deleteWorkspace:m.remove,exportWorkspace:vi.fn()}));
 vi.mock('./lib/api',()=>({zamanSerisiAnalizi:vi.fn(),CalismaAlaniCakismaHatasi:class extends Error {constructor(public mevcutRevizyon:number,message:string){super(message);}}}));
 vi.mock('./components/Navigation',()=>({Navigation:({setActiveTab}:any)=><nav>{[['Veri','data-entry'],['Özet','overview'],['Ayarlar','settings']].map(([label,id])=><button key={id} onClick={()=>setActiveTab(id)}>{label}</button>)}</nav>}));
-vi.mock('./components/LandingPage',()=>({LandingPage:()=>null}));
+vi.mock('./components/LandingPage',()=>({LandingPage:({onOpenAuth}:any)=><button onClick={onOpenAuth}>Ücretsiz finansal görünüm oluştur</button>}));
+vi.mock('./components/AuthModal',()=>({AuthModal:({isOpen}:any)=>isOpen?<div>Kimlik doğrulama açık</div>:null}));
 vi.mock('./components/ScreenTabs',()=>({ScreenTabs:()=>null}));
 vi.mock('./components/CompanySetup',()=>({CompanySetup:()=>null}));
 vi.mock('./components/FeedbackWidget',()=>({FeedbackWidget:()=>null}));
@@ -47,4 +48,10 @@ it('silme sonrası yeni kayıtta silmenin revizyonunu kullanır',async()=>{
 });
 it('eski sürümle silme çakışırsa kullanıcıyı yenilemeye yönlendirir',async()=>{
  render(<WorkspaceOturumu/>);await openData();m.remove.mockRejectedValueOnce(new CalismaAlaniCakismaHatasi(2,'çakışma'));fireEvent.click(screen.getByText('Ayarlar'));fireEvent.click(await screen.findByText('Sil'));await screen.findByText('Çalışma alanı başka bir oturumda değiştiği için silinmedi. Önce en son sürümü yükleyin.');expect(screen.getByText('En son sürümü yükle')).toBeTruthy();
+});
+it('oturumsuz kullanıcı ana çağrı düğmesine bastığında kimlik doğrulamayı açar',()=>{
+ m.auth={currentUser:null,userProfile:null,isGuest:false} as any;
+ render(<WorkspaceOturumu/>);
+ fireEvent.click(screen.getByText('Ücretsiz finansal görünüm oluştur'));
+ expect(screen.getByText('Kimlik doğrulama açık')).toBeTruthy();
 });
