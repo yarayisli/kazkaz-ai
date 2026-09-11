@@ -2,6 +2,8 @@ import React, { useEffect, useState } from 'react';
 import { FinancialData, TransactionAnalytics } from '../types';
 import { Edit3, Save, CheckCircle, Lock, ShieldAlert, UploadCloud, FileSpreadsheet, AlertTriangle, Keyboard, CircleCheckBig, FileDown, Link2, Eye } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
+import { DataQualityFindings } from './DataQualityFindings';
+import { SutunEslemeAdimi } from './SutunEslemeAdimi';
 import {
   finansalDenetim,
   finansDosyasiDogrula,
@@ -9,6 +11,7 @@ import {
   importedFinancialData,
   GelismisAjanGirdisi,
   VeriIceriAktarmaSonucu,
+  EslesmeGerekliSonucu,
   veriSablonuIndir,
   googleSheetsDogrula,
   googleSheetsDurumu,
@@ -20,7 +23,7 @@ import {
 interface DataEntryTabProps {
   initialData: FinancialData;
   onSave: (updatedData: FinancialData, audit?: FinansalDenetim) => Promise<void> | void;
-  onImport: (financial: FinancialData, advanced: GelismisAjanGirdisi, analytics: TransactionAnalytics, audit: FinansalDenetim) => Promise<void> | void;
+  onImport: (financial: FinancialData, advanced: GelismisAjanGirdisi, analytics: TransactionAnalytics, audit: FinansalDenetim, zamanSerisi: VeriIceriAktarmaSonucu['zaman_serisi']) => Promise<void> | void;
 }
 
 export const DataEntryTab: React.FC<DataEntryTabProps> = ({ initialData, onSave, onImport }) => {
@@ -32,6 +35,9 @@ export const DataEntryTab: React.FC<DataEntryTabProps> = ({ initialData, onSave,
   const [syncError, setSyncError] = useState<string | null>(null);
   const [uploading, setUploading] = useState(false);
   const [importResult, setImportResult] = useState<VeriIceriAktarmaSonucu | null>(null);
+  const [importWarningsAccepted, setImportWarningsAccepted] = useState(false);
+  const [eslemeGerekli, setEslemeGerekli] = useState<EslesmeGerekliSonucu | null>(null);
+  const [bekleyenDosya, setBekleyenDosya] = useState<File | null>(null);
   const [entryMode, setEntryMode] = useState<'excel' | 'sheets' | 'manual'>('excel');
   const [sheetUrl, setSheetUrl] = useState('');
   const [sheetName, setSheetName] = useState('');
@@ -53,15 +59,70 @@ export const DataEntryTab: React.FC<DataEntryTabProps> = ({ initialData, onSave,
     return () => { aktif = false; };
   }, [entryMode, sheetsStatus]);
 
+  // Sütun eşlemesi şirket bazında saklanır: bir kez elle eşlenen standart
+  // dışı başlık (örn. "Ciro" → gelir) sonraki yüklemelerde tekrar sorulmaz.
+  const eslemeAnahtari = () => `kazkaz_sutun_eslemesi_${userProfile?.companyId ?? 'demo'}`;
+
+  const kayitliEslemeYukle = (): Record<string, string> => {
+    try {
+      const ham = localStorage.getItem(eslemeAnahtari());
+      if (!ham) return {};
+      const veri = JSON.parse(ham);
+      return veri && typeof veri === 'object' && !Array.isArray(veri) ? veri : {};
+    } catch {
+      return {};
+    }
+  };
+
+  const kayitliEslemeKaydet = (esleme: Record<string, string>) => {
+    try {
+      localStorage.setItem(eslemeAnahtari(), JSON.stringify(esleme));
+    } catch {
+      // localStorage kapalıysa eşleme oturum boyunca yine gönderilir; sessiz geç.
+    }
+  };
+
+  const dogrulamaSonucunuIsle = (sonuc: Awaited<ReturnType<typeof finansDosyasiDogrula>>, dosya: File) => {
+    if (sonuc.durum === 'eslesme_gerekli') {
+      setBekleyenDosya(dosya);
+      setEslemeGerekli(sonuc);
+      setImportResult(null);
+      setImportWarningsAccepted(false);
+    } else {
+      setEslemeGerekli(null);
+      setBekleyenDosya(null);
+      setImportResult(sonuc);
+      setImportWarningsAccepted(false);
+    }
+  };
+
   const handleFile = async (file?: File) => {
     if (!file || isReadOnly) return;
     setUploading(true);
     setSyncError(null);
     setImportResult(null);
+    setImportWarningsAccepted(false);
+    setEslemeGerekli(null);
     try {
-      setImportResult(await finansDosyasiDogrula(file));
+      dogrulamaSonucunuIsle(await finansDosyasiDogrula(file, kayitliEslemeYukle()), file);
     } catch (err) {
       setSyncError(err instanceof Error ? err.message : 'Dosya doğrulanamadı.');
+    } finally {
+      setUploading(false);
+    }
+  };
+
+  const handleEslemeKaydet = async (birlesikEsleme: Record<string, string>) => {
+    if (!bekleyenDosya || isReadOnly) return;
+    kayitliEslemeKaydet(birlesikEsleme);
+    setUploading(true);
+    setSyncError(null);
+    try {
+      // Kalan sütunlar hâlâ eksikse yeni sonuç yine "eslesme_gerekli" olur;
+      // kullanıcı kalanları da eşler. Tam eşleşince içerik önizlemesi açılır.
+      dogrulamaSonucunuIsle(await finansDosyasiDogrula(bekleyenDosya, birlesikEsleme), bekleyenDosya);
+    } catch (err) {
+      setSyncError(err instanceof Error ? err.message : 'Dosya yeniden doğrulanamadı.');
     } finally {
       setUploading(false);
     }
@@ -72,6 +133,9 @@ export const DataEntryTab: React.FC<DataEntryTabProps> = ({ initialData, onSave,
     setUploading(true);
     setSyncError(null);
     setImportResult(null);
+    setImportWarningsAccepted(false);
+    setEslemeGerekli(null);
+    setBekleyenDosya(null);
     try {
       setImportResult(await googleSheetsDogrula(sheetUrl.trim(), sheetName));
     } catch (err) {
@@ -95,13 +159,21 @@ export const DataEntryTab: React.FC<DataEntryTabProps> = ({ initialData, onSave,
 
   const applyImport = async () => {
     if (!importResult || isReadOnly) return;
+    if (importResult.veri_kalitesi.aktarim_bloke) {
+      setSyncError('Dosyada düzeltilmesi gereken veri hataları var. Bulguları giderip dosyayı yeniden yükleyin.');
+      return;
+    }
+    if (importResult.hatalar.some((bulgu) => bulgu.seviye === 'uyari') && !importWarningsAccepted) {
+      setSyncError('Aktarmadan önce ölçek, KDV, tarih ve mükerrer işlem uyarılarını kontrol edip onaylayın.');
+      return;
+    }
     const imported = importedFinancialData(importResult);
     setIsSyncing(true);
     setSyncError(null);
     try {
       const audit = await finansalDenetim(imported);
       setFormData(imported);
-      await onImport(imported, importResult.gelismis_veri, importResult.analizler, audit);
+      await onImport(imported, importResult.gelismis_veri, importResult.analizler, audit, importResult.zaman_serisi);
     } catch (err) {
       setSyncError(err instanceof Error ? err.message : 'Kurumsal finans metrikleri hesaplanamadı.');
     } finally {
@@ -169,6 +241,15 @@ export const DataEntryTab: React.FC<DataEntryTabProps> = ({ initialData, onSave,
     }
   };
 
+  const eslemePaneli = eslemeGerekli && bekleyenDosya && (
+    <SutunEslemeAdimi
+      sonuc={eslemeGerekli}
+      mevcutEsleme={kayitliEslemeYukle()}
+      onKaydet={(m) => void handleEslemeKaydet(m)}
+      yukleniyor={uploading}
+    />
+  );
+
   const importPreview = importResult && (
     <div className="mt-5 space-y-4 border-t border-slate-200 pt-4">
       <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
@@ -181,10 +262,20 @@ export const DataEntryTab: React.FC<DataEntryTabProps> = ({ initialData, onSave,
         <button
           type="button"
           onClick={() => void applyImport()}
-          disabled={isSyncing}
+          disabled={
+            isSyncing
+            || Boolean(importResult.veri_kalitesi.aktarim_bloke)
+            || (importResult.hatalar.some((bulgu) => bulgu.seviye === 'uyari') && !importWarningsAccepted)
+          }
           className="rounded-xl bg-emerald-600 px-4 py-2.5 text-xs font-bold text-white hover:bg-emerald-700 disabled:cursor-not-allowed disabled:opacity-60"
         >
-          {isSyncing ? 'Kurumsal metrikler hesaplanıyor…' : 'Doğrulanan veriyi çalışma alanına aktar'}
+          {isSyncing
+            ? 'Kurumsal metrikler hesaplanıyor…'
+            : importResult.veri_kalitesi.aktarim_bloke
+              ? 'Önce veri hatalarını düzeltin'
+              : importResult.hatalar.some((bulgu) => bulgu.seviye === 'uyari') && !importWarningsAccepted
+                ? 'Uyarıları inceleyip onaylayın'
+              : 'Doğrulanan veriyi çalışma alanına aktar'}
         </button>
       </div>
       <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
@@ -200,6 +291,19 @@ export const DataEntryTab: React.FC<DataEntryTabProps> = ({ initialData, onSave,
           </div>
         ))}
       </div>
+      <DataQualityFindings kalite={importResult.veri_kalitesi} dosya={importResult.dosya} />
+      {!importResult.veri_kalitesi.aktarim_bloke
+        && importResult.hatalar.some((bulgu) => bulgu.seviye === 'uyari') && (
+        <label className="flex cursor-pointer items-start gap-2.5 rounded-xl border border-amber-200 bg-amber-50 p-3 text-[11px] leading-4 text-amber-900">
+          <input
+            type="checkbox"
+            checked={importWarningsAccepted}
+            onChange={(event) => setImportWarningsAccepted(event.target.checked)}
+            className="mt-0.5 h-4 w-4 rounded border-amber-300 text-amber-700"
+          />
+          Ölçek, KDV, tarih ve olası mükerrer işlem uyarılarını kontrol ettim; gösterilen varsayımlarla devam ediyorum.
+        </label>
+      )}
       {importResult.hatalar.length > 0 && (
         <div className="rounded-xl border border-amber-200 bg-amber-50 p-3">
           <p className="flex items-center gap-2 text-xs font-bold text-amber-900">
@@ -309,6 +413,7 @@ export const DataEntryTab: React.FC<DataEntryTabProps> = ({ initialData, onSave,
           KazKaz V1 Excel şablonunu indir
         </button>
 
+        {eslemePaneli}
         {importPreview}
       </section>}
 

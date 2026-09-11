@@ -198,6 +198,7 @@ export const ScenarioTab: React.FC<ScenarioTabProps> = ({ baseData, analytics })
                     <p className="text-[10px] font-bold text-slate-500">{point.donem}</p>
                     <p className="mt-1 text-sm font-extrabold text-slate-900">{formatTRY(point.tahmin)}</p>
                     <p className="text-[10px] text-slate-500">{formatTRY(point.alt)} – {formatTRY(point.ust)}</p>
+                    <p className="mt-0.5 text-[9px] font-semibold uppercase tracking-wide text-slate-400">senaryo aralığı</p>
                   </div>
                 ))}
               </div>

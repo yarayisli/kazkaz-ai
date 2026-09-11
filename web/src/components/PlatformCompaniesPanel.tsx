@@ -1,11 +1,12 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import {
   Activity, Building2, CheckCircle2, ChevronRight,
   FileClock, Loader2, LockKeyhole, Mail, RefreshCw, Search, ShieldAlert,
   ShieldCheck, UserRound, Users, X,
 } from 'lucide-react';
 import {
-  PlatformSirketDetayi, PlatformSirketListesi, platformGeriBildirimDurumunuGuncelle,
+  PlatformSirketDetayi, PlatformSirketListesi, platformBekleyenClaimleriYenidenDene,
+  platformGeriBildirimDurumunuGuncelle,
   platformSirketDetayiniGetir, platformSirketEylemi, platformSirketiniGuncelle,
   platformSirketleriniGetir,
 } from '../lib/api';
@@ -58,21 +59,41 @@ export const PlatformCompaniesPanel: React.FC = () => {
   const [actionLoading, setActionLoading] = useState(false);
   const [reason, setReason] = useState('');
   const [message, setMessage] = useState<string | null>(null);
+  // Askı/paket değişiminde oturum iptali başarısız kalan kullanıcı sayısı.
+  const [bekleyenIptal, setBekleyenIptal] = useState(0);
+
+  // Ayrıntı isteklerini sıralar: yalnızca en son istek sonucu uygulanır.
+  // Hızlı A→B seçiminde A'nın geç dönen yanıtı B'nin yerini alamaz.
+  const detayIstekRef = useRef(0);
 
   const loadCompanies = async () => {
     setLoading(true);
     try { setCompanies(await platformSirketleriniGetir(100)); }
+    catch (error) { setMessage(error instanceof Error ? error.message : 'Şirket listesi alınamadı. Servis geçici olarak yanıt vermiyor olabilir.'); }
     finally { setLoading(false); }
   };
   const loadDetail = async (companyId: string) => {
-    setDetailLoading(true); setMessage(null);
-    try { setDetail(await platformSirketDetayiniGetir(companyId)); }
-    catch (error) { setMessage(error instanceof Error ? error.message : 'Şirket ayrıntısı alınamadı.'); }
-    finally { setDetailLoading(false); }
+    const istekNo = ++detayIstekRef.current;
+    setDetail(null);            // Eski şirketin ayrıntısı yeni yükleme boyunca görünmesin.
+    setDetailLoading(true);
+    try {
+      const veri = await platformSirketDetayiniGetir(companyId);
+      if (detayIstekRef.current === istekNo) setDetail(veri);
+    } catch (error) {
+      if (detayIstekRef.current === istekNo) setMessage(error instanceof Error ? error.message : 'Şirket ayrıntısı alınamadı.');
+    } finally {
+      if (detayIstekRef.current === istekNo) setDetailLoading(false);
+    }
   };
 
   useEffect(() => { void loadCompanies(); }, []);
-  useEffect(() => { if (selectedId) void loadDetail(selectedId); else setDetail(null); }, [selectedId]);
+  useEffect(() => {
+    // Yeni seçim önceki eyleme ait mesajı ve bekleyen iptal uyarısını temizler.
+    setMessage(null); setBekleyenIptal(0);
+    if (selectedId) void loadDetail(selectedId);
+    else { detayIstekRef.current += 1; setDetail(null); }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selectedId]);
 
   const filtered = useMemo(() => (companies?.sirketler || []).filter(company => {
     const query = search.trim().toLocaleLowerCase('tr-TR');
@@ -85,12 +106,38 @@ export const PlatformCompaniesPanel: React.FC = () => {
     if (!detail) return;
     const description = change.durum ? `durumu ${statusLabels[change.durum] || change.durum}` : `paketi ${change.plan?.toUpperCase()}`;
     if (!window.confirm(`${detail.sirket.sirket_adi} şirketinin ${description} olarak güncellensin mi?`)) return;
-    setActionLoading(true); setMessage(null);
+    setActionLoading(true); setMessage(null); setBekleyenIptal(0);
     try {
-      await platformSirketiniGuncelle(detail.sirket.sirket_id, { ...change, ...(reason.trim().length >= 5 ? { gerekce: reason.trim() } : {}) });
-      setMessage('Şirket ayarı güncellendi ve denetim kaydına yazıldı.');
+      const sonuc = await platformSirketiniGuncelle(detail.sirket.sirket_id, { ...change, ...(reason.trim().length >= 5 ? { gerekce: reason.trim() } : {}) });
+      const basarisiz = sonuc.basarisiz_uye ?? sonuc.oturum_yenileme_uyarisi ?? 0;
+      if (sonuc.durum === 'kismen_guncellendi' || basarisiz > 0) {
+        // Kısmi başarı: şirket durumu güncellendi (finans erişimi güvenilir
+        // kontrolle kapanır) ama bazı üyelerin oturum iptali başarısız oldu.
+        setBekleyenIptal(basarisiz);
+        setMessage(
+          `Şirket ayarı güncellendi ve denetim kaydına yazıldı. Ancak ${basarisiz} kullanıcının `
+          + 'oturum iptali başarısız oldu; finans erişimleri yine de kapalı, iptal yeniden denenmek üzere kaydedildi.',
+        );
+      } else {
+        setMessage('Şirket ayarı güncellendi ve denetim kaydına yazıldı.');
+      }
       await Promise.all([loadCompanies(), loadDetail(detail.sirket.sirket_id)]);
     } catch (error) { setMessage(error instanceof Error ? error.message : 'Şirket güncellenemedi.'); }
+    finally { setActionLoading(false); }
+  };
+
+  const bekleyenIptalleriYenidenDene = async () => {
+    if (!detail) return;
+    setActionLoading(true);
+    try {
+      const sonuc = await platformBekleyenClaimleriYenidenDene(detail.sirket.sirket_id);
+      setBekleyenIptal(sonuc.kalan_uye);
+      setMessage(
+        sonuc.kalan_uye === 0
+          ? `Bekleyen oturum iptalleri tamamlandı (${sonuc.cozulen_uye} kullanıcı).`
+          : `${sonuc.cozulen_uye} kullanıcı çözüldü, ${sonuc.kalan_uye} kullanıcı hâlâ başarısız. Daha sonra tekrar deneyin.`,
+      );
+    } catch (error) { setMessage(error instanceof Error ? error.message : 'Yeniden deneme başarısız.'); }
     finally { setActionLoading(false); }
   };
 
@@ -108,9 +155,16 @@ export const PlatformCompaniesPanel: React.FC = () => {
 
   const updateFeedback = async (feedbackId: string, nextStatus: FeedbackStatus) => {
     if (!detail) return;
+    // Çözüldü olarak işaretlerken müşteriye görünecek kısa bir yanıt sorulur.
+    // Boş bırakılırsa yalnız durum güncellenir.
+    let yanit: string | undefined;
+    if (nextStatus === 'resolved') {
+      const girilen = window.prompt('Müşteriye görünecek kısa çözüm notu (boş bırakılabilir):', '');
+      if (girilen && girilen.trim().length >= 2) yanit = girilen.trim();
+    }
     setActionLoading(true); setMessage(null);
     try {
-      await platformGeriBildirimDurumunuGuncelle(detail.sirket.sirket_id, feedbackId, nextStatus, reason.trim().length >= 5 ? reason.trim() : undefined);
+      await platformGeriBildirimDurumunuGuncelle(detail.sirket.sirket_id, feedbackId, nextStatus, reason.trim().length >= 5 ? reason.trim() : undefined, yanit);
       setMessage('Geri bildirim iş akışı güncellendi.');
       await loadDetail(detail.sirket.sirket_id);
     } catch (error) { setMessage(error instanceof Error ? error.message : 'Geri bildirim güncellenemedi.'); }
@@ -148,14 +202,29 @@ export const PlatformCompaniesPanel: React.FC = () => {
       {selectedId && <aside className="panel-card overflow-hidden xl:sticky xl:top-20 xl:max-h-[calc(100vh-7rem)] xl:overflow-y-auto">
         <div className="sticky top-0 z-10 flex items-center justify-between border-b border-slate-100 bg-white px-5 py-4"><div><p className="text-[9px] font-black uppercase tracking-wider text-violet-600">Şirket ayrıntısı</p><p className="mt-1 text-sm font-black text-slate-900">{detail?.sirket.sirket_adi || 'Yükleniyor'}</p></div><button aria-label="Şirket ayrıntısını kapat" onClick={() => setSelectedId(null)} className="grid h-9 w-9 place-items-center rounded-xl bg-slate-100 text-slate-500 hover:bg-slate-200"><X className="h-4 w-4" /></button></div>
         {detailLoading && !detail ? <div className="grid min-h-72 place-items-center"><Loader2 className="h-6 w-6 animate-spin text-violet-600" /></div> : detail && <div className="space-y-5 p-5">
-          {message && <p role="status" className="rounded-xl border border-sky-200 bg-sky-50 p-3 text-xs font-bold leading-5 text-sky-800">{message}</p>}
+          {message && (
+            <div role="status" aria-live="polite" className={`rounded-xl border p-3 text-xs font-bold leading-5 ${bekleyenIptal > 0 ? 'border-amber-300 bg-amber-50 text-amber-900' : 'border-sky-200 bg-sky-50 text-sky-800'}`}>
+              <p>{message}</p>
+              {bekleyenIptal > 0 && (
+                <button
+                  type="button"
+                  onClick={() => void bekleyenIptalleriYenidenDene()}
+                  disabled={actionLoading}
+                  className="mt-2 inline-flex items-center gap-1.5 rounded-lg border border-amber-400 bg-white px-3 py-1.5 text-[11px] font-bold text-amber-800 hover:bg-amber-100 disabled:opacity-50"
+                >
+                  <RefreshCw className="h-3.5 w-3.5" />
+                  Bekleyen {bekleyenIptal} oturum iptalini yeniden dene
+                </button>
+              )}
+            </div>
+          )}
           <div className="grid grid-cols-2 gap-2"><Metric label="30 günlük hareket" value={detail.kullanim.aktivite_30_gun} detail={actionLabels[detail.kullanim.son_aksiyon] || detail.kullanim.son_aksiyon} /><Metric label="Arşivlenen rapor" value={detail.kullanim.rapor_arsivleme} detail={`${detail.kullanim.rapor_indirme} indirme`} /><Metric label="Çalışma alanı" value={detail.kullanim.veri_durumu === 'kayitli' ? 'Kayıtlı' : 'Veri yok'} detail={`${detail.kullanim.calisma_alani_kayit} kayıt işlemi`} /><Metric label="Ekip" value={detail.uyeler.length} detail={`${detail.bekleyen_davetler.length} bekleyen davet`} /></div>
 
           <section><div className="flex items-center gap-2"><Activity className="h-4 w-4 text-violet-600" /><h3 className="text-xs font-black text-slate-900">Şirket ne yapıyor?</h3></div><div className="mt-3 space-y-2">{detail.son_olaylar.slice(0, 8).map((event, index) => <div key={`${event.aktor}-${event.zaman}-${index}`} className="flex gap-3 rounded-xl border border-slate-200 p-3"><span className="mt-0.5 grid h-7 w-7 shrink-0 place-items-center rounded-lg bg-violet-50"><FileClock className="h-3.5 w-3.5 text-violet-700" /></span><div className="min-w-0"><p className="truncate text-[11px] font-extrabold text-slate-700">{actionLabels[event.aksiyon] || event.aksiyon.replaceAll('_', ' ')}</p><p className="mt-1 text-[9px] text-slate-400">{event.aktor_rolu} · {event.aktor} · {formatDate(event.zaman)}</p></div></div>)}{!detail.son_olaylar.length && <p className="rounded-xl border border-dashed border-slate-300 p-4 text-center text-xs text-slate-400">Henüz denetlenebilir aktivite yok.</p>}</div></section>
 
           <section><div className="flex items-center gap-2"><Users className="h-4 w-4 text-violet-600" /><h3 className="text-xs font-black text-slate-900">Üyeler ve roller</h3></div><div className="mt-3 space-y-2">{detail.uyeler.map(member => <div key={member.kullanici_ozeti} className="flex items-center justify-between rounded-xl bg-slate-50 p-3"><div className="flex items-center gap-2"><UserRound className="h-4 w-4 text-slate-400" /><div><p className="text-[11px] font-extrabold text-slate-700">{member.eposta_maskeli}</p><p className="text-[9px] text-slate-400">{member.kullanici_ozeti}</p></div></div><span className="rounded-full bg-white px-2 py-1 text-[9px] font-black uppercase text-violet-700">{member.rol}</span></div>)}</div></section>
 
-          <section><div className="flex items-center gap-2"><Mail className="h-4 w-4 text-violet-600" /><h3 className="text-xs font-black text-slate-900">Destek sinyalleri</h3></div><div className="mt-3 space-y-2">{detail.geri_bildirimler.slice(0, 8).map(item => <div key={item.geri_bildirim_id} className="rounded-xl border border-slate-200 p-3"><div className="flex items-start justify-between gap-3"><div><p className="text-[11px] font-extrabold text-slate-700">{item.kategori} · {item.sayfa}</p><p className="mt-1 text-[9px] text-slate-400">{formatDate(item.zaman)}{item.iletisim_izni ? ' · iletişim izni var' : ''}</p></div><select aria-label={`${item.kategori} geri bildirim durumu`} value={item.durum} disabled={actionLoading} onChange={event => void updateFeedback(item.geri_bildirim_id, event.target.value as FeedbackStatus)} className="min-h-8 rounded-lg border border-slate-300 bg-white px-2 text-[9px] font-bold"><option value="new">Yeni</option><option value="in_review">İnceleniyor</option><option value="resolved">Çözüldü</option></select></div></div>)}{!detail.geri_bildirimler.length && <p className="rounded-xl bg-emerald-50 p-3 text-xs font-bold text-emerald-700"><CheckCircle2 className="mr-2 inline h-4 w-4" />Açık destek sinyali yok.</p>}</div></section>
+          <section><div className="flex items-center gap-2"><Mail className="h-4 w-4 text-violet-600" /><h3 className="text-xs font-black text-slate-900">Destek sinyalleri</h3></div><div className="mt-3 space-y-2">{detail.geri_bildirimler.slice(0, 8).map(item => <div key={item.geri_bildirim_id} className="rounded-xl border border-slate-200 p-3"><div className="flex items-start justify-between gap-3"><div><p className="text-[11px] font-extrabold text-slate-700">{item.talep_no ? `${item.talep_no} · ` : ''}{item.kategori} · {item.sayfa}</p><p className="mt-1 text-[9px] text-slate-400">{formatDate(item.zaman)}{item.iletisim_izni ? ' · iletişim izni var' : ''}{item.yanit_verildi ? ' · yanıtlandı' : ''}{item.durum === 'resolved' ? (item.memnun == null ? ' · memnuniyet bekleniyor' : item.memnun ? ' · 👍 memnun' : ' · 👎 memnun değil') : ''}</p></div><select aria-label={`${item.kategori} geri bildirim durumu`} value={item.durum} disabled={actionLoading} onChange={event => void updateFeedback(item.geri_bildirim_id, event.target.value as FeedbackStatus)} className="min-h-8 rounded-lg border border-slate-300 bg-white px-2 text-[9px] font-bold"><option value="new">Yeni</option><option value="in_review">İnceleniyor</option><option value="resolved">Çözüldü</option></select></div></div>)}{!detail.geri_bildirimler.length && <p className="rounded-xl bg-emerald-50 p-3 text-xs font-bold text-emerald-700"><CheckCircle2 className="mr-2 inline h-4 w-4" />Açık destek sinyali yok.</p>}</div></section>
 
           <section className="rounded-2xl border border-amber-200 bg-amber-50/60 p-4"><div className="flex items-center gap-2"><ShieldAlert className="h-4 w-4 text-amber-700" /><h3 className="text-xs font-black text-amber-900">Kontrollü müdahale</h3></div><p className="mt-2 text-[10px] leading-5 text-amber-800">Her işlem denetim kaydına yazılır. Finansal veri görüntülenmez veya değiştirilmez.</p><textarea value={reason} onChange={event => setReason(event.target.value)} maxLength={300} placeholder="Müdahale gerekçesi (oturum kapatma için zorunlu)" className="mt-3 min-h-20 w-full resize-none rounded-xl border border-amber-200 bg-white p-3 text-xs outline-none focus:border-amber-400" />
             <div className="mt-3 grid grid-cols-2 gap-2"><select aria-label="Şirket durumunu değiştir" value={detail.sirket.durum} disabled={actionLoading} onChange={event => void updateCompany({ durum: event.target.value })} className="min-h-10 rounded-xl border border-slate-300 bg-white px-3 text-[10px] font-bold"><option value="active">Aktif</option><option value="pilot">Pilot</option><option value="suspended">Askıya al</option><option value="closed">Kapat</option></select><select aria-label="Şirket paketini değiştir" value={detail.sirket.plan} disabled={actionLoading} onChange={event => void updateCompany({ plan: event.target.value })} className="min-h-10 rounded-xl border border-slate-300 bg-white px-3 text-[10px] font-bold uppercase"><option value="free">Free</option><option value="trial">Trial</option><option value="pro">Pro</option><option value="uzman">Uzman</option></select></div>

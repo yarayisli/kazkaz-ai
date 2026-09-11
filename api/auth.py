@@ -152,6 +152,51 @@ def mevcut_sirket_uyesi(
     return sirket_uyeligini_dogrula(kullanici)
 
 
+def sirket_durumu_guvenilir(sirket_id: str) -> "str | None":
+    """Şirket durumunu token yerine güvenilir kaynaktan (Firestore) okur.
+
+    Token claim'i askı işlemi sırasında iptal edilemeyen üyeler için eski
+    kalabilir. Finans uçları durumu companies belgesinden doğrular.
+    Okuma başarısızsa None döner; çağıran işlem erişimi açmadan 503 verir.
+    """
+    if not sirket_id:
+        return None
+    try:
+        from firebase_admin import firestore
+
+        db = firestore.client(app=_firebase_uygulamasi())
+        belge = db.collection("companies").document(str(sirket_id)).get()
+        if not belge.exists:
+            return None
+        return str((belge.to_dict() or {}).get("status") or "").lower() or None
+    except Exception as exc:  # Güvenilir okuma yoksa çağıran işlemi durdurur.
+        logger.warning("Şirket durumu güvenilir kaynaktan okunamadı: %s", type(exc).__name__)
+        return None
+
+
+def mevcut_sirket_uyesi_dogrulanmis(
+    kullanici: KimlikBilgisi = Depends(mevcut_sirket_uyesi),
+) -> KimlikBilgisi:
+    """Finans/yazma uçları için askıyı güvenilir kaynaktan da doğrular.
+
+    mevcut_sirket_uyesi token claim'ini kontrol eder; bu bağımlılık ek olarak
+    companies belgesindeki güncel durumu okur. Böylece token'ı hâlâ 'active'
+    diyen ama şirketi askıya alınmış bir üye finans uçlarına giremez.
+    Durum okunamazsa token kararına geri dönülmez.
+    """
+    if kullanici.roller.get("gelistirici"):
+        return kullanici
+    guncel_durum = sirket_durumu_guvenilir(kullanici.sirket_id or "")
+    if guncel_durum not in {"active", "pilot", "suspended", "closed"}:
+        raise HTTPException(status_code=503, detail="Şirket erişimi doğrulanamıyor. Lütfen yeniden deneyin.")
+    if guncel_durum in {"suspended", "closed"}:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Şirket çalışma alanı sistem yöneticisi tarafından askıya alınmış veya kapatılmış.",
+        )
+    return kullanici
+
+
 def platform_yoneticisi(
     kullanici: KimlikBilgisi = Depends(mevcut_kullanici),
 ) -> KimlikBilgisi:

@@ -1,5 +1,6 @@
 import os
 import unittest
+from datetime import datetime, timezone
 from unittest.mock import patch
 
 from api.readiness import canli_hazirlik_durumu
@@ -22,25 +23,48 @@ class TestCanliHazirlik(unittest.TestCase):
         self.assertTrue(sonuc["kritik_kontroller"]["firebase_servis_hesabi"])
 
     def test_kritik_ayarlar_tamamlaninca_hazir(self):
+        now = datetime.now(timezone.utc).isoformat()
         with patch.dict(os.environ, {
             "APP_ENV": "production",
             "KAZKAZ_AUTH_DISABLED": "false",
             "FIREBASE_PROJECT_ID": "kazkaz-live",
             "FIREBASE_SERVICE_ACCOUNT_JSON": "{secret}",
-            "CORS_ORIGINS": "https://supermantarik.com",
-            "ALLOWED_HOSTS": "supermantarik.com,*.onrender.com",
+            "CORS_ORIGINS": "https://kazkaz.example.com",
+            "ALLOWED_HOSTS": "kazkaz.example.com,*.onrender.com",
             "ENFORCE_HTTPS": "true",
             "ENFORCE_PLAN_LIMITS": "true",
             "FIRESTORE_RULES_DEPLOYED": "true",
             "TENANT_ISOLATION_TEST_PASSED": "true",
             "DATA_RETENTION_DAYS": "365",
             "REPORT_RETENTION_DAYS": "365",
+            "FIREBASE_STORAGE_BUCKET": "kazkaz-live.firebasestorage.app",
+            "REPORT_STORAGE_LIFECYCLE_CONFIGURED": "true",
             "FINANCIAL_METHODOLOGY_APPROVED": "true",
             "KVKK_REVIEW_APPROVED": "true",
+            "BACKUP_SCHEDULE_VERIFIED_AT": now,
+            "BACKUP_MAX_OBSERVED_INTERVAL_HOURS": "23.5",
+            "BACKUP_RPO_TARGET_HOURS": "24",
+            "BACKUP_RESTORE_TESTED_AT": now,
+            "BACKUP_RESTORE_RTO_SECONDS": "0",
+            "BACKUP_RTO_TARGET_SECONDS": "3600",
         }, clear=False):
             sonuc = canli_hazirlik_durumu()
         self.assertEqual(sonuc["durum"], "hazir")
         self.assertEqual(sonuc["kritik_eksikler"], [])
+
+    def test_eski_tatbikat_ve_asilan_rpo_rto_hazir_sayilmaz(self):
+        with patch.dict(os.environ, {
+            "BACKUP_SCHEDULE_VERIFIED_AT": "2020-01-01T00:00:00Z",
+            "BACKUP_MAX_OBSERVED_INTERVAL_HOURS": "25",
+            "BACKUP_RPO_TARGET_HOURS": "24",
+            "BACKUP_RESTORE_TESTED_AT": "2020-01-01T00:00:00Z",
+            "BACKUP_RESTORE_RTO_SECONDS": "3601",
+            "BACKUP_RTO_TARGET_SECONDS": "3600",
+        }, clear=False):
+            operasyon = canli_hazirlik_durumu()["operasyon_kontrolleri"]
+        self.assertFalse(operasyon["rpo_hedefi"])
+        self.assertFalse(operasyon["geri_yukleme_tatbikati"])
+        self.assertFalse(operasyon["rto_hedefi"])
 
     def test_localhost_cors_canlida_eksik_sayilir(self):
         with patch.dict(os.environ, {
@@ -49,12 +73,15 @@ class TestCanliHazirlik(unittest.TestCase):
             "FIREBASE_PROJECT_ID": "kazkaz-live",
             "FIREBASE_SERVICE_ACCOUNT_JSON": "{secret}",
             "CORS_ORIGINS": "http://localhost:3000",
-            "ALLOWED_HOSTS": "supermantarik.com",
+            "ALLOWED_HOSTS": "kazkaz.example.com",
             "ENFORCE_HTTPS": "true",
             "ENFORCE_PLAN_LIMITS": "true",
             "FIRESTORE_RULES_DEPLOYED": "true",
             "TENANT_ISOLATION_TEST_PASSED": "true",
             "DATA_RETENTION_DAYS": "365",
+            "REPORT_RETENTION_DAYS": "365",
+            "FIREBASE_STORAGE_BUCKET": "kazkaz-live.firebasestorage.app",
+            "REPORT_STORAGE_LIFECYCLE_CONFIGURED": "true",
             "FINANCIAL_METHODOLOGY_APPROVED": "true",
             "KVKK_REVIEW_APPROVED": "true",
         }, clear=False):
@@ -68,13 +95,16 @@ class TestCanliHazirlik(unittest.TestCase):
             "KAZKAZ_AUTH_DISABLED": "false",
             "FIREBASE_PROJECT_ID": "kazkaz-live",
             "FIREBASE_SERVICE_ACCOUNT_JSON": "{secret}",
-            "CORS_ORIGINS": "https://supermantarik.com",
+            "CORS_ORIGINS": "https://kazkaz.example.com",
             "ALLOWED_HOSTS": "*",
             "ENFORCE_HTTPS": "false",
             "ENFORCE_PLAN_LIMITS": "true",
             "FIRESTORE_RULES_DEPLOYED": "false",
             "TENANT_ISOLATION_TEST_PASSED": "false",
             "DATA_RETENTION_DAYS": "0",
+            "REPORT_RETENTION_DAYS": "0",
+            "FIREBASE_STORAGE_BUCKET": "",
+            "REPORT_STORAGE_LIFECYCLE_CONFIGURED": "false",
             "FINANCIAL_METHODOLOGY_APPROVED": "false",
             "KVKK_REVIEW_APPROVED": "false",
         }, clear=False):
@@ -84,6 +114,8 @@ class TestCanliHazirlik(unittest.TestCase):
         self.assertIn("kvkk_hukuk_onayi", sonuc["kritik_eksikler"])
         self.assertIn("izinli_hostlar", sonuc["kritik_eksikler"])
         self.assertIn("https_zorunlu", sonuc["kritik_eksikler"])
+        self.assertIn("rapor_arsiv_deposu", sonuc["kritik_eksikler"])
+        self.assertIn("rapor_arsiv_yasam_dongusu", sonuc["kritik_eksikler"])
 
 
 if __name__ == "__main__":

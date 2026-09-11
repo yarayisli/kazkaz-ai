@@ -78,7 +78,9 @@ class CustomerAnalysis:
                 Ilk_Islem=("Tarih", "min"),
                 Son_Islem=("Tarih", "max"),
             )
-            .round(2)
+            # Yalnızca sayısal sütunlar yuvarlanır; Ilk/Son_Islem tarih olduğu
+            # için tüm DataFrame'e round uygulamak pandas uyarısı üretiyordu.
+            .round({"Toplam_Gelir": 2, "Ortalama_Islem": 2})
             .sort_values("Toplam_Gelir", ascending=False)
             .reset_index()
             .rename(columns={

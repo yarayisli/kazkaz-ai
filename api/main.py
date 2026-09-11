@@ -1,7 +1,9 @@
 """KazKaz AI birleşik V1 FastAPI uygulaması."""
 
+import json
 import os
 from pathlib import Path
+from typing import Optional
 
 from fastapi import Depends, FastAPI, HTTPException, Query, Request, Response
 from fastapi.middleware.cors import CORSMiddleware
@@ -27,7 +29,12 @@ if os.getenv("SENTRY_DSN", "").strip():
         # Hazırlık ucu eksik yapılandırmayı görünür kılar; uygulama yine açılır.
         pass
 
-from api.auth import mevcut_kullanici, mevcut_sirket_uyesi, platform_yoneticisi
+from api.auth import (
+    mevcut_kullanici,
+    mevcut_sirket_uyesi,
+    mevcut_sirket_uyesi_dogrulanmis,
+    platform_yoneticisi,
+)
 from api.agent_services import cfo_ajan_analizi
 from api.advanced_agents import gelismis_ajan_analizi
 from api.models import (
@@ -40,15 +47,19 @@ from api.models import (
     GoogleSheetsIstegi,
     KurSorgusu,
     GeriBildirimIstegi,
+    GeriBildirimMemnuniyetIstegi,
+    PilotNiyetIstegi,
     SirketOlusturmaIstegi,
     UyeCikarmaIstegi,
     UyeDavetIstegi,
     UyeRolGuncellemeIstegi,
     PlatformSirketGuncellemeIstegi,
     PlatformSirketEylemIstegi,
+    PlatformClaimYenidenDenemeIstegi,
     PlatformGeriBildirimDurumIstegi,
     RaporIstegi,
     CalismaAlaniKaydetIstegi,
+    CalismaAlaniSilIstegi,
 )
 from api.company_service import sirket_olustur
 from api.membership_service import daveti_kabul_et, uye_cikar, uye_davet_et, uye_listesi, uye_rolunu_guncelle
@@ -57,7 +68,8 @@ from api.report_archive_service import arsiv_raporu_olustur, arsiv_raporu_sil, r
 from api.google_sheets_service import GoogleSheetsHatasi, google_sheet_dogrula, google_sheets_durumu
 from api.fx_engine import KurHatasi, tarihsel_kurlari_getir
 from api.subscription_service import abonelik_durumu, kamuya_acik_paketler, odeme_hazirlik_durumu, ozellik_kapisi
-from api.feedback_service import geri_bildirim_kaydet
+from api.feedback_service import geri_bildirim_kaydet, geri_bildirimlerim, geri_bildirim_memnuniyeti
+from api.pilot_service import pilot_niyet_durumu, pilot_niyet_kaydet, platform_pilot_ozeti
 from api.erp_service import erp_baglanti_durumu
 from api.compliance_readiness import (
     EsgHazirlikIstegi,
@@ -70,7 +82,10 @@ from api.security_middleware import ApiGuvenlikMiddleware
 from api.services import ai_durumu, cfo_yaniti, finansal_denetim, zaman_serisi_analizi
 from api.telemetry import operasyonu_olc, performans_ozeti
 from api.usage_audit_service import kullanim_olayi_kaydet
-from api.excel_import import DosyaIcerikHatasi, dosya_dogrula, veri_sablonu_olustur
+from api.excel_import import ALANLAR, DosyaIcerikHatasi, dosya_dogrula, veri_sablonu_olustur
+
+#: sutun_eslemesi'nde kabul edilen kanonik alanlar (dışarıdan gelen değeri sınırlar).
+GECERLI_KANONIK_ALANLAR = frozenset(ALANLAR.values())
 from api.workspace_service import (
     calisma_alani_disa_aktar,
     calisma_alani_kaydet,
@@ -85,6 +100,7 @@ from api.platform_admin_service import (
     platform_sirket_eylemi,
     platform_sirketleri,
     platform_sirketini_guncelle,
+    platform_bekleyen_claimleri_yeniden_dene,
 )
 
 
@@ -117,7 +133,11 @@ uygulama.add_middleware(
     allow_credentials=True,
     allow_methods=["GET", "POST"],
     allow_headers=["Authorization", "Content-Type", "X-Request-ID"],
-    expose_headers=["X-KazKaz-Report-Id", "X-Request-ID"],
+    expose_headers=[
+        "X-KazKaz-Report-Id", "X-Request-ID",
+        "X-KazKaz-Report-Engine-Archived", "X-KazKaz-Report-Engine-Current",
+        "X-KazKaz-Report-Regenerated", "X-KazKaz-Report-Original",
+    ],
 )
 
 
@@ -149,6 +169,7 @@ def platform_admin_ozeti(_kullanici: KimlikBilgisi = Depends(platform_yoneticisi
         "canli_hazirlik": canli_hazirlik_durumu(),
         "ai": ai_durumu(),
         "performans": performans_ozeti(kamuya_acik=False),
+        "pilot": platform_pilot_ozeti(),
         "odeme": odeme_hazirlik_durumu(),
         "erp": erp_baglanti_durumu(),
         "gizlilik": {
@@ -199,6 +220,14 @@ def platform_admin_sirket_eylemi(
     kullanici: KimlikBilgisi = Depends(platform_yoneticisi),
 ):
     return platform_sirket_eylemi(istek, kullanici)
+
+
+@uygulama.post("/api/v1/platform-admin/claim-yeniden-dene")
+def platform_admin_claim_yeniden_dene(
+    istek: PlatformClaimYenidenDenemeIstegi,
+    kullanici: KimlikBilgisi = Depends(platform_yoneticisi),
+):
+    return platform_bekleyen_claimleri_yeniden_dene(istek.sirket_id, kullanici)
 
 
 @uygulama.post("/api/v1/platform-admin/geri-bildirim-durumu")
@@ -314,10 +343,36 @@ def geri_bildirim(
     return geri_bildirim_kaydet(istek, kullanici)
 
 
+@uygulama.get("/api/v1/geri-bildirim/taleplerim")
+def geri_bildirim_taleplerim(kullanici: KimlikBilgisi = Depends(mevcut_sirket_uyesi)):
+    return geri_bildirimlerim(kullanici)
+
+
+@uygulama.post("/api/v1/geri-bildirim/memnuniyet")
+def geri_bildirim_memnuniyet(
+    istek: GeriBildirimMemnuniyetIstegi,
+    kullanici: KimlikBilgisi = Depends(mevcut_sirket_uyesi),
+):
+    return geri_bildirim_memnuniyeti(istek, kullanici)
+
+
+@uygulama.get("/api/v1/pilot/niyet")
+def pilot_degerlendirme_durumu(kullanici: KimlikBilgisi = Depends(mevcut_sirket_uyesi_dogrulanmis)):
+    return pilot_niyet_durumu(kullanici)
+
+
+@uygulama.post("/api/v1/pilot/niyet")
+def pilot_degerlendirme_kaydi(
+    istek: PilotNiyetIstegi,
+    kullanici: KimlikBilgisi = Depends(mevcut_sirket_uyesi_dogrulanmis),
+):
+    return pilot_niyet_kaydet(istek, kullanici)
+
+
 @uygulama.post("/api/v1/finans/denetim")
 def denetim(
     veri: FinansalGorunum,
-    kullanici: KimlikBilgisi = Depends(mevcut_sirket_uyesi),
+    kullanici: KimlikBilgisi = Depends(mevcut_sirket_uyesi_dogrulanmis),
 ):
     with operasyonu_olc("finansal_denetim", satir_sayisi=1):
         sonuc = finansal_denetim(veri)
@@ -328,7 +383,7 @@ def denetim(
 @uygulama.post("/api/v1/finans/zaman-serisi")
 def zaman_serisi(
     istek: FinansalAnalizIstegi,
-    kullanici: KimlikBilgisi = Depends(mevcut_sirket_uyesi),
+    kullanici: KimlikBilgisi = Depends(mevcut_sirket_uyesi_dogrulanmis),
 ):
     with operasyonu_olc("zaman_serisi", satir_sayisi=len(istek.satirlar)):
         sonuc = zaman_serisi_analizi(istek)
@@ -340,14 +395,32 @@ def zaman_serisi(
 async def finans_dosyasi_dogrula(
     request: Request,
     dosya_adi: str = Query(min_length=3, max_length=180),
-    kullanici: KimlikBilgisi = Depends(mevcut_sirket_uyesi),
+    sutun_eslemesi: Optional[str] = Query(default=None, max_length=4000),
+    kullanici: KimlikBilgisi = Depends(mevcut_sirket_uyesi_dogrulanmis),
 ):
-    """Excel/CSV dosyasını çalıştırmadan doğrular ve V1 veri sözleşmesine çevirir."""
+    """Excel/CSV dosyasını çalıştırmadan doğrular ve V1 veri sözleşmesine çevirir.
+
+    sutun_eslemesi: şirket için kaydedilmiş {normalize_baslik: kanonik_alan}
+    eşlemesinin JSON'u. Standart dışı başlıklı dosyalarda kullanıcının bir
+    kez yaptığı eşlemeyi taşır; sonraki yüklemelerde sütun tekrar sorulmaz.
+    """
     guvenli_ad = Path(dosya_adi).name
     icerik = await request.body()
+    kayitli_esleme = None
+    if sutun_eslemesi:
+        try:
+            aday = json.loads(sutun_eslemesi)
+            if isinstance(aday, dict):
+                # Yalnızca string→string çiftleri; kanonik alan geçerli olmalı.
+                kayitli_esleme = {
+                    str(k): str(v) for k, v in aday.items()
+                    if isinstance(k, str) and v in GECERLI_KANONIK_ALANLAR
+                }
+        except (json.JSONDecodeError, TypeError):
+            raise HTTPException(status_code=422, detail="sutun_eslemesi geçerli bir JSON nesnesi değil.")
     with operasyonu_olc("dosya_dogrulama", istek_bayti=len(icerik)) as olcum:
         try:
-            sonuc = dosya_dogrula(icerik, guvenli_ad)
+            sonuc = dosya_dogrula(icerik, guvenli_ad, kayitli_esleme)
             olcum.satir_sayisi = int(sonuc.get("ozet", {}).get("gecerli_satirlar", 0))
         except DosyaIcerikHatasi as exc:
             raise HTTPException(status_code=422, detail=str(exc)) from exc
@@ -356,25 +429,28 @@ async def finans_dosyasi_dogrula(
 
 
 @uygulama.get("/api/v1/veri/calisma-alani")
-def calisma_alani_getir(kullanici: KimlikBilgisi = Depends(mevcut_sirket_uyesi)):
+def calisma_alani_getir(kullanici: KimlikBilgisi = Depends(mevcut_sirket_uyesi_dogrulanmis)):
     return calisma_alani_yukle(kullanici)
 
 
 @uygulama.post("/api/v1/veri/calisma-alani/kaydet")
 def calisma_alani_kaydi(
     istek: CalismaAlaniKaydetIstegi,
-    kullanici: KimlikBilgisi = Depends(mevcut_sirket_uyesi),
+    kullanici: KimlikBilgisi = Depends(mevcut_sirket_uyesi_dogrulanmis),
 ):
     return calisma_alani_kaydet(istek, kullanici)
 
 
 @uygulama.post("/api/v1/veri/calisma-alani/sil")
-def calisma_alani_silme(kullanici: KimlikBilgisi = Depends(mevcut_sirket_uyesi)):
-    return calisma_alani_sil(kullanici)
+def calisma_alani_silme(
+    istek: CalismaAlaniSilIstegi,
+    kullanici: KimlikBilgisi = Depends(mevcut_sirket_uyesi_dogrulanmis),
+):
+    return calisma_alani_sil(istek, kullanici)
 
 
 @uygulama.get("/api/v1/veri/calisma-alani/disa-aktar")
-def calisma_alani_export(kullanici: KimlikBilgisi = Depends(mevcut_sirket_uyesi)):
+def calisma_alani_export(kullanici: KimlikBilgisi = Depends(mevcut_sirket_uyesi_dogrulanmis)):
     return Response(
         content=calisma_alani_disa_aktar(kullanici),
         media_type="application/json",
@@ -430,9 +506,10 @@ def pdf_raporu(
     istek: RaporIstegi,
     kullanici: KimlikBilgisi = Depends(ozellik_kapisi("rapor")),
 ):
-    report_id = rapor_arsivle(istek.finansal_veri, kullanici, "pdf") if istek.arsivle else ""
+    content = pdf_raporu_olustur(istek.finansal_veri)
+    report_id = rapor_arsivle(istek.finansal_veri, kullanici, "pdf", content) if istek.arsivle else ""
     return Response(
-        content=pdf_raporu_olustur(istek.finansal_veri),
+        content=content,
         media_type="application/pdf",
         headers={
             "Content-Disposition": 'attachment; filename="KazKaz_AI_Yonetici_Raporu.pdf"',
@@ -446,9 +523,10 @@ def excel_raporu(
     istek: RaporIstegi,
     kullanici: KimlikBilgisi = Depends(ozellik_kapisi("rapor")),
 ):
-    report_id = rapor_arsivle(istek.finansal_veri, kullanici, "excel") if istek.arsivle else ""
+    content = excel_raporu_olustur(istek.finansal_veri)
+    report_id = rapor_arsivle(istek.finansal_veri, kullanici, "excel", content) if istek.arsivle else ""
     return Response(
-        content=excel_raporu_olustur(istek.finansal_veri),
+        content=content,
         media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
         headers={
             "Content-Disposition": 'attachment; filename="KazKaz_AI_Yonetici_Raporu.xlsx"',
@@ -470,16 +548,22 @@ def arsiv_raporu_indir(
 ):
     if not rapor_id.startswith("rpt_") or len(rapor_id) > 40:
         raise HTTPException(status_code=422, detail="Rapor kimliği geçersiz.")
-    content = arsiv_raporu_olustur(rapor_id, tur, kullanici)
+    content, bilgi = arsiv_raporu_olustur(rapor_id, tur, kullanici)
     extension = "pdf" if tur == "pdf" else "xlsx"
     media = "application/pdf" if tur == "pdf" else "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
-    return Response(content=content, media_type=media, headers={"Content-Disposition": f'attachment; filename="KazKaz_AI_Arsiv_{rapor_id}.{extension}"'})
+    return Response(content=content, media_type=media, headers={
+        "Content-Disposition": f'attachment; filename="KazKaz_AI_Arsiv_{rapor_id}.{extension}"',
+        "X-KazKaz-Report-Engine-Archived": bilgi["motor_surumu_arsiv"],
+        "X-KazKaz-Report-Engine-Current": bilgi["motor_surumu_guncel"],
+        "X-KazKaz-Report-Regenerated": "true" if bilgi["yeniden_uretildi"] else "false",
+        "X-KazKaz-Report-Original": "true" if bilgi["ozgun_cikti"] else "false",
+    })
 
 
 @uygulama.post("/api/v1/rapor/arsiv/{rapor_id}/sil")
 def arsiv_raporu_silme(
     rapor_id: str,
-    kullanici: KimlikBilgisi = Depends(mevcut_sirket_uyesi),
+    kullanici: KimlikBilgisi = Depends(mevcut_sirket_uyesi_dogrulanmis),
 ):
     return arsiv_raporu_sil(rapor_id, kullanici)
 
@@ -503,7 +587,7 @@ def cfo_sohbet(
 @uygulama.post("/api/v1/cfo/ajan-analizi")
 def cfo_ajan_araclari(
     istek: CfoAjanAnalizIstegi,
-    kullanici: KimlikBilgisi = Depends(mevcut_sirket_uyesi),
+    kullanici: KimlikBilgisi = Depends(mevcut_sirket_uyesi_dogrulanmis),
 ):
     """Eski CFO araçlarını kontrollü V1 veri sözleşmesiyle çalıştırır."""
     with operasyonu_olc(

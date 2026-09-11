@@ -197,6 +197,59 @@ def nakit_donusum_dongusu(veri: FinansalGorunum) -> MetrikSonucu:
     return _sonuc(dso + dio - dpo, "CASH_CONVERSION_CYCLE_FULL", formula, "gün", girdiler, girdiler.keys(), f"Bileşenler: DSO={dso:.2f}, DIO={dio:.2f}, DPO={dpo:.2f}. Dönem sonu bakiye yöntemi.", guven="orta")
 
 
+def _devir_gunu(
+    pay: float,
+    payda: Optional[float],
+    gun: Optional[float],
+    formula_id: str,
+    formula: str,
+    pay_adi: str,
+    payda_adi: str,
+    metodoloji: str,
+) -> MetrikSonucu:
+    """Alacak/stok/borç devir günü — üçü de aynı payda × gün kalıbını kullanır."""
+    girdiler = {pay_adi: pay, payda_adi: payda, "donem_gun_sayisi": gun}
+    if any(deger is None for deger in girdiler.values()):
+        return _eksik(formula_id, formula, "gün", girdiler, girdiler.keys(), metodoloji)
+    return _sonuc(
+        pay / float(payda) * float(gun), formula_id, formula, "gün",
+        girdiler, girdiler.keys(), metodoloji, guven="orta",
+    )
+
+
+def alacak_devir_gunu(veri: FinansalGorunum) -> MetrikSonucu:
+    """DSO — tahsilat süresi. Ekranlarda 365 varsayımı yerine bu kullanılmalıdır."""
+    return _devir_gunu(
+        veri.alacaklar, veri.ciro if veri.ciro > 0 else None,
+        float(veri.donem_gun_sayisi) if veri.donem_gun_sayisi is not None else None,
+        "DAYS_SALES_OUTSTANDING", "Ticari alacaklar / Ciro × Dönem gün sayısı",
+        "alacaklar", "ciro",
+        "Dönem sonu bakiye yöntemi; dönem gün sayısı kayıttan alınır, sabit 365 varsayılmaz.",
+    )
+
+
+def stok_devir_gunu(veri: FinansalGorunum) -> MetrikSonucu:
+    """DIO — stokta kalma süresi."""
+    return _devir_gunu(
+        veri.stoklar, veri.satis_maliyeti if veri.satis_maliyeti > 0 else None,
+        float(veri.donem_gun_sayisi) if veri.donem_gun_sayisi is not None else None,
+        "DAYS_INVENTORY_OUTSTANDING", "Stoklar / Satış maliyeti × Dönem gün sayısı",
+        "stoklar", "satis_maliyeti",
+        "Dönem sonu bakiye yöntemi; dönem gün sayısı kayıttan alınır.",
+    )
+
+
+def borc_devir_gunu(veri: FinansalGorunum) -> MetrikSonucu:
+    """DPO — tedarikçiye ödeme süresi."""
+    return _devir_gunu(
+        veri.borclar, veri.satis_maliyeti if veri.satis_maliyeti > 0 else None,
+        float(veri.donem_gun_sayisi) if veri.donem_gun_sayisi is not None else None,
+        "DAYS_PAYABLE_OUTSTANDING", "Ticari borçlar / Satış maliyeti × Dönem gün sayısı",
+        "borclar", "satis_maliyeti",
+        "Dönem sonu bakiye yöntemi; dönem gün sayısı kayıttan alınır.",
+    )
+
+
 def musteri_hhi(veri: FinansalGorunum) -> MetrikSonucu:
     toplam = sum(satir.ciro for satir in veri.musteri_cirolari)
     girdiler = {"musteri_sayisi": float(len(veri.musteri_cirolari)) if veri.musteri_cirolari else None, "toplam_musteri_cirosu": toplam if toplam > 0 else None}
@@ -214,6 +267,9 @@ def kurumsal_metrikleri_hesapla(veri: FinansalGorunum) -> Dict[str, Dict[str, An
         "roic": roic(veri),
         "serbest_nakit_akisi": serbest_nakit_akisi(veri),
         "nakit_donusum_dongusu": nakit_donusum_dongusu(veri),
+        "alacak_devir_gunu": alacak_devir_gunu(veri),
+        "stok_devir_gunu": stok_devir_gunu(veri),
+        "borc_devir_gunu": borc_devir_gunu(veri),
         "musteri_hhi": musteri_hhi(veri),
     }
     return {ad: sonuc.json() for ad, sonuc in metrikler.items()}

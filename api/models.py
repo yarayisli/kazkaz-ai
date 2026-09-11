@@ -11,6 +11,9 @@ class FinansSatiri(BaseModel):
     kategori: str = Field(min_length=1, max_length=120)
     gelir: float = Field(default=0, ge=0)
     gider: float = Field(default=0, ge=0)
+    #: Verilirse sağlık skoru 5. boyutu (müşteri konsantrasyon riski)
+    #: devreye girer; verilmezse skor 4 boyutta hesaplanır.
+    musteri: Optional[str] = Field(default=None, max_length=160)
 
 
 class BilançoBilgisi(BaseModel):
@@ -239,11 +242,28 @@ class PlatformSirketEylemIstegi(BaseModel):
     gerekce: str = Field(min_length=5, max_length=300)
 
 
+class PlatformClaimYenidenDenemeIstegi(BaseModel):
+    sirket_id: str = Field(min_length=1, max_length=128, pattern=r"^[A-Za-z0-9_-]+$")
+
+
 class PlatformGeriBildirimDurumIstegi(BaseModel):
     sirket_id: str = Field(min_length=1, max_length=128, pattern=r"^[A-Za-z0-9_-]+$")
     geri_bildirim_id: str = Field(min_length=1, max_length=128, pattern=r"^[A-Za-z0-9_-]+$")
     durum: Literal["new", "in_review", "resolved"]
     gerekce: Optional[str] = Field(default=None, min_length=5, max_length=300)
+    #: Müşteriye görünecek kısa yanıt (talebin nasıl ele alındığı). Yönetici
+    #: mesaj gövdesini okumadan da bir çözüm notu bırakabilir.
+    yanit: Optional[str] = Field(default=None, min_length=2, max_length=500)
+
+
+class GeriBildirimMemnuniyetIstegi(BaseModel):
+    geri_bildirim_id: str = Field(min_length=1, max_length=128, pattern=r"^[A-Za-z0-9_-]+$")
+    memnun: bool
+
+
+class PilotNiyetIstegi(BaseModel):
+    devam_niyeti: Literal["kesinlikle", "muhtemelen", "kararsiz", "muhtemelen_hayir", "kesinlikle_hayir"]
+    ucretli_devam: bool
 
 
 class GoogleSheetsIstegi(BaseModel):
@@ -266,3 +286,10 @@ class GeriBildirimIstegi(BaseModel):
 class CalismaAlaniKaydetIstegi(BaseModel):
     schema_version: int = Field(default=2, ge=2, le=2)
     snapshot: Dict[str, Any]
+    #: İçerikle birlikte yüklenen taban sürüm; eski istemci önce yenilenmelidir.
+    baz_revizyon: int = Field(ge=0)
+
+
+class CalismaAlaniSilIstegi(BaseModel):
+    #: Silme de güncel çalışma alanı sürümüne bağlıdır; eski ekran yeni veriyi silemez.
+    baz_revizyon: int = Field(ge=0)

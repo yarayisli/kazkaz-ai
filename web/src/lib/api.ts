@@ -17,6 +17,12 @@ export interface FinansalDenetim {
     roic: number | null;
     serbest_nakit_akisi: number | null;
     nakit_donusum_dongusu: number | null;
+    /** DSO — tahsilat süresi (gün). Dönem gün sayısından; 365 sabit değil. */
+    alacak_devir_gunu: number | null;
+    /** DIO — stokta kalma süresi (gün). */
+    stok_devir_gunu: number | null;
+    /** DPO — tedarikçiye ödeme süresi (gün). */
+    borc_devir_gunu: number | null;
     musteri_hhi: number | null;
   };
   metrik_kaydi: Record<string, {
@@ -53,6 +59,8 @@ export interface CfoSohbetYaniti {
     durum: 'dogrulandi' | 'kuralli_yedek' | 'ajan_engeli' | 'veri_engeli';
     kontrol_edilen_sayi: number;
     reddedilen_sayilar: string[];
+    /** Kabul edilen her sayı ve hangi kalemden geldiği. */
+    kaynak_eslesmeleri?: { ham: string; kaynak: string }[];
   };
   veri_kalitesi: FinansalDenetim['veri_kalitesi'];
   ajanlar: string[];
@@ -136,17 +144,87 @@ export interface GelismisAjanAnalizi {
     gerekenler?: string[];
     bulgular: string[];
     tablo_surumu?: string;
-    son_donem?: {
-      donem: string;
-      gelir_tablosu: { ciro: number; brut_kar: number; faaliyet_kari: number; net_kar: number };
-      bilanco: {
-        toplam_varliklar: number; toplam_yukumlulukler: number; toplam_ozkaynak: number;
-        bilanco_farki: number; denk: boolean;
-      };
-    };
+    son_donem?: MizanDonemi;
+    /** 7'li maliyet hesapları: 6'lı gruba yansıtıldığı için toplanmaz. */
+    yansitma_hesaplari?: string[];
+    eslesmeyen_hesaplar?: string[];
+    donemler?: string[];
+    /** Şirketin kendi geçmişiyle karşılaştırması. */
+    kendi_trendi?: KendiTrendi;
     finansal_gorunum_mutabakati?: { durum: string; uyusmayan_alanlar: string[] };
     nakit_koprusu?: { durum: string; fark?: number; eksik_alanlar?: string[] };
   }>;
+}
+
+/** Bir metriğin önceki döneme göre değişimi. */
+export interface TrendDegisimi {
+  metrik: string;
+  etiket: string;
+  birim: 'tutar' | 'yuzde' | 'gun' | 'kat';
+  onceki: number;
+  son: number;
+  fark: number;
+  goreli_degisim_yuzde: number | null;
+  yon: 'artti' | 'azaldi' | 'sabit';
+  /** Artış her metrikte iyi değildir: tahsilat süresi uzaması kötüdür. */
+  deger_yargisi: 'iyi' | 'kotu' | 'notr';
+  /** %5 eşiğini aşan değişim. */
+  onemli: boolean;
+  /** Yalnızca tahsilat süresinde: bağlanan (+) veya serbest kalan (−) para. */
+  nakit_etkisi: number | null;
+}
+
+/** Şirketin kendi geçmişiyle karşılaştırması. */
+export interface KendiTrendi {
+  durum: 'hazir' | 'gecmis_yok';
+  onceki_donem?: string;
+  son_donem?: string;
+  donem_sayisi: number;
+  degisimler: TrendDegisimi[];
+  onemli_degisim_sayisi?: number;
+  kotulesen_sayisi?: number;
+  metodoloji?: string;
+  aciklama?: string;
+}
+
+/** Mizandan türetilen bir dönemin gelir tablosu ve bilançosu. */
+export interface MizanDonemi {
+  donem: string;
+  gelir_tablosu: {
+    ciro: number;
+    satis_maliyeti: number;
+    brut_kar: number;
+    faaliyet_giderleri: number;
+    amortisman: number;
+    faaliyet_kari: number;
+    faiz_gideri: number;
+    vergi_oncesi_kar: number;
+    vergi_gideri: number;
+    net_kar: number;
+  };
+  bilanco: {
+    nakit: number;
+    alacaklar: number;
+    stoklar: number;
+    diger_donen_varliklar: number;
+    donen_varliklar: number;
+    duran_varliklar: number;
+    toplam_varliklar: number;
+    ticari_borc: number;
+    kisa_vadeli_borc: number;
+    karsiliklar: number;
+    diger_yukumlulukler: number;
+    uzun_vadeli_borc: number;
+    toplam_yukumlulukler: number;
+    kayitli_ozkaynak: number;
+    donem_net_kari: number;
+    toplam_ozkaynak: number;
+    bilanco_farki: number;
+    denk: boolean;
+  };
+  /** Mizanın çift taraflı denkliği (borç toplamı = alacak toplamı). */
+  mizan_farki: number;
+  mizan_denk: boolean;
 }
 
 export interface GelismisAjanGirdisi {
@@ -251,9 +329,32 @@ export interface TfrsHazirlikGirdisi {
   muhasebe_uzmani_onayi: boolean;
 }
 
+/** İşlem sayfasının sütun tanıma raporu. */
+export interface SutunEslemeRaporu {
+  taninan_sutunlar: Array<{ indeks: number; baslik: string; normalize: string; alan: string }>;
+  cozulemeyen_sutunlar: Array<{ indeks: number; baslik: string; normalize: string }>;
+  tam_eslesme: boolean;
+  zorunlu_eksik?: string[];
+}
+
+/** Standart dışı başlık nedeniyle kullanıcı eşlemesi bekleyen dosya. */
+export interface EslesmeGerekliSonucu {
+  durum: 'eslesme_gerekli';
+  dosya: { ad: string; tur: string; boyut: number; sayfalar: string[] };
+  sutun_eslemesi: SutunEslemeRaporu;
+  eslenebilir_alanlar: string[];
+  hatalar: VeriIceriAktarmaSonucu['hatalar'];
+  mesaj: string;
+}
+
 export interface VeriIceriAktarmaSonucu {
   durum: 'hazir' | 'uyarili';
-  dosya: { ad: string; tur: string; boyut: number; sayfalar: string[] };
+  dosya: {
+    ad: string; tur: string; boyut: number; sayfalar: string[];
+    /** Finansal olarak yorumlanabilen sayfalar (Python tarafında 'tanınan_sayfalar'). */
+    'tanınan_sayfalar'?: string[];
+    atlanan_sayfalar?: string[];
+  };
   ozet: {
     gecerli_satirlar: number;
     uyarili_satirlar: number;
@@ -280,6 +381,15 @@ export interface VeriIceriAktarmaSonucu {
     favok_hesaplanabilir: boolean;
     kurumsal_metrikler_hazir?: boolean;
     eksikler: string[];
+    /** Muhasebe kimlikleri arası tutarlılık bulguları (api/data_quality.py). */
+    tutarlilik_bulgulari?: VeriKalitesiBulgusu[];
+    /** İstatistiksel anomali bulguları. */
+    anomali_bulgulari?: VeriKalitesiBulgusu[];
+    semantik_durum?: 'temiz' | 'uyarili' | 'hatali';
+    semantik_hata_sayisi?: number;
+    semantik_uyari_sayisi?: number;
+    aktarim_bloke?: boolean;
+    bloke_nedenleri?: string[];
   };
   gelismis_veri: GelismisAjanGirdisi;
   zaman_serisi: Array<Record<string, string | number>>;
@@ -290,6 +400,22 @@ export interface VeriIceriAktarmaSonucu {
     seviye: 'hata' | 'uyari';
   }>;
   metodoloji: Record<string, string>;
+  /** İşlem sayfasının sütun tanıma raporu (başarılı yüklemede de döner). */
+  sutun_eslemesi?: SutunEslemeRaporu;
+}
+
+/** Dosya doğrulama iki sonuçtan birini döner: hazır/uyarılı içerik ya da eşleme bekleyen dosya. */
+export type DosyaDogrulamaSonucu = VeriIceriAktarmaSonucu | EslesmeGerekliSonucu;
+
+/** api/data_quality.py'nin ürettiği tek bir kalite bulgusu. */
+export interface VeriKalitesiBulgusu {
+  kod: string;
+  alan: string;
+  mesaj: string;
+  seviye: 'hata' | 'uyari';
+  beklenen?: number;
+  gozlemlenen?: number;
+  sapma_yuzde?: number;
 }
 
 export interface SirketOlusturmaSonucu {
@@ -321,6 +447,7 @@ export interface GoogleSheetsDurumu {
 export interface PlatformAdminOzet {
   sayaclar: {
     olusturulma_zamani: string; veri_kaynagi: 'hazir' | 'sinirli'; toplam_sirket: number;
+    toplam_sirket_kesin?: boolean; orneklem_sirket?: number; orneklem_siniri?: number; kapsam?: 'tam' | 'orneklem';
     aktif_sirket: number; pilot_sirket: number; toplam_uye: number; yeni_geri_bildirim: number;
     finansal_veri_gosterilir: false;
   };
@@ -330,6 +457,14 @@ export interface PlatformAdminOzet {
   };
   ai: { mod: string; politika: string; finans_motoru: string; saglayicilar: Array<{ ad: string; rol: string; hazir: boolean }>; aktif_ajanlar: string[] };
   performans: { durum: string; genel?: { orneklem: number; basari_orani: number; p50_ms: number; p95_ms: number }; operasyonlar?: Record<string, { orneklem: number; basari_orani: number; p50_ms: number; p95_ms: number }> };
+  pilot: {
+    durum: string; hedef_sirket_araligi: string; pilot_sirket: number; kapsam_gecerli: boolean;
+    dort_haftayi_tamamlayan: number; asgari_kanit_hazir: boolean; finansal_veri_gosterilir: false;
+    gorev_tamamlama: { tam_yolculuk_sirket: number; tamamlanmis_tam_yolculuk_sirket: number; kontrol_noktasi: number; kontrol_noktasi_toplami: number; oran_yuzde: number | null };
+    destek: { talep: number; cozulen_sure_ornegi: number; medyan_cozum_dakika: number | null; p90_cozum_dakika: number | null; memnuniyet_yanit: number; memnuniyet_yuzde: number | null };
+    bildirilen_hata: { adet: number; tamamlanan_100_kontrol_noktasi_basina: number | null; tanim: string };
+    devam_niyeti: { yanit: number; olumlu_yuzde: number | null; ucretli_devam_yanit: number; ucretli_devam_yuzde: number | null };
+  };
   odeme: { durum: string; odeme_saglayicisi: string; eksikler: string[] };
   erp: { durum: string; saglayicilar: Record<string, { durum: string; yetki?: string }> };
   gizlilik: { finansal_veri_gosterilir: false; geri_bildirim_mesaji_gosterilir: false; kapsam: string };
@@ -360,7 +495,7 @@ export interface PlatformSirketDetayi {
   };
   uyeler: Array<{ kullanici_ozeti: string; eposta_maskeli: string; rol: string; eklenme: string | null }>;
   bekleyen_davetler: Array<{ davet_ozeti: string; eposta_maskeli: string; rol: string; son_gecerlilik: string | null }>;
-  geri_bildirimler: Array<{ geri_bildirim_id: string; kategori: string; sayfa: string; durum: 'new' | 'in_review' | 'resolved'; iletisim_izni: boolean; zaman: string | null }>;
+  geri_bildirimler: Array<{ geri_bildirim_id: string; talep_no?: string | null; kategori: string; sayfa: string; durum: 'new' | 'in_review' | 'resolved'; iletisim_izni: boolean; yanit_verildi?: boolean; memnun?: boolean | null; zaman: string | null }>;
   son_olaylar: Array<{ aksiyon: string; kaynak: string | null; aktor: string; aktor_rolu: string; zaman: string | null }>;
   gizlilik: { finansal_veri_gosterilir: false; geri_bildirim_mesaji_gosterilir: false; epostalar_maskeli: true; kullanici_kimlikleri_ozetlenmis: true };
 }
@@ -435,10 +570,27 @@ export function platformOlaylariniGetir(limit = 50) {
   return platformAdminGet<PlatformOlayListesi>(`/api/v1/platform-admin/olaylar?limit=${limit}`);
 }
 
+export interface PlatformSirketGuncellemeSonucu {
+  durum: 'guncellendi' | 'kismen_guncellendi';
+  sirket_id: string;
+  degisiklikler: Record<string, string>;
+  basarili_uye?: number;
+  basarisiz_uye?: number;
+  yeniden_denenecek_uye?: number;
+  oturum_yenileme_uyarisi: number;
+}
+
 export function platformSirketiniGuncelle(sirketId: string, degisiklik: { durum?: string; plan?: string; gerekce?: string }) {
-  return platformAdminPost<{ durum: 'guncellendi' | 'kismen_guncellendi'; sirket_id: string; degisiklikler: Record<string, string>; oturum_yenileme_uyarisi: number }>(
+  return platformAdminPost<PlatformSirketGuncellemeSonucu>(
     '/api/v1/platform-admin/sirket-guncelle',
     { sirket_id: sirketId, ...degisiklik },
+  );
+}
+
+export function platformBekleyenClaimleriYenidenDene(sirketId: string) {
+  return platformAdminPost<{ durum: 'tamamlandi' | 'kismen_tamamlandi'; sirket_id: string; cozulen_uye: number; kalan_uye: number }>(
+    '/api/v1/platform-admin/claim-yeniden-dene',
+    { sirket_id: sirketId },
   );
 }
 
@@ -453,32 +605,87 @@ export function platformSirketEylemi(sirketId: string, eylem: 'oturumlari_sonlan
   );
 }
 
-export function platformGeriBildirimDurumunuGuncelle(sirketId: string, geriBildirimId: string, durum: 'new' | 'in_review' | 'resolved', gerekce?: string) {
+export function platformGeriBildirimDurumunuGuncelle(sirketId: string, geriBildirimId: string, durum: 'new' | 'in_review' | 'resolved', gerekce?: string, yanit?: string) {
   return platformAdminPost<{ durum: string; sirket_id: string; geri_bildirim_id: string; geri_bildirim_durumu: string }>(
     '/api/v1/platform-admin/geri-bildirim-durumu',
-    { sirket_id: sirketId, geri_bildirim_id: geriBildirimId, durum, ...(gerekce ? { gerekce } : {}) },
+    { sirket_id: sirketId, geri_bildirim_id: geriBildirimId, durum, ...(gerekce ? { gerekce } : {}), ...(yanit ? { yanit } : {}) },
   );
 }
 
 export interface CalismaAlaniSonucu<T> {
   durum: 'hazir' | 'bos';
   schema_version?: number;
+  /** Optimistik kilit sürümü; kayıtta baz_revizyon olarak geri gönderilir. */
+  revizyon?: number;
   snapshot: T | null;
+}
+
+export interface CalismaAlaniKayitSonucu {
+  durum: 'kaydedildi';
+  schema_version: number;
+  revizyon: number;
+  boyut: number;
+  saklama_gunu: number;
+}
+
+/** Kayıt sırasında başka bir oturum araya girdi: taban sürüm eskimiş. */
+export class CalismaAlaniCakismaHatasi extends Error {
+  mevcutRevizyon: number;
+  constructor(mevcutRevizyon: number, mesaj: string) {
+    super(mesaj);
+    this.name = 'CalismaAlaniCakismaHatasi';
+    this.mevcutRevizyon = mevcutRevizyon;
+  }
 }
 
 export function calismaAlaniYukle<T>() {
   return apiGetIstegi<CalismaAlaniSonucu<T>>('/api/v1/veri/calisma-alani');
 }
 
-export function calismaAlaniKaydet<T>(snapshot: T) {
-  return apiIstegi<{ durum: 'kaydedildi'; schema_version: number; boyut: number; saklama_gunu: number }>(
-    '/api/v1/veri/calisma-alani/kaydet',
-    { schema_version: 2, snapshot },
-  );
+export async function calismaAlaniKaydet<T>(
+  snapshot: T,
+  bazRevizyon: number,
+): Promise<CalismaAlaniKayitSonucu> {
+  const kullanici = auth.currentUser;
+  const yerelKimlikDogrulamaKapali = import.meta.env.DEV
+    && import.meta.env.VITE_API_AUTH_DISABLED === 'true';
+  if (!kullanici && !yerelKimlikDogrulamaKapali) {
+    throw new Error('Bu işlem için giriş yapmanız gerekiyor.');
+  }
+  const token = kullanici ? await kullanici.getIdToken() : null;
+  const govde: Record<string, unknown> = { schema_version: 2, snapshot };
+  if (typeof bazRevizyon === 'number') govde.baz_revizyon = bazRevizyon;
+  const yanit = await fetch('/api/v1/veri/calisma-alani/kaydet', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      ...(token ? { Authorization: `Bearer ${token}` } : {}),
+    },
+    body: JSON.stringify(govde),
+  });
+  if (!yanit.ok) {
+    const hata = await yanit.json().catch(() => null);
+    const detay = hata?.detail;
+    // 409 çakışmasının detayı yapısal bir nesnedir (kod + mevcut_revizyon);
+    // düz string hata yolundan ayrı ele alınır ki arayüz yenilemeyi önersin.
+    if (yanit.status === 409 && detay && typeof detay === 'object' && detay.kod === 'calisma_alani_cakismasi') {
+      throw new CalismaAlaniCakismaHatasi(
+        Number(detay.mevcut_revizyon ?? 0),
+        String(detay.mesaj || 'Çalışma alanı başka bir oturumda güncellendi.'),
+      );
+    }
+    throw new Error(
+      (typeof detay === 'string' ? detay : detay?.mesaj) || 'Çalışma alanı kaydedilemedi.',
+    );
+  }
+  return yanit.json() as Promise<CalismaAlaniKayitSonucu>;
 }
 
-export function calismaAlaniSil() {
-  return apiIstegi<{ durum: 'silindi'; kapsam: string }>('/api/v1/veri/calisma-alani/sil', {});
+export function calismaAlaniSil(bazRevizyon: number) {
+  return apiIstegi<{ durum: 'silindi'; kapsam: string; revizyon: number }>(
+    '/api/v1/veri/calisma-alani/sil',
+    { baz_revizyon: bazRevizyon },
+  );
 }
 
 export async function calismaAlaniDisaAktar(): Promise<void> {
@@ -560,7 +767,14 @@ async function apiIstegi<T>(yol: string, govde: unknown): Promise<T> {
 
   if (!yanit.ok) {
     const hata = await yanit.json().catch(() => null);
-    throw new Error(hata?.detail || 'KazKaz API isteği tamamlanamadı.');
+    const detay = hata?.detail;
+    if (yanit.status === 409 && detay && typeof detay === 'object' && detay.kod === 'calisma_alani_cakismasi') {
+      throw new CalismaAlaniCakismaHatasi(
+        Number(detay.mevcut_revizyon ?? 0),
+        String(detay.mesaj || 'Çalışma alanı başka bir oturumda güncellendi.'),
+      );
+    }
+    throw new Error((typeof detay === 'string' ? detay : detay?.mesaj) || 'KazKaz API isteği tamamlanamadı.');
   }
   return yanit.json() as Promise<T>;
 }
@@ -613,6 +827,12 @@ export interface ArsivRaporu {
   donem: string;
   para_birimi: string;
   surum: string;
+  /** Raporun üretildiği rapor motoru sürümü. */
+  motor_surumu?: string;
+  /** Arşivdeki motor güncel motorla aynı mı? */
+  guncel_motor?: boolean;
+  /** Üretilen dosyanın değişmez özgün kopyası saklanıyor mu? */
+  ozgun_cikti?: boolean;
   formatlar: Array<'pdf' | 'excel'>;
   ozet: { revenue?: number; netProfit?: number; cash?: number; totalDebt?: number; equity?: number; netMargin?: number | null; currentRatio?: number | null };
   olusturan: string;
@@ -650,7 +870,16 @@ export function raporArsiviniGetir() {
   return apiGetIstegi<{ raporlar: ArsivRaporu[] }>('/api/v1/rapor/arsiv');
 }
 
-export async function arsivRaporuIndir(raporId: string, tur: 'pdf' | 'excel'): Promise<void> {
+export interface ArsivIndirmeSonucu {
+  /** Yalnız eski arşiv kaydı için rapor tekrar üretildi mi? */
+  yenidenUretildi: boolean;
+  /** İndirilen baytlar üretim anında saklanan ve bütünlüğü doğrulanan özgün çıktı mı? */
+  ozgunCikti: boolean;
+  motorArsiv: string | null;
+  motorGuncel: string | null;
+}
+
+export async function arsivRaporuIndir(raporId: string, tur: 'pdf' | 'excel'): Promise<ArsivIndirmeSonucu> {
   const kullanici = auth.currentUser;
   if (!kullanici) throw new Error('Arşiv raporunu indirmek için giriş yapmanız gerekiyor.');
   const yanit = await fetch(`/api/v1/rapor/arsiv/${encodeURIComponent(raporId)}/${tur}`, {
@@ -668,13 +897,22 @@ export async function arsivRaporuIndir(raporId: string, tur: 'pdf' | 'excel'): P
   baglanti.click();
   baglanti.remove();
   URL.revokeObjectURL(adres);
+  return {
+    yenidenUretildi: yanit.headers.get('X-KazKaz-Report-Regenerated') === 'true',
+    ozgunCikti: yanit.headers.get('X-KazKaz-Report-Original') === 'true',
+    motorArsiv: yanit.headers.get('X-KazKaz-Report-Engine-Archived'),
+    motorGuncel: yanit.headers.get('X-KazKaz-Report-Engine-Current'),
+  };
 }
 
 export function arsivRaporuSil(raporId: string) {
   return apiIstegi<{ durum: 'silindi'; rapor_id: string }>(`/api/v1/rapor/arsiv/${encodeURIComponent(raporId)}/sil`, {});
 }
 
-export async function finansDosyasiDogrula(dosya: File): Promise<VeriIceriAktarmaSonucu> {
+export async function finansDosyasiDogrula(
+  dosya: File,
+  kayitliEsleme?: Record<string, string>,
+): Promise<DosyaDogrulamaSonucu> {
   const kullanici = auth.currentUser;
   const yerelKimlikDogrulamaKapali = import.meta.env.DEV
     && import.meta.env.VITE_API_AUTH_DISABLED === 'true';
@@ -685,7 +923,11 @@ export async function finansDosyasiDogrula(dosya: File): Promise<VeriIceriAktarm
     throw new Error('Dosya boyutu 5 MB sınırını aşıyor.');
   }
   const token = kullanici ? await kullanici.getIdToken() : null;
-  const yanit = await fetch(`/api/v1/veri/dosya-dogrula?dosya_adi=${encodeURIComponent(dosya.name)}`, {
+  const eslemeParam = kayitliEsleme && Object.keys(kayitliEsleme).length > 0
+    ? `&sutun_eslemesi=${encodeURIComponent(JSON.stringify(kayitliEsleme))}`
+    : '';
+  const yanit = await fetch(
+    `/api/v1/veri/dosya-dogrula?dosya_adi=${encodeURIComponent(dosya.name)}${eslemeParam}`, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/octet-stream',
@@ -697,7 +939,7 @@ export async function finansDosyasiDogrula(dosya: File): Promise<VeriIceriAktarm
     const hata = await yanit.json().catch(() => null);
     throw new Error(hata?.detail || 'Dosya doğrulanamadı.');
   }
-  return yanit.json() as Promise<VeriIceriAktarmaSonucu>;
+  return yanit.json() as Promise<DosyaDogrulamaSonucu>;
 }
 
 export function googleSheetsDurumu(): Promise<GoogleSheetsDurumu> {
@@ -753,9 +995,46 @@ export function geriBildirimGonder(
   mesaj: string,
   sayfa: string,
   iletisimIzni: boolean,
-): Promise<{ durum: 'alindi'; kayit_id: string }> {
+): Promise<{ durum: 'alindi'; kayit_id: string; talep_no: string }> {
   return apiIstegi('/api/v1/geri-bildirim', {
     kategori, mesaj, sayfa, iletisim_izni: iletisimIzni,
+  });
+}
+
+export interface DestekTalebi {
+  geri_bildirim_id: string;
+  talep_no: string;
+  kategori: string;
+  sayfa: string;
+  mesaj: string;
+  durum: 'new' | 'in_review' | 'resolved';
+  yanit: string | null;
+  olusturma: string | null;
+  guncelleme: string | null;
+  memnun: boolean | null;
+}
+
+export function destekTaleplerim() {
+  return apiGetIstegi<{ talepler: DestekTalebi[] }>('/api/v1/geri-bildirim/taleplerim');
+}
+
+export function destekTalebiMemnuniyeti(geriBildirimId: string, memnun: boolean) {
+  return apiIstegi<{ durum: 'kaydedildi'; talep_no: string; memnun: boolean }>(
+    '/api/v1/geri-bildirim/memnuniyet',
+    { geri_bildirim_id: geriBildirimId, memnun },
+  );
+}
+
+export function pilotNiyetDurumu() {
+  return apiGetIstegi<{ uygun: boolean; yanitlandi: boolean; asgari_gun?: number }>('/api/v1/pilot/niyet');
+}
+
+export function pilotNiyetKaydet(
+  devamNiyeti: 'kesinlikle' | 'muhtemelen' | 'kararsiz' | 'muhtemelen_hayir' | 'kesinlikle_hayir',
+  ucretliDevam: boolean,
+) {
+  return apiIstegi<{ durum: 'kaydedildi' }>('/api/v1/pilot/niyet', {
+    devam_niyeti: devamNiyeti, ucretli_devam: ucretliDevam,
   });
 }
 
@@ -834,6 +1113,46 @@ export function importedFinancialData(sonuc: VeriIceriAktarmaSonucu): FinancialD
 
 export function finansalDenetim(veri: FinancialData) {
   return apiIstegi<FinansalDenetim>('/api/v1/finans/denetim', apiFinansalVeri(veri));
+}
+
+/** Zaman serisinden hesaplanan finansal sağlık skoru (financial_engine.HealthScore). */
+export interface SaglikSkoru {
+  skor: number;
+  kategori: string;
+  /** Müşteri verisi varsa 5, yoksa 4 anahtar içerir. */
+  alt_skorlar: Record<string, number>;
+  aciklama: string;
+  uyarilar: string[];
+  metodoloji: Record<string, number | string>;
+}
+
+export interface ZamanSerisiSatiri {
+  tarih: string;
+  kategori: string;
+  gelir: number;
+  gider: number;
+  /** Verilirse skorun 5. boyutu (konsantrasyon riski) devreye girer. */
+  musteri?: string;
+}
+
+export interface ZamanSerisiAnalizi {
+  finansal: { saglik_skoru: SaglikSkoru } & Record<string, unknown>;
+  nakit: Record<string, unknown>;
+}
+
+/**
+ * Sağlık skoru tek dönemlik veriden hesaplanamaz; en az birkaç dönemlik
+ * işlem satırı ister. Excel içe aktarımının zaman_serisi çıktısı bu
+ * uca doğrudan verilebilir.
+ */
+export function zamanSerisiAnalizi(
+  satirlar: ZamanSerisiSatiri[],
+  bilanco?: { baslangic_nakiti?: number; donen_varliklar?: number; kisa_vadeli_borc?: number; stoklar?: number },
+) {
+  return apiIstegi<ZamanSerisiAnalizi>('/api/v1/finans/zaman-serisi', {
+    satirlar,
+    bilanco: bilanco || {},
+  });
 }
 
 export function cfoSohbet(

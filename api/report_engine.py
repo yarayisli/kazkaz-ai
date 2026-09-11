@@ -26,6 +26,12 @@ LACIVERT = colors.HexColor("#0F2252")
 TURUNCU = colors.HexColor("#FF4D00")
 ACIK = colors.HexColor("#F3F6FA")
 
+#: Rapor motoru sürümü. Çıktı biçimi, düzeni veya hesaplanan kalemler
+#: değiştiğinde ARTIRILMALIDIR. Arşiv, üretim anındaki sürümü saklar;
+#: indirmede güncel sürümle karşılaştırılır. Eşit değilse rapor özgün
+#: çıktısıyla birebir aynı olmayabilir ve bu, indirene açıkça bildirilir.
+RAPOR_MOTOR_SURUMU = "1.0.0"
+
 
 def _font() -> str:
     adaylar = [

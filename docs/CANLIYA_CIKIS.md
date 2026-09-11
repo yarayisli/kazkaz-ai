@@ -8,16 +8,19 @@ destekler; hukukçu, mali müşavir/CFO ve güvenlik uzmanı onayının yerine g
 
 1. Render’da bu depodan Blueprint oluşturun; `render.yaml` tek Docker servisi kurar.
 2. `sync: false` secret değerlerini Render panelinde tanımlayın.
-3. İlk dağıtımdan sonra Render Custom Domains ekranına `supermantarik.com` ve
-   `www.supermantarik.com` ekleyin; Render’ın verdiği DNS kayıtlarını alan adı
-   sağlayıcısına girin.
-4. `/api/health` 200, `/api/readiness` ise `durum: hazir` dönmeden pilot açmayın.
-5. HTTPS üzerinden giriş, Excel yükleme, rapor indirme ve çıkış smoke testini yapın.
+3. İlk dağıtımdan sonra Render'ın verdiği `*.onrender.com` servis adresini kaydedin.
+   Ayrı bir alan adı alınırsa Render Custom Domains ekranına ekleyin ve Render'ın
+   verdiği DNS kayıtlarını alan adı sağlayıcısına girin.
+4. `CORS_ORIGINS` değerini gerçek `https://...` servis adresiyle; özel alan adı
+   bağlanırsa iki adresle güncelleyin. Özel alan adını `ALLOWED_HOSTS` listesine de
+   ekleyin. Depoda örnek veya geçmiş bir alan adı bırakmayın.
+5. `/api/health` 200, `/api/readiness` ise `durum: hazir` dönmeden pilot açmayın.
+6. HTTPS üzerinden giriş, Excel yükleme, rapor indirme ve çıkış smoke testini yapın.
 
 ## 2. Firebase
 
 - Email/Password ve Google giriş sağlayıcılarını bilinçli olarak etkinleştirin.
-- Authorized Domains listesine iki canlı alan adını ekleyin.
+- Authorized Domains listesine Render servis adresini ve varsa özel alan adını ekleyin.
 - `firestore.rules` dosyasını canlı projeye dağıtın; Emulator Suite ile iki şirket
   arasında okuma/yazma izolasyonunu ayrıca çalıştırın.
 - Servis hesabı JSON dosyasını depoya koymayın; Render secret olarak tek satır JSON kullanın.
@@ -31,10 +34,19 @@ destekler; hukukçu, mali müşavir/CFO ve güvenlik uzmanı onayının yerine g
   alanı için etkinleştirin; TTL silmesinin gecikmeli olabileceğini kullanıcı metninde açıklayın.
 - Ayrı, sürümlemeli bir Cloud Storage bucket oluşturup adını
   `FIRESTORE_BACKUP_BUCKET` olarak tanımlayın.
-- Günlük zamanlanmış işte `gcloud firestore export gs://BUCKET/kazkaz-YYYY-MM-DD`
-  çalıştırın; servis hesabına yalnız gerekli Firestore export ve bucket yazma rollerini verin.
-- Ayda bir ayrı test projesine `gcloud firestore import gs://BUCKET/YEDEK` ile geri
-  yükleme tatbikatı yapın. Tarih, süre, kayıt adedi ve sonucu denetim kaydına yazın.
+- Değişmeyecek ve finansal değer taşımayan bir doğrulama belgesi oluşturun. Yolunu
+  `BACKUP_VERIFY_DOCUMENT_PATH` olarak tanımlayıp günlük zamanlanmış işte
+  `scripts/firestore_backup.sh` çalıştırın. Betik tamamlanmış export metadata dosyasını
+  arar, doğrulama belgesinin yalnız SHA-256 parmak izini kaydeder ve kanıtı yedeğe ekler.
+- Ardışık iki başarılı yedek kanıtını `scripts/verify_backup_cadence.sh` ile karşılaştırın.
+  Ölçülen en büyük aralık RPO hedefini aşarsa canlı hazırlıkta `rpo_hedefi` kapanır.
+- Ayda bir ayrı ve silinebilir test projesinde `scripts/firestore_restore_drill.sh` çalıştırın.
+  Betik kaynak projeye dönüşü engeller, import sonrası doğrulama belgesinin parmak izini
+  karşılaştırır ve ölçülen RTO’yu kanıt dosyasına yazar. Import işleminin başarılı dönmesi
+  tek başına tatbikat başarısı sayılmaz.
+- Firestore yönetilen export işleminin çok yeni yazmaları içermeyebileceğini hesaba katın;
+  doğrulama belgesi sabit olmalı ve RPO, ardışık tamamlanmış yedekler üzerinden ölçülmelidir.
+- Export işlemi belge başına okuma maliyeti oluşturur; zamanlamayı ve bütçe alarmını birlikte ayarlayın.
 - Yedek yaşam döngüsü ve silme süresi KVKK saklama politikasıyla aynı olmalıdır.
 
 ## 4. İzleme ve olay yönetimi

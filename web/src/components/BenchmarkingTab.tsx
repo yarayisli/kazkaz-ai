@@ -1,5 +1,9 @@
 import React, { useEffect, useState } from 'react';
 import { FinancialData } from '../types';
+import type { FinansalDenetim, GelismisAjanGirdisi, KendiTrendi } from '../lib/api';
+import { gelismisAjanAnalizi } from '../lib/api';
+import { finansalMetrikler, paraBicimlendirici } from '../lib/metrikler';
+import { KendiTrendin } from './KendiTrendin';
 import {
   BarChart2,
   TrendingUp,
@@ -33,6 +37,11 @@ import {
 
 interface BenchmarkingTabProps {
   financialData: FinancialData;
+  /** Doğrulanmış metrikler; verilirse yerel hesap yerine bunlar kullanılır. */
+  audit?: FinansalDenetim | null;
+  /** Yüklenen mizan; çok dönemliyse kendi trendi hesaplanır. */
+  advancedData?: GelismisAjanGirdisi;
+  onNavigateTab?: (tabId: string) => void;
 }
 
 interface SectorMetrics {
@@ -77,7 +86,7 @@ const SECTOR_BENCHMARKS: Record<string, { name: string; avg: SectorMetrics; top1
   }
 };
 
-export const BenchmarkingTab: React.FC<BenchmarkingTabProps> = ({ financialData }) => {
+export const BenchmarkingTab: React.FC<BenchmarkingTabProps> = ({ financialData, audit, advancedData, onNavigateTab }) => {
   const [selectedSectorKey, setSelectedSectorKey] = useState<string>('Teknoloji & Yazılım');
 
   useEffect(() => {
@@ -91,17 +100,55 @@ export const BenchmarkingTab: React.FC<BenchmarkingTabProps> = ({ financialData 
 
   const sectorInfo = SECTOR_BENCHMARKS[selectedSectorKey] || SECTOR_BENCHMARKS['Teknoloji & Yazılım'];
 
-  // Company calculated KPIs
-  const companyGrossMargin = (financialData.grossProfit / (financialData.revenue || 1)) * 100;
-  const companyNetMargin = (financialData.netProfit / (financialData.revenue || 1)) * 100;
+  // Metrikler tek kaynaktan gelir (lib/metrikler.ts → api/financial_metrics.py).
+  // Ekran içinde aritmetik yapılmaz; aynı metriğin iki farklı sonuç
+  // vermesi böyle önlenir.
+  const metrikler = finansalMetrikler(financialData, audit);
+  const paraBicimle = paraBicimlendirici(financialData.currency);
+
+  // Şirketin kendi geçmişi — mizan çok dönemliyse dolar. Sektör
+  // ortalaması "normal miyim?" der; bu "ne değişti?" der ve karar üretir.
+  const [kendiTrendi, setKendiTrendi] = useState<KendiTrendi | null>(null);
+  const mizanSatirSayisi = advancedData?.mizan?.length ?? 0;
+
+  useEffect(() => {
+    if (mizanSatirSayisi === 0 || !advancedData) {
+      setKendiTrendi(null);
+      return undefined;
+    }
+    let aktif = true;
+    gelismisAjanAnalizi(financialData, advancedData)
+      .then((sonuc) => {
+        if (aktif) setKendiTrendi(sonuc.ajanlar?.finansal_tablo_mutabakat_ajani?.kendi_trendi ?? null);
+      })
+      .catch(() => { if (aktif) setKendiTrendi(null); });
+    return () => { aktif = false; };
+  }, [advancedData, financialData, mizanSatirSayisi]);
+
+  const companyGrossMargin = metrikler.brutKarMarji.deger ?? 0;
+  const companyNetMargin = metrikler.netKarMarji.deger ?? 0;
   const companyTotalDebt = financialData.shortTermDebt + financialData.longTermDebt;
   const fullBalanceAvailable = [financialData.currentAssets, financialData.totalAssets, financialData.totalLiabilities]
     .every((value) => value != null);
-  const companyDebtToEquity = fullBalanceAvailable && financialData.equity > 0 ? companyTotalDebt / financialData.equity : null;
-  const companyCurrentRatio = financialData.currentAssets != null && financialData.shortTermDebt > 0
-    ? financialData.currentAssets / financialData.shortTermDebt : null;
-  const companyDso = financialData.periodDays != null && financialData.periodDays > 0 && financialData.revenue > 0
-    ? Math.round(financialData.receivables / financialData.revenue * financialData.periodDays) : null;
+  const companyDebtToEquity = fullBalanceAvailable ? metrikler.borcOzkaynak.deger : null;
+  const companyCurrentRatio = metrikler.cariOran.deger;
+  const companyDso = metrikler.alacakDevirGunu.deger == null
+    ? null
+    : Math.round(metrikler.alacakDevirGunu.deger);
+
+  // DSO 10 gün kısalırsa serbest kalan tutar. Günlük ciro dönem gün
+  // sayısından gelir; 365 varsayılmaz.
+  const dsoKisaltmaEtkisi = metrikler.gunlukCiro.deger == null
+    ? null
+    : metrikler.gunlukCiro.deger * 10;
+
+  // Kârlılık yorumu hesaplanan sonuca bağlıdır; her durumda "güçlü" denmez.
+  const netMarjFarki = companyNetMargin - sectorInfo.avg.netProfitMargin;
+  const karlilikDurumu = companyNetMargin < 0
+    ? 'zarar'
+    : netMarjFarki >= 0
+      ? 'guclu'
+      : 'geride';
 
   // Recharts Data Structure
   const comparisonData = [
@@ -177,6 +224,13 @@ export const BenchmarkingTab: React.FC<BenchmarkingTabProps> = ({ financialData 
 
   return (
     <div className="space-y-6">
+      {/* Kendi geçmişiyle karşılaştırma — sektör kartlarından önce gelir. */}
+      <KendiTrendin
+        trend={kendiTrendi}
+        paraBirimi={financialData.currency}
+        onNavigateTab={onNavigateTab ?? (() => {})}
+      />
+
       {/* Page Header */}
       <div className="bg-white p-5 rounded-xl border border-slate-200 shadow-xs flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
         <div>
@@ -213,8 +267,10 @@ export const BenchmarkingTab: React.FC<BenchmarkingTabProps> = ({ financialData 
       <div className="flex items-start gap-3 rounded-xl border border-amber-300 bg-amber-50 px-4 py-3 text-sm text-amber-900">
         <HelpCircle className="mt-0.5 h-4 w-4 shrink-0 text-amber-700" />
         <p>
-          <strong>Referans veri notu:</strong> Bu eşikler doğrulanmış canlı bir sektör veri havuzu değildir.
-          Pilot karşılaştırma amacıyla kullanılır; yatırım veya kredi kararında bağımsız veri kaynağıyla doğrulanmalıdır.
+          <strong>Bu eşikler ürün içi başlangıç referansıdır.</strong> Bağımsız bir kaynaktan
+          gelmez; yayın tarihi, örneklem büyüklüğü ve şirket ölçeği bilgisi yoktur, bu yüzden
+          "sektör ortalaması" değildir. Asıl karşılaştırma yukarıdaki kendi trendinizdir —
+          geçmiş dönem yüklendikçe bu eşiklere ihtiyaç azalır.
         </p>
       </div>
 
@@ -243,9 +299,9 @@ export const BenchmarkingTab: React.FC<BenchmarkingTabProps> = ({ financialData 
               ) : normalizedScore >= 75 ? (
                 <span className="text-emerald-400 font-bold"> Pilot referans eşiklerinin üzerinde görünüyorsunuz.</span>
               ) : normalizedScore >= 55 ? (
-                <span className="text-blue-400 font-bold"> Sektör Ortalamasının Üzerinde Performans.</span>
+                <span className="text-blue-400 font-bold"> Ürün içi referans eşiğinin üzerinde.</span>
               ) : (
-                <span className="text-amber-400 font-bold"> Sektör Ortalamasının Altında - İyileştirme Fırsatı Var.</span>
+                <span className="text-amber-400 font-bold"> Ürün içi referans eşiğinin altında.</span>
               )}
             </p>
           </div>
@@ -399,13 +455,37 @@ export const BenchmarkingTab: React.FC<BenchmarkingTabProps> = ({ financialData 
 
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           {/* Item 1 */}
-          <div className="p-4 bg-emerald-50/60 border border-emerald-200 rounded-xl space-y-2">
-            <div className="flex items-center gap-2 text-emerald-800 font-bold text-xs">
-              <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
-              <span>Güçlü Alan: Net Kâr Marjı</span>
+          <div className={`p-4 border rounded-xl space-y-2 ${
+            karlilikDurumu === 'guclu'
+              ? 'bg-emerald-50/60 border-emerald-200'
+              : karlilikDurumu === 'geride'
+                ? 'bg-amber-50/60 border-amber-200'
+                : 'bg-red-50/60 border-red-200'
+          }`}>
+            <div className={`flex items-center gap-2 font-bold text-xs ${
+              karlilikDurumu === 'guclu'
+                ? 'text-emerald-800'
+                : karlilikDurumu === 'geride' ? 'text-amber-900' : 'text-red-900'
+            }`}>
+              {karlilikDurumu === 'guclu'
+                ? <CheckCircle2 className="w-4 h-4 text-emerald-600 shrink-0" />
+                : <AlertTriangle className={`w-4 h-4 shrink-0 ${karlilikDurumu === 'geride' ? 'text-amber-600' : 'text-red-600'}`} />}
+              <span>
+                {karlilikDurumu === 'guclu'
+                  ? 'Güçlü Alan: Net Kâr Marjı'
+                  : karlilikDurumu === 'geride'
+                    ? 'Gelişime Açık: Net Kâr Marjı'
+                    : 'Kritik: Dönem Zararı'}
+              </span>
             </div>
             <p className="text-xs text-slate-700">
-              Şirketinizin Net Kâr Marjı (<strong>%{companyNetMargin.toFixed(1)}</strong>), seçili referans ortalamasıyla (<strong>%{sectorInfo.avg.netProfitMargin}</strong>) karşılaştırıldığında güçlü görünmektedir. Gider kalemlerini dönemsel etkilerle birlikte doğrulayın.
+              {karlilikDurumu === 'zarar' ? (
+                <>Şirketiniz incelenen dönemde <strong>%{Math.abs(companyNetMargin).toFixed(1)}</strong> oranında zarar etti. Referans değerle karşılaştırma yapılmadan önce negatif katkı marjlı ürün ve gider kalemlerini ayırın.</>
+              ) : karlilikDurumu === 'geride' ? (
+                <>Net Kâr Marjınız (<strong>%{companyNetMargin.toFixed(1)}</strong>), seçili referans değerin (<strong>%{sectorInfo.avg.netProfitMargin}</strong>) <strong>{Math.abs(netMarjFarki).toFixed(1)} puan</strong> altında. Fiyatlama ve gider kalemlerini dönemsel etkilerle birlikte gözden geçirin.</>
+              ) : (
+                <>Net Kâr Marjınız (<strong>%{companyNetMargin.toFixed(1)}</strong>), seçili referans değerin (<strong>%{sectorInfo.avg.netProfitMargin}</strong>) <strong>{netMarjFarki.toFixed(1)} puan</strong> üzerinde. Gider kalemlerini dönemsel etkilerle birlikte doğrulayın.</>
+              )}
             </p>
           </div>
 
@@ -418,7 +498,7 @@ export const BenchmarkingTab: React.FC<BenchmarkingTabProps> = ({ financialData 
             <p className="text-xs text-slate-700">
               {companyDso == null
                 ? 'Bilanço ve ticari alacak verisi olmadan tahsilat karşılaştırması yapılmaz.'
-                : <>Alacak tahsilat süreniz <strong>{companyDso} gün</strong>. Referans değer <strong>{sectorInfo.avg.dsoDays} gün</strong>. DSO süresi 10 gün kısalırsa yaklaşık <strong>₺{((financialData.revenue / 365) * 10).toLocaleString('tr-TR', { maximumFractionDigits: 0 })}</strong> likidite etkisi oluşabilir.</>}
+                : <>Alacak tahsilat süreniz <strong>{companyDso} gün</strong>. Referans değer <strong>{sectorInfo.avg.dsoDays} gün</strong>.{dsoKisaltmaEtkisi != null && <> DSO süresi 10 gün kısalırsa yaklaşık <strong>{paraBicimle(dsoKisaltmaEtkisi)}</strong> likidite etkisi oluşabilir ({financialData.periodDays} günlük dönem üzerinden).</>}</>}
             </p>
           </div>
 
@@ -431,7 +511,7 @@ export const BenchmarkingTab: React.FC<BenchmarkingTabProps> = ({ financialData 
             <p className="text-xs text-slate-700">
               {companyDebtToEquity == null
                 ? 'Borç ve özkaynak kalemleri doğrulanmadan sermaye yapısı karşılaştırması yapılmaz.'
-                : <>Borç / Özkaynak oranınız <strong>{companyDebtToEquity.toFixed(2)}x</strong>. Kısa vadeli borçları uzun vadeye yaymanın oranı güçlü performans eşiğine (<strong>{sectorInfo.top10.debtToEquity}x</strong>) yaklaştırıp yaklaştırmadığını değerlendirin.</>}
+                : <>Borç / Özkaynak oranınız <strong>{companyDebtToEquity.toFixed(2)}x</strong>, referans eşik <strong>{sectorInfo.top10.debtToEquity}x</strong>. Bu oranı yalnızca borcu azaltmak veya özkaynağı güçlendirmek değiştirir; kısa vadeli borcu uzun vadeye yaymak toplam borcu değiştirmediği için oranı da değiştirmez. Vade uzatma likiditeyi ve ödeme takvimini rahatlatır — etkisini cari oran{companyCurrentRatio != null && <> (<strong>{companyCurrentRatio.toFixed(2)}x</strong>)</>} ve borç servis kapasitesi üzerinden değerlendirin.</>}
             </p>
           </div>
         </div>

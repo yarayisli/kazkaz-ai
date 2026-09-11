@@ -8,7 +8,7 @@ from __future__ import annotations
 
 import os
 import re
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from typing import Any, Dict, Iterable, List, Optional
 
 from gemini_engine import GeminiEngine
@@ -41,6 +41,8 @@ class AIUretimSonucu:
     dogrulama_durumu: str
     kontrol_edilen_sayi: int
     reddedilen_sayilar: List[str]
+    #: Kabul edilen her sayı ve geldiği kaynak: [{"ham": ..., "kaynak": ...}]
+    kaynak_eslesmeleri: List[Dict[str, str]] = field(default_factory=list)
 
 
 def _dolu_anahtar(adi: str) -> bool:
@@ -227,6 +229,9 @@ def ai_yaniti_uret(
                 dogrulama_durumu="dogrulandi",
                 kontrol_edilen_sayi=son_dogrulama.kontrol_edilen_sayi,
                 reddedilen_sayilar=[],
+                kaynak_eslesmeleri=[
+                    {"ham": e.ham, "kaynak": e.kaynak} for e in son_dogrulama.kaynak_eslesmeleri
+                ],
             )
         except Exception as exc:  # sağlayıcı hatası kullanıcıya ham olarak gösterilmez
             hatalar.append(f"{ad}:{type(exc).__name__}")
@@ -240,6 +245,9 @@ def ai_yaniti_uret(
         dogrulama_durumu="kuralli_yedek",
         kontrol_edilen_sayi=son_dogrulama.kontrol_edilen_sayi if son_dogrulama else 0,
         reddedilen_sayilar=son_dogrulama.reddedilen_sayilar if son_dogrulama else [],
+        kaynak_eslesmeleri=[
+            {"ham": e.ham, "kaynak": e.kaynak} for e in son_dogrulama.kaynak_eslesmeleri
+        ] if son_dogrulama else [],
     )
 
 

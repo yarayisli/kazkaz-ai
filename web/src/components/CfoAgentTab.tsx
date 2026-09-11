@@ -3,6 +3,7 @@ import { ApprovalDecision, CashFlowItem, ChatMessage, DebtItem, FinancialData } 
 import { Bot, Send, Sparkles, Lightbulb, RefreshCw, User, CheckCircle2, ShieldAlert, Workflow, FileUp, Scale } from 'lucide-react';
 import { cfoAjanAnalizi, CfoAjanAnalizi, cfoSohbet, CfoSohbetYaniti, gelismisAjanAnalizi, GelismisAjanAnalizi, GelismisAjanGirdisi } from '../lib/api';
 import { useAuth } from '../context/AuthContext';
+import { SourceLockPanel } from './SourceLockPanel';
 
 interface CfoAgentTabProps {
   financialData: FinancialData;
@@ -269,6 +270,8 @@ export const CfoAgentTab: React.FC<CfoAgentTabProps> = ({ financialData, cashFlo
       <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
       {/* Sidebar - Context & Quick Insights */}
       <div className="lg:col-span-1 space-y-4">
+        <SourceLockPanel dogrulama={lastDecision?.ai_dogrulama} />
+
         <div className="bg-white p-4 rounded-xl border border-slate-200 shadow-xs space-y-3">
           <div className="flex items-center gap-2 text-slate-900 font-bold text-sm border-b border-slate-100 pb-2">
             <Bot className="w-4 h-4 text-orange-600" />

@@ -40,6 +40,13 @@ def zaman_serisi_analizi(istek: FinansalAnalizIstegi) -> Dict[str, Any]:
             "Gider": [satir.gider for satir in istek.satirlar],
         }
     )
+    # Müşteri sütunu FinancialEngine'de sağlık skorunun 5. boyutunu
+    # (konsantrasyon riski) açar. En az bir satırda müşteri yoksa sütun
+    # hiç eklenmez ve skor 4 boyutta kalır.
+    musteriler = [satir.musteri for satir in istek.satirlar]
+    if any(ad for ad in musteriler):
+        veri["Müşteri"] = musteriler
+
     finans = FinancialEngine.from_dataframe(veri)
     nakit = CashFlowEngine.from_financial_engine(
         finans,
@@ -110,6 +117,36 @@ def finansal_denetim(veri: FinansalGorunum) -> Dict[str, Any]:
     return {
         "sirket_adi": veri.sirket_adi,
         "donem": veri.donem,
+        # Kullanıcının bildirdiği ham değerler. AI bunlardan söz edebilmelidir;
+        # guardrail izin listesini buradan da besler ve kaynağını adıyla gösterir.
+        "girdi_degerleri": {
+            ad: deger
+            for ad, deger in (
+                ("ciro", veri.ciro),
+                ("satis_maliyeti", veri.satis_maliyeti),
+                ("faaliyet_giderleri", veri.faaliyet_giderleri),
+                ("net_kar", veri.net_kar),
+                ("nakit", veri.nakit),
+                ("alacaklar", veri.alacaklar),
+                ("borclar", veri.borclar),
+                ("stoklar", veri.stoklar),
+                ("kisa_vadeli_borc", veri.kisa_vadeli_borc),
+                ("uzun_vadeli_borc", veri.uzun_vadeli_borc),
+                ("ozkaynak", veri.ozkaynak),
+                ("faiz_gideri", veri.faiz_gideri),
+                ("vergi_gideri", veri.vergi_gideri),
+                ("amortisman", veri.amortisman),
+                ("capex", veri.capex),
+                ("donen_varliklar", veri.donen_varliklar),
+                ("toplam_varliklar", veri.toplam_varliklar),
+                ("toplam_yukumlulukler", veri.toplam_yukumlulukler),
+                ("operasyonel_nakit_akisi", veri.operasyonel_nakit_akisi),
+                ("donem_basi_nakit", veri.donem_basi_nakit),
+                ("yatirim_nakit_akisi", veri.yatirim_nakit_akisi),
+                ("finansman_nakit_akisi", veri.finansman_nakit_akisi),
+            )
+            if isinstance(deger, (int, float))
+        },
         "metrikler": {
             "brut_kar": round(brut_kar, 2),
             "faaliyet_kari_yaklasik": round(faaliyet_kari_yaklasik, 2),
@@ -124,6 +161,9 @@ def finansal_denetim(veri: FinansalGorunum) -> Dict[str, Any]:
             "roic": kurumsal_metrikler["roic"]["deger"],
             "serbest_nakit_akisi": kurumsal_metrikler["serbest_nakit_akisi"]["deger"],
             "nakit_donusum_dongusu": kurumsal_metrikler["nakit_donusum_dongusu"]["deger"],
+            "alacak_devir_gunu": kurumsal_metrikler["alacak_devir_gunu"]["deger"],
+            "stok_devir_gunu": kurumsal_metrikler["stok_devir_gunu"]["deger"],
+            "borc_devir_gunu": kurumsal_metrikler["borc_devir_gunu"]["deger"],
             "musteri_hhi": hhi["deger"],
         },
         "metrik_kaydi": kurumsal_metrikler,
@@ -238,6 +278,7 @@ def cfo_yaniti(
             "durum": uretim.dogrulama_durumu,
             "kontrol_edilen_sayi": uretim.kontrol_edilen_sayi,
             "reddedilen_sayilar": uretim.reddedilen_sayilar,
+            "kaynak_eslesmeleri": uretim.kaynak_eslesmeleri,
         },
         "veri_kalitesi": denetim["veri_kalitesi"],
         "ajanlar": ai_durumu()["aktif_ajanlar"],

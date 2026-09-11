@@ -1,4 +1,4 @@
-import React, { lazy, Suspense, useEffect, useState } from 'react';
+import React, { lazy, Suspense, useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { Navigation } from './components/Navigation';
 import { LandingPage } from './components/LandingPage';
 import { AuthProvider } from './context/AuthContext';
@@ -11,13 +11,14 @@ import {
   initialBudget
 } from './data/mockData';
 import { ApprovalDecision, BudgetItem, CashFlowItem, CustomerRisk, DebtItem, FinancialData, TransactionAnalytics } from './types';
-import { FinansalDenetim, GelismisAjanGirdisi } from './lib/api';
+import { CalismaAlaniCakismaHatasi, FinansalDenetim, GelismisAjanGirdisi, SaglikSkoru, zamanSerisiAnalizi } from './lib/api';
 import { workspaceDataFromAdvanced } from './lib/workspaceData';
 import { deleteWorkspace, exportWorkspace, loadWorkspace, saveWorkspace, WorkspaceSnapshot } from './lib/workspacePersistence';
 import { useAuth } from './context/AuthContext';
 import { CompanySetup } from './components/CompanySetup';
 import { ErrorBoundary } from './components/ErrorBoundary';
 import { FeedbackWidget } from './components/FeedbackWidget';
+import { ScreenTabs } from './components/ScreenTabs';
 
 const OverviewTab = lazy(() => import('./components/OverviewTab').then((module) => ({ default: module.OverviewTab })));
 const CfoAgentTab = lazy(() => import('./components/CfoAgentTab').then((module) => ({ default: module.CfoAgentTab })));
@@ -49,8 +50,17 @@ const WorkspaceFallback = () => (
   </div>
 );
 
-function WorkspaceApp() {
+export function WorkspaceApp() {
   const { currentUser, userProfile, isGuest } = useAuth();
+  const yasiyor = useRef(true);
+  const kayitKilidi = useRef(false);
+  const cakismaKilidi = useRef(false);
+  const yuklendi = useRef(false);
+  const yuklemeSirasi = useRef(0);
+  useLayoutEffect(() => {
+    yasiyor.current = true;
+    return () => { yasiyor.current = false; };
+  }, []);
   const [activeTab, setActiveTab] = useState<string>('landing');
   const [financialData, setFinancialData] = useState<FinancialData>(initialFinancialData);
   const [cashFlow, setCashFlow] = useState<CashFlowItem[]>(initialCashFlow);
@@ -64,7 +74,15 @@ function WorkspaceApp() {
   const [approvalDecisions, setApprovalDecisions] = useState<ApprovalDecision[]>([]);
   const [persistenceStatus, setPersistenceStatus] = useState<'idle' | 'loading' | 'saved' | 'error'>('idle');
   const [persistenceMessage, setPersistenceMessage] = useState<string | null>(null);
+  // Optimistik kilit sürümü: yüklerken alınır, kaydederken geri gönderilir.
+  // Başka bir oturum araya girmişse sunucu 409 döner ve bu kayıt reddedilir.
+  const [workspaceRevizyon, setWorkspaceRevizyon] = useState(0);
+  // Kayıt bir başka oturumun güncellemesiyle çakıştı; banner "yenile" sunar.
+  const [workspaceCakismasi, setWorkspaceCakismasi] = useState(false);
   const [recentTabIds, setRecentTabIds] = useState<string[]>(defaultRecentTabIds);
+  // Sağlık skoru zaman serisi ister; tek dönemlik görünümden hesaplanamaz.
+  // Bu yüzden yalnızca Excel içe aktarımından sonra doldurulur.
+  const [healthScore, setHealthScore] = useState<SaglikSkoru | null>(null);
 
   useEffect(() => {
     try {
@@ -94,26 +112,71 @@ function WorkspaceApp() {
     setActiveTab(tabId);
   };
 
+  // Yüklenen bir snapshot'ı tüm finans state'ine uygular. Hem kimlik
+  // değişimindeki yükleme hem de çakışma sonrası yenileme aynı yolu kullanır.
+  const uygulaSnapshot = (snapshot: WorkspaceSnapshot) => {
+    setFinancialData(snapshot.financialData);
+    setCashFlow(snapshot.cashFlow);
+    setDebts(snapshot.debts);
+    setCustomers(snapshot.customers);
+    setBudget(snapshot.budget);
+    setAdvancedData(snapshot.advancedData);
+    setTransactionAnalytics(snapshot.transactionAnalytics);
+    setFinancialAudit(snapshot.financialAudit);
+    setIsSampleData(snapshot.isSampleData);
+    setApprovalDecisions(snapshot.approvalDecisions || []);
+  };
+
+  // Oturum kimliği: kullanıcı + şirket. Değeri değiştiğinde (giriş, çıkış,
+  // şirket geçişi, misafir moduna geçiş) çalışma alanı state'i sıfırlanır.
+  // Aksi halde A şirketinin gizli rakamları çıkıştan veya B'ye geçişten
+  // sonra bellekte kalır, ekranda görünür ve hatta B'ye kaydedilebilir.
+  // Nesne referansı değil kararlı bir dizeye bağlanır: token yenilenince
+  // currentUser referansı değişse de kimlik aynıysa gereksiz sıfırlama olmaz.
+  const workspaceIdentity = isGuest
+    ? 'misafir'
+    : currentUser
+      ? `${currentUser.uid}:${userProfile?.companyId ?? 'sirketsiz'}`
+      : 'anonim';
+
   useEffect(() => {
+    // 1) Kimlik her değiştiğinde çalışma alanını nötr örnek tabana sıfırla.
+    //    Önceki şirketin verisi hiçbir senaryoda taşınmaz.
+    setFinancialData(initialFinancialData);
+    setCashFlow(initialCashFlow);
+    setDebts(initialDebts);
+    setCustomers(initialCustomers);
+    setBudget(initialBudget);
+    setAdvancedData(undefined);
+    setTransactionAnalytics(undefined);
+    setFinancialAudit(null);
+    setApprovalDecisions([]);
+    setHealthScore(null);
+    setIsSampleData(true);
+    setWorkspaceRevizyon(0);
+    setPersistenceStatus('idle');
+    setPersistenceMessage(null);
+
     const companyId = userProfile?.companyId;
-    if (!currentUser || !companyId || isGuest) return;
+    // 2) Kimlik doğrulanmış bir şirket yoksa yükleme yapma. Oturumsuz
+    //    (misafir de değil) kullanıcıyı finans ekranından çıkarıp karşılama
+    //    sayfasına al; aksi halde çıkıştan sonra örnek panel açık kalır.
+    if (!currentUser || !companyId || isGuest) {
+      if (!currentUser && !isGuest) setActiveTab('landing');
+      return;
+    }
+
     let active = true;
+    const sira = ++yuklemeSirasi.current;
     setPersistenceStatus('loading');
     setPersistenceMessage('Kayıtlı şirket çalışma alanı yükleniyor…');
     loadWorkspace(companyId)
-      .then((snapshot) => {
-        if (!active) return;
+      .then(({ snapshot, revizyon }) => {
+        if (!active || !yasiyor.current || sira !== yuklemeSirasi.current) return;
+        setWorkspaceRevizyon(revizyon);
+        yuklendi.current = true;
         if (snapshot) {
-          setFinancialData(snapshot.financialData);
-          setCashFlow(snapshot.cashFlow);
-          setDebts(snapshot.debts);
-          setCustomers(snapshot.customers);
-          setBudget(snapshot.budget);
-          setAdvancedData(snapshot.advancedData);
-          setTransactionAnalytics(snapshot.transactionAnalytics);
-          setFinancialAudit(snapshot.financialAudit);
-          setIsSampleData(snapshot.isSampleData);
-          setApprovalDecisions(snapshot.approvalDecisions || []);
+          uygulaSnapshot(snapshot);
           setPersistenceMessage('Şirket çalışma alanı güvenli kayıttan yüklendi.');
         } else {
           setPersistenceMessage('Bu şirket için henüz kayıtlı finans çalışma alanı yok.');
@@ -121,24 +184,114 @@ function WorkspaceApp() {
         setPersistenceStatus('idle');
       })
       .catch((error) => {
-        if (!active) return;
+        if (!active || !yasiyor.current || sira !== yuklemeSirasi.current) return;
         setPersistenceStatus('error');
         setPersistenceMessage(error instanceof Error ? error.message : 'Çalışma alanı yüklenemedi.');
       });
     return () => { active = false; };
-  }, [currentUser, isGuest, userProfile?.companyId]);
+    // workspaceIdentity, currentUser/isGuest/companyId'nin türevidir; tek
+    // bağımlılık olarak kimlik değişimini eksiksiz temsil eder.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [workspaceIdentity]);
 
   const persistWorkspace = async (snapshot: WorkspaceSnapshot) => {
-    if (!currentUser || !userProfile?.companyId || isGuest) return;
+    if (!yasiyor.current || !currentUser || !userProfile?.companyId || isGuest) return;
+    if (cakismaKilidi.current || kayitKilidi.current || !yuklendi.current) return;
+    kayitKilidi.current = true;
     setPersistenceStatus('loading');
     setPersistenceMessage('Şirket çalışma alanı kaydediliyor…');
+    setWorkspaceCakismasi(false);
     try {
-      await saveWorkspace(userProfile.companyId, currentUser.uid, snapshot);
+      const sonuc = await saveWorkspace(userProfile.companyId, currentUser.uid, snapshot, workspaceRevizyon);
+      if (!yasiyor.current) return;
+      setWorkspaceRevizyon(sonuc.revizyon);
       setPersistenceStatus('saved');
       setPersistenceMessage('Değişiklikler şirket çalışma alanına kaydedildi.');
     } catch (error) {
+      if (!yasiyor.current) return;
+      // Çakışma: başka bir oturum araya girdi. Kullanıcının düzenlemeleri
+      // bellekte durur (sessizce ezilmez); banner "en son sürümü yükle"
+      // sunar ki kullanıcı değişikliklerini görüp yeniden uygulasın.
+      if (error instanceof CalismaAlaniCakismaHatasi) {
+        cakismaKilidi.current = true;
+        setWorkspaceCakismasi(true);
+        setPersistenceStatus('error');
+        setPersistenceMessage(
+          'Bu çalışma alanı siz düzenlerken başka bir oturumda güncellendi. Yaptığınız '
+          + 'değişiklikler kaydedilmedi. En son sürümü yükleyip değişikliklerinizi yeniden uygulayın.',
+        );
+        return;
+      }
       setPersistenceStatus('error');
       setPersistenceMessage(error instanceof Error ? error.message : 'Çalışma alanı kaydedilemedi.');
+    } finally {
+      kayitKilidi.current = false;
+    }
+  };
+
+  const calismaAlaniniYenile = async () => {
+    const companyId = userProfile?.companyId;
+    if (!yasiyor.current || !companyId || isGuest || kayitKilidi.current) return;
+    const sira = ++yuklemeSirasi.current;
+    yuklendi.current = false;
+    setPersistenceStatus('loading');
+    setPersistenceMessage('En son sürüm yükleniyor…');
+    try {
+      const { snapshot, revizyon } = await loadWorkspace(companyId);
+      if (!yasiyor.current || sira !== yuklemeSirasi.current) return;
+      setWorkspaceRevizyon(revizyon);
+      uygulaSnapshot(snapshot || {
+        financialData: initialFinancialData, cashFlow: [], debts: [], customers: [],
+        budget: [], financialAudit: null, isSampleData: true,
+      });
+      setHealthScore(null);
+      cakismaKilidi.current = false;
+      yuklendi.current = true;
+      setWorkspaceCakismasi(false);
+      setPersistenceStatus('idle');
+      setPersistenceMessage('En son sürüm yüklendi. Değişikliklerinizi kontrol edip yeniden kaydedebilirsiniz.');
+    } catch (error) {
+      if (!yasiyor.current || sira !== yuklemeSirasi.current) return;
+      setPersistenceStatus('error');
+      setPersistenceMessage(error instanceof Error ? error.message : 'Çalışma alanı yüklenemedi.');
+    }
+  };
+
+  /**
+   * Sağlık skoru zaman serisinden hesaplanır (financial_engine.HealthScore).
+   * Satırlarda müşteri adı varsa skor 5 boyuta çıkar; yoksa 4 boyutta kalır.
+   * Skor gösterilemezse ekran skorsuz çalışmaya devam eder — uydurulmaz.
+   */
+  const hesaplaSaglikSkoru = async (
+    zamanSerisi: Array<Record<string, string | number>> | undefined,
+    finansal: FinancialData,
+  ) => {
+    const satirlar = (zamanSerisi || [])
+      .filter((satir) => satir.tarih && satir.kategori)
+      .map((satir) => ({
+        tarih: String(satir.tarih),
+        kategori: String(satir.kategori),
+        gelir: Number(satir.gelir) || 0,
+        gider: Number(satir.gider) || 0,
+        musteri: satir.musteri ? String(satir.musteri) : undefined,
+      }));
+
+    if (satirlar.length === 0) {
+      setHealthScore(null);
+      return;
+    }
+
+    try {
+      const sonuc = await zamanSerisiAnalizi(satirlar, {
+        baslangic_nakiti: finansal.cashInHand,
+        kisa_vadeli_borc: finansal.shortTermDebt,
+        stoklar: finansal.inventory,
+      });
+      if (!yasiyor.current) return;
+      setHealthScore(sonuc.finansal.saglik_skoru ?? null);
+    } catch {
+      // Skor hesaplanamazsa ekran skorsuz devam eder; yaklaşık değer üretilmez.
+      setHealthScore(null);
     }
   };
 
@@ -242,7 +395,9 @@ function WorkspaceApp() {
       try {
         const response = await fetch('/ornek-gelismis-ajan-verisi.json');
         if (!response.ok) throw new Error('Örnek ajan verisi alınamadı.');
-        applyAdvancedData(await response.json() as GelismisAjanGirdisi);
+        const ornek = await response.json() as GelismisAjanGirdisi;
+        if (!yasiyor.current) return;
+        applyAdvancedData(ornek);
         setIsSampleData(true);
       } catch {
         setPersistenceStatus('error');
@@ -269,7 +424,7 @@ function WorkspaceApp() {
             recentTabIds={recentTabIds}
           />
 
-          {activeTab === 'landing' ? (
+          {activeTab === 'landing' || (!isGuest && !currentUser) ? (
             <LandingPage
               onNavigateTab={navigateToTab}
               onOpenAuth={() => navigateToTab('data-entry')}
@@ -291,7 +446,18 @@ function WorkspaceApp() {
                       ? 'border-emerald-200 bg-emerald-50 text-emerald-700'
                       : 'border-sky-200 bg-sky-50 text-sky-700'
                 }`}>
-                  {persistenceMessage}
+                  <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+                    <span>{persistenceMessage}</span>
+                    {workspaceCakismasi && (
+                      <button
+                        type="button"
+                        onClick={() => void calismaAlaniniYenile()}
+                        className="shrink-0 self-start rounded-lg border border-red-300 bg-white px-3 py-1.5 text-xs font-bold text-red-700 hover:bg-red-50 sm:self-auto"
+                      >
+                        En son sürümü yükle
+                      </button>
+                    )}
+                  </div>
                 </div>
               )}
               {isSampleData && !['data-entry', 'platform-admin'].includes(activeTab) && (
@@ -309,6 +475,7 @@ function WorkspaceApp() {
                   </button>
                 </div>
               )}
+              <ScreenTabs activeTab={activeTab} onNavigateTab={navigateToTab} />
               <div key={activeTab} className="panel-tab-transition">
               <Suspense fallback={<WorkspaceFallback />}>
                 {activeTab === 'overview' && (
@@ -317,6 +484,7 @@ function WorkspaceApp() {
                     cashFlow={cashFlow}
                     customers={customers}
                     audit={financialAudit}
+                    healthScore={healthScore}
                     isSampleData={isSampleData}
                     onNavigateTab={navigateToTab}
                   />
@@ -326,6 +494,7 @@ function WorkspaceApp() {
                     data={financialData}
                     cashFlow={cashFlow}
                     section={activeTab === 'income-statement' ? 'income' : activeTab === 'balance-sheet' ? 'balance' : 'cash'}
+                    advancedData={advancedData}
                     onNavigateTab={navigateToTab}
                   />
                 )}
@@ -349,7 +518,12 @@ function WorkspaceApp() {
                   />
                 )}
                 {activeTab === 'benchmarking' && (
-                  <BenchmarkingTab financialData={financialData} />
+                  <BenchmarkingTab
+                    financialData={financialData}
+                    audit={financialAudit}
+                    advancedData={advancedData}
+                    onNavigateTab={navigateToTab}
+                  />
                 )}
                 {activeTab === 'cashflow' && (
                   <CashflowDebtTab
@@ -378,11 +552,12 @@ function WorkspaceApp() {
                 {activeTab === 'data-entry' && (
                   <DataEntryTab
                     initialData={financialData}
-                    onImport={async (imported, advanced, analytics, audit) => {
+                    onImport={async (imported, advanced, analytics, audit, zamanSerisi) => {
                       const collections = applyAdvancedData(advanced);
                       setFinancialData(imported);
                       setFinancialAudit(audit);
                       setTransactionAnalytics(analytics);
+                      await hesaplaSaglikSkoru(zamanSerisi, imported);
                       await persistWorkspace({
                         financialData: imported,
                         cashFlow: collections.cashFlow || [],
@@ -438,7 +613,27 @@ function WorkspaceApp() {
                     }}
                     onDeleteWorkspace={async () => {
                       if (!userProfile?.companyId) throw new Error('Şirket çalışma alanı bulunamadı.');
-                      await deleteWorkspace(userProfile.companyId);
+                      if (kayitKilidi.current || !yuklendi.current) {
+                        throw new Error('Silmeden önce çalışma alanının yüklenmesini veya kaydın tamamlanmasını bekleyin.');
+                      }
+                      let silinen: { revizyon: number };
+                      try {
+                        silinen = await deleteWorkspace(userProfile.companyId, workspaceRevizyon);
+                      } catch (error) {
+                        if (error instanceof CalismaAlaniCakismaHatasi) {
+                          cakismaKilidi.current = true;
+                          setWorkspaceCakismasi(true);
+                          setPersistenceStatus('error');
+                          setPersistenceMessage(
+                            'Çalışma alanı başka bir oturumda değiştiği için silinmedi. Önce en son sürümü yükleyin.',
+                          );
+                        }
+                        throw error;
+                      }
+                      if (!yasiyor.current) return;
+                      setWorkspaceRevizyon(silinen.revizyon);
+                      cakismaKilidi.current = false;
+                      setWorkspaceCakismasi(false);
                       setFinancialData(initialFinancialData);
                       setCashFlow([]);
                       setDebts([]);
@@ -485,12 +680,19 @@ function WorkspaceApp() {
   );
 }
 
+export function WorkspaceOturumu() {
+  const { currentUser, userProfile, isGuest } = useAuth();
+  const kimlik = isGuest ? 'misafir' : `${currentUser?.uid || 'anonim'}:${userProfile?.companyId || ''}`;
+  // Kimlik değişimi bütün alt bileşenleri de kaldırır: eski yanıt yeni state'e erişemez.
+  return <WorkspaceApp key={kimlik} />;
+}
+
 export function App() {
   return (
     <ErrorBoundary>
       <AuthProvider>
         <AlertProvider>
-          <WorkspaceApp />
+          <WorkspaceOturumu />
         </AlertProvider>
       </AuthProvider>
     </ErrorBoundary>

@@ -1,6 +1,7 @@
 """Canlı ortamın gizli değerleri açmadan hazır olup olmadığını denetler."""
 
 import os
+from datetime import datetime, timezone
 from pathlib import Path
 
 
@@ -22,6 +23,29 @@ def _firebase_admin_kimligi_var() -> bool:
     return bool(adc_yolu) and Path(adc_yolu).is_file()
 
 
+def _yakin_iso_tarih(env_adi: str, azami_gun: int = 35) -> bool:
+    raw = os.getenv(env_adi, "").strip()
+    if not raw:
+        return False
+    try:
+        parsed = datetime.fromisoformat(raw.replace("Z", "+00:00"))
+        if parsed.tzinfo is None:
+            return False
+        age = datetime.now(timezone.utc) - parsed.astimezone(timezone.utc)
+        return -86400 <= age.total_seconds() <= azami_gun * 86400
+    except ValueError:
+        return False
+
+
+def _olculen_hedefte(actual_name: str, target_name: str) -> bool:
+    try:
+        actual = float(os.getenv(actual_name, ""))
+        target = float(os.getenv(target_name, ""))
+        return actual >= 0 and target > 0 and actual <= target
+    except ValueError:
+        return False
+
+
 def canli_hazirlik_durumu() -> dict:
     from api.subscription_service import odeme_hazirlik_durumu
 
@@ -40,6 +64,8 @@ def canli_hazirlik_durumu() -> dict:
         "tenant_izolasyon_testi": _evet("TENANT_ISOLATION_TEST_PASSED"),
         "veri_saklama_politikasi": _saklama_suresi_gecerli(),
         "rapor_saklama_politikasi": _saklama_suresi_gecerli("REPORT_RETENTION_DAYS"),
+        "rapor_arsiv_deposu": bool(os.getenv("FIREBASE_STORAGE_BUCKET", "").strip()),
+        "rapor_arsiv_yasam_dongusu": _evet("REPORT_STORAGE_LIFECYCLE_CONFIGURED"),
         "finans_metodoloji_onayi": _evet("FINANCIAL_METHODOLOGY_APPROVED"),
         "kvkk_hukuk_onayi": _evet("KVKK_REVIEW_APPROVED"),
     }
@@ -47,11 +73,15 @@ def canli_hazirlik_durumu() -> dict:
     operasyon = {
         "hata_izleme": bool(os.getenv("SENTRY_DSN", "").strip()),
         "yedekleme_hedefi": bool(os.getenv("FIRESTORE_BACKUP_BUCKET", "").strip()),
+        "rpo_hedefi": _yakin_iso_tarih("BACKUP_SCHEDULE_VERIFIED_AT") and _olculen_hedefte(
+            "BACKUP_MAX_OBSERVED_INTERVAL_HOURS", "BACKUP_RPO_TARGET_HOURS"
+        ),
         "odeme_saglayicisi": odeme_hazirlik_durumu()["durum"] == "hazir",
         "google_sheets": bool(os.getenv("GOOGLE_SHEETS_SERVICE_ACCOUNT_JSON", "").strip()),
         "ai_saglayicisi": any(ai_anahtarlari),
         "ai_yedek_saglayicisi": sum(bool(anahtar) for anahtar in ai_anahtarlari) >= 2,
-        "geri_yukleme_tatbikati": bool(os.getenv("BACKUP_RESTORE_TESTED_AT", "").strip()),
+        "geri_yukleme_tatbikati": _yakin_iso_tarih("BACKUP_RESTORE_TESTED_AT"),
+        "rto_hedefi": _olculen_hedefte("BACKUP_RESTORE_RTO_SECONDS", "BACKUP_RTO_TARGET_SECONDS"),
     }
     eksikler = [ad for ad, tamam in kontroller.items() if not tamam]
     operasyon_eksikleri = [ad for ad, tamam in operasyon.items() if not tamam]

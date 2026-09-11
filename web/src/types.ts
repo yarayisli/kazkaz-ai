@@ -89,6 +89,7 @@ export interface TransactionAnalytics {
   tahmin: {
     durum: 'hazir' | 'veri_bekliyor'; yontem?: string; gecmis_hata_mape?: number | null;
     veri_ayi?: number; guven?: 'dusuk' | 'orta'; uyari?: string; gereken?: string;
+    band_turu?: 'istatistiksel' | 'senaryo'; band_kalibrasyonu?: string;
     noktalar: Array<{ donem: string; tahmin: number; alt: number; ust: number }>;
   };
   metodoloji: Record<string, string>;

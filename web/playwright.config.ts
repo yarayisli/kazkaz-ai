@@ -28,5 +28,16 @@ export default defineConfig({
     url: 'http://127.0.0.1:4174',
     reuseExistingServer: !process.env.CI,
     timeout: 120_000,
+    env: {
+      ...process.env,
+      // Tanıtım sayfası e2e testleri Firebase ağına bağlanmaz; uygulamanın
+      // başlangıç sözleşmesi için yalnız açık ve sahte yapılandırma gerekir.
+      VITE_FIREBASE_PROJECT_ID: process.env.VITE_FIREBASE_PROJECT_ID || 'kazkaz-e2e',
+      VITE_FIREBASE_APP_ID: process.env.VITE_FIREBASE_APP_ID || '1:000000000000:web:0000000000000000000000',
+      VITE_FIREBASE_API_KEY: process.env.VITE_FIREBASE_API_KEY || 'e2e-placeholder-not-a-real-key',
+      VITE_FIREBASE_AUTH_DOMAIN: process.env.VITE_FIREBASE_AUTH_DOMAIN || 'kazkaz-e2e.firebaseapp.com',
+      VITE_FIREBASE_STORAGE_BUCKET: process.env.VITE_FIREBASE_STORAGE_BUCKET || 'kazkaz-e2e.appspot.com',
+      VITE_FIREBASE_MESSAGING_SENDER_ID: process.env.VITE_FIREBASE_MESSAGING_SENDER_ID || '000000000000',
+    },
   },
 });

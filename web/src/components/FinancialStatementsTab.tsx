@@ -1,6 +1,8 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { ArrowRight, CheckCircle2, CircleAlert, Landmark, Scale, TrendingUp } from 'lucide-react';
 import { CashFlowItem, FinancialData } from '../types';
+import { gelismisAjanAnalizi, GelismisAjanGirdisi, MizanDonemi } from '../lib/api';
+import { MizanTablosu } from './MizanTablosu';
 
 type StatementSection = 'income' | 'balance' | 'cash';
 
@@ -8,6 +10,8 @@ interface FinancialStatementsTabProps {
   data: FinancialData;
   cashFlow: CashFlowItem[];
   section: StatementSection;
+  /** Yüklenen mizan burada taşınır; varsa tablolar ondan türetilir. */
+  advancedData?: GelismisAjanGirdisi;
   onNavigateTab: (tab: string) => void;
 }
 
@@ -17,7 +21,44 @@ const formatMoney = (value: number, currency: string) => new Intl.NumberFormat('
   maximumFractionDigits: 0,
 }).format(value);
 
-export const FinancialStatementsTab: React.FC<FinancialStatementsTabProps> = ({ data, cashFlow, section, onNavigateTab }) => {
+export const FinancialStatementsTab: React.FC<FinancialStatementsTabProps> = ({
+  data,
+  cashFlow,
+  section,
+  advancedData,
+  onNavigateTab,
+}) => {
+  // Mizan yüklüyse tablolar hesap bakiyelerinden türetilir. İstek yalnızca
+  // mizan varken ve bu sekme açıldığında yapılır; başarısız olursa ekran
+  // elle girilen görünümle çalışmaya devam eder.
+  const [mizanDonemi, setMizanDonemi] = useState<MizanDonemi | null>(null);
+  const [tabloSurumu, setTabloSurumu] = useState<string | undefined>();
+  const [yansitma, setYansitma] = useState<string[]>([]);
+  const [eslesmeyen, setEslesmeyen] = useState<string[]>([]);
+
+  const mizanSatirSayisi = advancedData?.mizan?.length ?? 0;
+
+  useEffect(() => {
+    if (mizanSatirSayisi === 0 || !advancedData) {
+      setMizanDonemi(null);
+      return undefined;
+    }
+    let aktif = true;
+    gelismisAjanAnalizi(data, advancedData)
+      .then((sonuc) => {
+        if (!aktif) return;
+        const ajan = sonuc.ajanlar?.finansal_tablo_mutabakat_ajani;
+        setMizanDonemi(ajan?.son_donem ?? null);
+        setTabloSurumu(ajan?.tablo_surumu);
+        setYansitma(ajan?.yansitma_hesaplari ?? []);
+        setEslesmeyen(ajan?.eslesmeyen_hesaplar ?? []);
+      })
+      .catch(() => {
+        if (aktif) setMizanDonemi(null);
+      });
+    return () => { aktif = false; };
+  }, [advancedData, data, mizanSatirSayisi]);
+
   const money = (value: number) => formatMoney(value, data.currency);
   const calculatedNetProfit = data.ebitda - data.depreciation - data.interestExpense - data.taxExpense;
   const profitDifference = data.netProfit - calculatedNetProfit;
@@ -84,6 +125,8 @@ export const FinancialStatementsTab: React.FC<FinancialStatementsTabProps> = ({ 
       ? { ready: balanceDifference != null && Math.abs(balanceDifference) <= 1, label: balanceDifference == null ? 'Toplam varlıklar verisi gerekli' : `Bilanço eşitlik farkı: ${money(balanceDifference)}` }
       : { ready: calculatedClosingCash != null && Math.abs(calculatedClosingCash - data.cashInHand) <= 1, label: calculatedClosingCash == null ? 'Nakit köprüsü için dört bileşen gerekli' : `Nakit köprüsü farkı: ${money(calculatedClosingCash - data.cashInHand)}` };
 
+  const mizanBolumu = section === 'income' || section === 'balance' ? section : null;
+
   return (
     <div className="space-y-5 pb-8">
       <section className="panel-card p-5 sm:p-6">
@@ -104,13 +147,29 @@ export const FinancialStatementsTab: React.FC<FinancialStatementsTabProps> = ({ 
         </div>
       </section>
 
+      {mizanDonemi && mizanBolumu && (
+        <MizanTablosu
+          donem={mizanDonemi}
+          bolum={mizanBolumu}
+          paraBirimi={data.currency}
+          tabloSurumu={tabloSurumu}
+          yansitmaHesaplari={yansitma}
+          eslesmeyenHesaplar={eslesmeyen}
+        />
+      )}
+
       <section className={`flex items-start gap-3 rounded-xl border px-4 py-3 ${control.ready ? 'border-emerald-200 bg-emerald-50 text-emerald-900' : 'border-amber-200 bg-amber-50 text-amber-900'}`}>
         {control.ready ? <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0 text-emerald-700" /> : <CircleAlert className="mt-0.5 h-4 w-4 shrink-0 text-amber-700" />}
         <div><p className="text-xs font-extrabold">{control.ready ? 'Kontrol başarılı' : 'İnceleme veya ek veri gerekli'}</p><p className="mt-1 text-[11px]">{control.label}</p></div>
       </section>
 
       <section className="panel-card overflow-hidden">
-        <div className="border-b border-slate-200 px-5 py-4"><h2 className="text-sm font-extrabold text-slate-900">{data.companyName} · {data.period}</h2><p className="mt-1 text-[11px] text-slate-500">Raporlama para birimi: {data.currency}</p></div>
+        <div className="border-b border-slate-200 px-5 py-4">
+          <h2 className="text-sm font-extrabold text-slate-900">{data.companyName} · {data.period}</h2>
+          <p className="mt-1 text-[11px] text-slate-500">
+            {mizanDonemi && mizanBolumu ? 'Girilen özet veriden · ' : ''}Raporlama para birimi: {data.currency}
+          </p>
+        </div>
         {section === 'cash' && !cashBridgeReady ? (
           <div className="p-6 text-sm text-slate-600"><strong className="text-slate-900">Nakit köprüsü henüz kurulamadı.</strong><p className="mt-2 text-xs leading-5">Dönem başı nakit, operasyonel nakit akışı, yatırım nakit akışı ve finansman nakit akışı alanlarını tamamlayın. Aylık nakit hareketleri ayrı olarak Nakit &amp; Borç ekranında incelenebilir.</p></div>
         ) : (

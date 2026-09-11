@@ -265,3 +265,127 @@ class TestAIOrchestrator(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class TestKaynakKilidi(unittest.TestCase):
+    """Guardrail hem ham girdileri kabul etmeli hem kaynağını söylemeli."""
+
+    def test_kullanicinin_bildirdigi_ham_degerler_kabul_edilir(self):
+        denetim = finansal_denetim(tam_veri())
+        sonuc = ai_yanitini_dogrula("Kasanızda 150.000 TL nakit ve 250.000 TL alacak var.", denetim)
+        self.assertTrue(sonuc.uygun, f"reddedilenler: {sonuc.reddedilen_sayilar}")
+
+    def test_ciro_ve_ozkaynak_da_izinli(self):
+        denetim = finansal_denetim(tam_veri())
+        sonuc = ai_yanitini_dogrula("Ciro 1.000.000 TL, özkaynak 500.000 TL.", denetim)
+        self.assertTrue(sonuc.uygun, f"reddedilenler: {sonuc.reddedilen_sayilar}")
+
+    def test_uydurma_sayi_hala_reddedilir(self):
+        denetim = finansal_denetim(tam_veri())
+        sonuc = ai_yanitini_dogrula("Nakit tamponunu 2.000.000 TL'ye çıkarın.", denetim)
+        self.assertFalse(sonuc.uygun)
+        self.assertIn("2.000.000", sonuc.reddedilen_sayilar)
+
+    def test_kabul_edilen_sayinin_kaynagi_raporlanir(self):
+        denetim = finansal_denetim(tam_veri())
+        sonuc = ai_yanitini_dogrula("Kasanızda 150.000 TL nakit var.", denetim)
+        kaynaklar = {e.ham: e.kaynak for e in sonuc.kaynak_eslesmeleri}
+        self.assertEqual(kaynaklar.get("150.000"), "Bilanço · Hazır değerler")
+
+    def test_hesaplanmis_metrigin_kaynagi_ayirt_edilir(self):
+        denetim = finansal_denetim(tam_veri())
+        sonuc = ai_yanitini_dogrula("Cari oranınız 2,00 seviyesinde.", denetim)
+        kaynaklar = {e.ham: e.kaynak for e in sonuc.kaynak_eslesmeleri}
+        self.assertEqual(kaynaklar.get("2,00"), "Hesaplandı · Cari oran")
+
+    def test_reddedilen_sayi_kaynak_listesine_girmez(self):
+        denetim = finansal_denetim(tam_veri())
+        sonuc = ai_yanitini_dogrula("Nakit 150.000 TL, hedef 2.000.000 TL.", denetim)
+        self.assertFalse(sonuc.uygun)
+        self.assertNotIn("2.000.000", [e.ham for e in sonuc.kaynak_eslesmeleri])
+        self.assertIn("150.000", [e.ham for e in sonuc.kaynak_eslesmeleri])
+
+
+class TestKaynakEslesmesiUctanUca(unittest.TestCase):
+    """kaynak_eslesmeleri guardrail'den API cevabına kadar taşınmalı."""
+
+    def _sahte_saglayici(self, cevap: str):
+        motor = MagicMock()
+        motor.generate.return_value = cevap
+        motor.model_name = "test-model"
+        return motor
+
+    def test_cfo_yaniti_kabul_edilen_sayilarin_kaynagini_dondurur(self):
+        veri = tam_veri()
+        motor = self._sahte_saglayici("Kasanızda 150.000 TL nakit var, cari oranınız 2,00.")
+
+        with patch.dict(
+            os.environ,
+            {"AI_PROVIDER_ORDER": "groq", "GROQ_API_KEY": "test", "NVIDIA_API_KEY": "", "GEMINI_API_KEY": ""},
+            clear=False,
+        ), patch("api.ai_orchestrator.GeminiEngine", return_value=motor):
+            yanit = cfo_yaniti("Nakit durumu nedir?", veri)
+
+        eslesmeler = yanit["ai_dogrulama"]["kaynak_eslesmeleri"]
+        kaynaklar = {e["ham"]: e["kaynak"] for e in eslesmeler}
+        self.assertEqual(kaynaklar.get("150.000"), "Bilanço · Hazır değerler")
+        self.assertEqual(kaynaklar.get("2,00"), "Hesaplandı · Cari oran")
+        self.assertEqual(yanit["ai_dogrulama"]["durum"], "dogrulandi")
+
+    def test_uydurma_sayi_yaniti_engeller_ve_kaynak_listesinde_yer_almaz(self):
+        veri = tam_veri()
+        motor = self._sahte_saglayici("Nakit tamponunu 2.000.000 TL'ye çıkarın.")
+
+        with patch.dict(
+            os.environ,
+            {"AI_PROVIDER_ORDER": "groq", "GROQ_API_KEY": "test", "NVIDIA_API_KEY": "", "GEMINI_API_KEY": ""},
+            clear=False,
+        ), patch("api.ai_orchestrator.GeminiEngine", return_value=motor):
+            yanit = cfo_yaniti("Ne kadar tampon ayırmalıyım?", veri)
+
+        dogrulama = yanit["ai_dogrulama"]
+        self.assertEqual(dogrulama["durum"], "kuralli_yedek")
+        self.assertIn("2.000.000", dogrulama["reddedilen_sayilar"])
+        self.assertNotIn("2.000.000", [e["ham"] for e in dogrulama["kaynak_eslesmeleri"]])
+
+
+class TestSaglikSkoruUcu(unittest.TestCase):
+    """Sağlık skoru zaman serisi ucundan gelmeli; müşteri sütunu 5. boyutu açmalı."""
+
+    @staticmethod
+    def _satirlar(musteri_ile: bool):
+        musteriler = [('Aygaz', 1_900_000), ('Mercan', 850_000), ('Toros', 550_000)]
+        satirlar = []
+        for ay in range(1, 13):
+            for ad, gelir in musteriler:
+                satir = {
+                    "tarih": f"2025-{ay:02d}-15", "kategori": ad,
+                    "gelir": gelir, "gider": int(gelir * 0.62),
+                }
+                if musteri_ile:
+                    satir["musteri"] = ad
+                satirlar.append(satir)
+        return satirlar
+
+    def _skor(self, musteri_ile: bool):
+        from api.models import FinansalAnalizIstegi
+        from api.services import zaman_serisi_analizi
+        istek = FinansalAnalizIstegi(satirlar=self._satirlar(musteri_ile))
+        return zaman_serisi_analizi(istek)["finansal"]["saglik_skoru"]
+
+    def test_musteri_sutunu_besinci_boyutu_acar(self):
+        skor = self._skor(musteri_ile=True)
+        self.assertEqual(skor["metodoloji"]["boyut_sayisi"], 5)
+        self.assertIn("konsantrasyon", skor["alt_skorlar"])
+
+    def test_musteri_yoksa_dort_boyutta_kalir(self):
+        skor = self._skor(musteri_ile=False)
+        self.assertEqual(skor["metodoloji"]["boyut_sayisi"], 4)
+        self.assertNotIn("konsantrasyon", skor["alt_skorlar"])
+
+    def test_skor_ve_kategori_uretilir(self):
+        skor = self._skor(musteri_ile=True)
+        self.assertIsInstance(skor["skor"], float)
+        self.assertGreaterEqual(skor["skor"], 0)
+        self.assertLessEqual(skor["skor"], 100)
+        self.assertTrue(skor["kategori"])
