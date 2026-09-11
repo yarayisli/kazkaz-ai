@@ -2,6 +2,7 @@ name: V1 Kabul Kapısı
 
 on:
   push:
+    branches: [main]
   pull_request:
 
 permissions:
