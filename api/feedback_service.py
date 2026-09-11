@@ -98,11 +98,27 @@ def geri_bildirim_memnuniyeti(istek: GeriBildirimMemnuniyetIstegi, kullanici: Ki
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Bu talep size ait değil.")
     if veri.get("status") != "resolved":
         raise HTTPException(status_code=409, detail="Memnuniyet yalnız çözülmüş talep için verilebilir.")
-    belge_ref.set({
+    yeniden_acildi = not bool(istek.memnun)
+    guncelleme = {
         "satisfaction": {
             "satisfied": bool(istek.memnun),
             "at": firestore.SERVER_TIMESTAMP,
             "by": kullanici.kullanici_id,
         },
-    }, merge=True)
-    return {"durum": "kaydedildi", "talep_no": veri.get("ticketNo") or _talep_no(belge.id), "memnun": bool(istek.memnun)}
+        "updatedAt": firestore.SERVER_TIMESTAMP,
+    }
+    if yeniden_acildi:
+        # Kullanıcı “çözülmedi” dediğinde talebi yalnız ölçmekle kalma; destek
+        # kuyruğuna geri al. Önceki yanıt denetim izi olarak korunur.
+        guncelleme.update({
+            "status": "in_review",
+            "reopenedAt": firestore.SERVER_TIMESTAMP,
+            "reopenedBy": kullanici.kullanici_id,
+        })
+    belge_ref.set(guncelleme, merge=True)
+    return {
+        "durum": "yeniden_acildi" if yeniden_acildi else "kaydedildi",
+        "talep_no": veri.get("ticketNo") or _talep_no(belge.id),
+        "memnun": bool(istek.memnun),
+        "talep_durumu": "in_review" if yeniden_acildi else "resolved",
+    }

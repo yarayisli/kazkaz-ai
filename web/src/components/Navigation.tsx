@@ -17,7 +17,6 @@ import {
   X,
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
-import { AuthModal } from './AuthModal';
 import {
   EKRANLAR,
   TUM_SEKMELER,
@@ -31,6 +30,7 @@ interface NavigationProps {
   companyName: string;
   period: string;
   recentTabIds: string[];
+  onOpenAuth: () => void;
 }
 
 type TabItem = EkranSekmesi;
@@ -50,18 +50,17 @@ const BrandMark = () => (
   <span className="relative block h-8 w-11 shrink-0" aria-hidden="true">
     <span className="absolute left-0 top-1 h-7 w-7 rounded-full bg-[radial-gradient(circle_at_35%_30%,#315f9f,#0f2252_68%)]" />
     <span className="absolute right-0 top-1 h-7 w-7 rounded-full bg-[radial-gradient(circle_at_65%_30%,#a883f5,#7c3aed_70%)] opacity-90 mix-blend-multiply" />
-    <span className="absolute inset-0 z-10 grid place-items-center text-[11px] font-black text-white">✦</span>
+    <span className="absolute inset-0 z-10 grid place-items-center text-xs font-black text-white">✦</span>
   </span>
 );
 
-export const Navigation: React.FC<NavigationProps> = ({ activeTab, setActiveTab, companyName, period, recentTabIds }) => {
+export const Navigation: React.FC<NavigationProps> = ({ activeTab, setActiveTab, companyName, period, recentTabIds, onOpenAuth }) => {
   const { userProfile, logout, isPlatformAdmin } = useAuth();
   // Yerel pilot kurulumu production derlemesiyle servis edildiğinde
   // import.meta.env.DEV false olur. Açıkça etkinleştirilen yerel auth
   // bayrağı yönetim menüsünün kaybolmamasını sağlar; API yetkisi yine
   // sunucu tarafından ayrıca doğrulanır.
   const showPlatformAdmin = isPlatformAdmin || import.meta.env.VITE_API_AUTH_DISABLED === 'true';
-  const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [openMenu, setOpenMenu] = useState<string | null>(null);
   const [isProfileOpen, setIsProfileOpen] = useState(false);
@@ -75,6 +74,11 @@ export const Navigation: React.FC<NavigationProps> = ({ activeTab, setActiveTab,
   }, [activeTab]);
 
   const navigate = (tabId: string) => {
+    if (tabId !== 'landing' && !userProfile) {
+      onOpenAuth();
+      setIsMobileMenuOpen(false);
+      return;
+    }
     setActiveTab(tabId);
     setIsMobileMenuOpen(false);
     setMobileSearchQuery('');
@@ -144,7 +148,7 @@ export const Navigation: React.FC<NavigationProps> = ({ activeTab, setActiveTab,
               <span className="block text-[17px] font-extrabold tracking-[-0.025em] text-[#0a1628]">
                 KazKaz <span className="bg-gradient-to-r from-[#0f2252] to-[#7c3aed] bg-clip-text text-transparent">AI</span>
               </span>
-              {!isLanding && <span className="hidden text-[10px] font-medium text-slate-400 2xl:block">Finansal karar merkezi</span>}
+              {!isLanding && <span className="hidden text-xs font-medium text-slate-400 2xl:block">Finansal karar merkezi</span>}
             </span>
           </button>
 
@@ -158,7 +162,7 @@ export const Navigation: React.FC<NavigationProps> = ({ activeTab, setActiveTab,
             </nav>
           ) : (
             <div className="hidden min-w-0 flex-1 items-center gap-2 px-5 xl:flex">
-              <span className="text-[10px] font-extrabold uppercase tracking-[0.15em] text-slate-400">Çalışma alanı</span>
+              <span className="text-xs font-extrabold uppercase tracking-[0.15em] text-slate-400">Çalışma alanı</span>
               <span className="text-slate-300">/</span>
               <span className="truncate text-xs font-extrabold text-[#0f2252]">{activeLabel}</span>
             </div>
@@ -166,27 +170,27 @@ export const Navigation: React.FC<NavigationProps> = ({ activeTab, setActiveTab,
 
           <div className="hidden shrink-0 items-center gap-2 lg:flex">
             {!isLanding && (
-              <div className="mr-1 hidden items-center gap-2 rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-[11px] text-slate-500 2xl:flex">
+              <div className="mr-1 hidden items-center gap-2 rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-xs text-slate-500 2xl:flex">
                 <Building2 className="h-3.5 w-3.5 text-violet-600" />
                 <span className="max-w-32 truncate font-semibold text-slate-700">{userProfile?.companyName || companyName}</span>
-                <span className="rounded bg-white px-1.5 py-0.5 text-[9px] font-bold text-slate-500 shadow-sm">{period}</span>
+                <span className="rounded bg-white px-1.5 py-0.5 text-xs font-bold text-slate-500 shadow-sm">{period}</span>
               </div>
             )}
 
             {userProfile ? (
               <div className="relative">
                 <button type="button" onClick={() => setIsProfileOpen((open) => !open)} aria-expanded={isProfileOpen} className="flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-2.5 py-1.5 text-xs shadow-sm transition hover:border-violet-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-violet-400">
-                  <span className="grid h-7 w-7 place-items-center rounded-full bg-gradient-to-br from-[#0f2252] to-[#7c3aed] text-[9px] font-black text-white">{initials}</span>
+                  <span className="grid h-7 w-7 place-items-center rounded-full bg-gradient-to-br from-[#0f2252] to-[#7c3aed] text-xs font-black text-white">{initials}</span>
                   <span className="hidden max-w-24 truncate font-bold text-slate-700 2xl:block">{displayName}</span>
-                  <span className="rounded-md bg-violet-50 px-1.5 py-0.5 text-[9px] font-bold text-violet-700">{roleLabel}</span>
+                  <span className="rounded-md bg-violet-50 px-1.5 py-0.5 text-xs font-bold text-violet-700">{roleLabel}</span>
                   <ChevronDown className={`h-3.5 w-3.5 text-slate-400 transition ${isProfileOpen ? 'rotate-180' : ''}`} />
                 </button>
                 {isProfileOpen && (
                   <div className="absolute right-0 top-[calc(100%+8px)] z-50 w-72 rounded-xl border border-slate-200 bg-white p-2 shadow-[0_18px_45px_rgba(15,34,82,.16)]">
                     <div className="border-b border-slate-100 px-3 py-2.5">
                       <p className="truncate text-xs font-extrabold text-slate-900">{displayName}</p>
-                      <p className="mt-0.5 truncate text-[10px] text-slate-500">{userProfile.email}</p>
-                      <p className="mt-2 text-[10px] font-semibold text-violet-700">{userProfile.companyName || companyName} · {roleLabel}</p>
+                      <p className="mt-0.5 truncate text-xs text-slate-500">{userProfile.email}</p>
+                      <p className="mt-2 text-xs font-semibold text-violet-700">{userProfile.companyName || companyName} · {roleLabel}</p>
                     </div>
                     <button type="button" onClick={() => navigate('settings')} className="mt-1 flex w-full items-center gap-2 rounded-lg px-3 py-2.5 text-left text-xs font-bold text-slate-600 hover:bg-slate-50 hover:text-[#0f2252]"><Building2 className="h-4 w-4 text-violet-600" /> Şirket ayarları</button>
                     <button type="button" onClick={() => navigate('data-entry')} className="flex w-full items-center gap-2 rounded-lg px-3 py-2.5 text-left text-xs font-bold text-slate-600 hover:bg-slate-50 hover:text-[#0f2252]"><UploadCloud className="h-4 w-4 text-violet-600" /> Finansal veri girişi</button>
@@ -197,7 +201,7 @@ export const Navigation: React.FC<NavigationProps> = ({ activeTab, setActiveTab,
                 )}
               </div>
             ) : (
-              <button type="button" onClick={() => setIsAuthModalOpen(true)} className="inline-flex min-h-10 items-center gap-2 rounded-xl border border-slate-300 bg-white px-4 text-sm font-bold text-slate-700 transition hover:border-violet-300 hover:text-violet-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-violet-400">
+              <button type="button" onClick={onOpenAuth} className="inline-flex min-h-10 items-center gap-2 rounded-xl border border-slate-300 bg-white px-4 text-sm font-bold text-slate-700 transition hover:border-violet-300 hover:text-violet-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-violet-400">
                 <LogIn className="h-4 w-4" /> Giriş yap
               </button>
             )}
@@ -232,7 +236,7 @@ export const Navigation: React.FC<NavigationProps> = ({ activeTab, setActiveTab,
                 <nav className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-[0_18px_45px_rgba(15,34,82,.08)]" aria-label="Finans çalışma alanı">
                   <div className="grid min-h-[520px] min-w-0 grid-cols-[minmax(0,1fr)] lg:grid-cols-[230px_minmax(0,1fr)]">
                     <aside className="min-w-0 overflow-hidden border-b border-slate-200 bg-slate-50 p-3 lg:border-b-0 lg:border-r lg:p-4">
-                      <p className="mb-3 hidden px-2 text-[9px] font-black uppercase tracking-[0.17em] text-slate-400 lg:block">Çalışma alanı</p>
+                      <p className="mb-3 hidden px-2 text-xs font-black uppercase tracking-[0.17em] text-slate-400 lg:block">Çalışma alanı</p>
                       <div className="flex gap-2 overflow-x-auto pb-1 lg:block lg:space-y-1 lg:overflow-visible lg:pb-0">
                         {workspaceMenuGroups.map((group) => {
                           const GroupIcon = group.icon;
@@ -251,7 +255,7 @@ export const Navigation: React.FC<NavigationProps> = ({ activeTab, setActiveTab,
                             >
                               {isSelected && <span aria-hidden="true" className="absolute inset-y-2 left-0 w-0.5 rounded-full bg-violet-600" />}
                               <span className={`grid h-8 w-8 shrink-0 place-items-center rounded-lg ${isSelected ? 'bg-white text-violet-700 shadow-sm' : 'bg-slate-100 text-slate-500 group-hover:bg-white'}`}><GroupIcon className="h-4 w-4" /></span>
-                              <span className="min-w-0"><span className="block truncate text-[11px] font-extrabold">{group.label}</span><span className="mt-0.5 hidden truncate text-[9px] font-medium text-slate-400 lg:block">{group.description}</span></span>
+                              <span className="min-w-0"><span className="block truncate text-xs font-extrabold">{group.label}</span><span className="mt-0.5 hidden truncate text-xs font-medium text-slate-400 lg:block">{group.description}</span></span>
                               {containsActiveTab && !isSelected && <span className="ml-auto h-1.5 w-1.5 rounded-full bg-violet-500" aria-label="Etkin bölüm" />}
                             </button>
                           );
@@ -270,14 +274,14 @@ export const Navigation: React.FC<NavigationProps> = ({ activeTab, setActiveTab,
                           placeholder="Modül, rapor veya finansal metrik ara…"
                           className="min-w-0 flex-1 border-0 bg-transparent text-xs font-semibold text-slate-800 outline-none placeholder:font-medium placeholder:text-slate-400"
                         />
-                        <span className="hidden rounded-md border border-slate-200 bg-white px-2 py-1 text-[8px] font-black text-slate-400 sm:block">AKILLI ARAMA</span>
+                        <span className="hidden rounded-md border border-slate-200 bg-white px-2 py-1 text-xs font-black text-slate-400 sm:block">AKILLI ARAMA</span>
                       </label>
 
                       {!normalizedMobileSearch && recentTabs.length > 0 && (
                         <section className="mt-5">
                           <div className="mb-2 flex items-center gap-2">
                             <Clock3 className="h-3.5 w-3.5 text-slate-400" />
-                            <p className="text-[9px] font-black uppercase tracking-[0.15em] text-slate-400">Son kullandıklarınız</p>
+                            <p className="text-xs font-black uppercase tracking-[0.15em] text-slate-400">Son kullandıklarınız</p>
                           </div>
                           <div className="grid gap-2 sm:grid-cols-3">
                             {recentTabs.map((tab) => {
@@ -285,7 +289,7 @@ export const Navigation: React.FC<NavigationProps> = ({ activeTab, setActiveTab,
                               return (
                                 <button type="button" key={tab.id} onClick={() => navigate(tab.id)} className="group flex min-h-[60px] min-w-0 items-center gap-3 rounded-xl border border-slate-200 bg-white px-3 text-left transition hover:border-violet-200 hover:bg-violet-50/40">
                                   <span className="grid h-8 w-8 shrink-0 place-items-center rounded-lg bg-violet-50 text-violet-700"><RecentIcon className="h-3.5 w-3.5" /></span>
-                                  <span className="min-w-0 flex-1"><span className="block truncate text-[10px] font-extrabold text-slate-700">{tab.label}</span><span className="mt-1 block text-[8px] font-semibold text-slate-400">Kaldığınız yerden devam edin</span></span>
+                                  <span className="min-w-0 flex-1"><span className="block truncate text-xs font-extrabold text-slate-700">{tab.label}</span><span className="mt-1 block text-xs font-semibold text-slate-400">Kaldığınız yerden devam edin</span></span>
                                   <ArrowRight className="h-3.5 w-3.5 shrink-0 text-slate-300 transition group-hover:translate-x-0.5 group-hover:text-violet-600" />
                                 </button>
                               );
@@ -298,9 +302,9 @@ export const Navigation: React.FC<NavigationProps> = ({ activeTab, setActiveTab,
                         <div className="mb-3 flex items-start gap-3">
                           <div className="min-w-0 flex-1">
                             <h2 className="text-base font-extrabold tracking-[-0.025em] text-[#0a1628]">{normalizedMobileSearch ? 'Arama sonuçları' : selectedMobileGroup.label}</h2>
-                            <p className="mt-1 text-[10px] leading-4 text-slate-500">{normalizedMobileSearch ? `“${mobileSearchQuery.trim()}” için eşleşen çalışma alanları` : selectedMobileGroup.description}</p>
+                            <p className="mt-1 text-xs leading-4 text-slate-500">{normalizedMobileSearch ? `“${mobileSearchQuery.trim()}” için eşleşen çalışma alanları` : selectedMobileGroup.description}</p>
                           </div>
-                          <span className="shrink-0 rounded-full border border-violet-200 bg-violet-50 px-2.5 py-1.5 text-[8px] font-extrabold text-violet-700">{normalizedMobileSearch ? mobileSearchResults.length : selectedMobileGroup.tabs.length} modül</span>
+                          <span className="shrink-0 rounded-full border border-violet-200 bg-violet-50 px-2.5 py-1.5 text-xs font-extrabold text-violet-700">{normalizedMobileSearch ? mobileSearchResults.length : selectedMobileGroup.tabs.length} modül</span>
                         </div>
 
                         {(normalizedMobileSearch ? mobileSearchResults : selectedMobileGroup.tabs).length > 0 ? (
@@ -312,7 +316,7 @@ export const Navigation: React.FC<NavigationProps> = ({ activeTab, setActiveTab,
                               return (
                                 <button type="button" key={tab.id} onClick={() => navigate(tab.id)} className={`group flex min-h-[86px] items-start gap-3 rounded-xl border p-3.5 text-left transition ${isActive ? 'border-violet-200 bg-violet-50 text-violet-900 shadow-sm' : 'border-slate-200 bg-white text-slate-700 hover:-translate-y-0.5 hover:border-violet-200 hover:shadow-[0_8px_18px_rgba(15,34,82,.06)]'}`}>
                                   <span className={`grid h-9 w-9 shrink-0 place-items-center rounded-lg ${isActive ? 'bg-white text-violet-700 shadow-sm' : 'bg-slate-100 text-slate-500 group-hover:bg-violet-50 group-hover:text-violet-700'}`}><TabIcon className="h-4 w-4" /></span>
-                                  <span className="min-w-0 flex-1"><span className="flex items-center gap-2 text-xs font-extrabold"><span className="truncate">{tab.label}</span>{isRestricted && <span className="shrink-0 text-[8px] font-bold text-amber-600">Salt okunur</span>}</span><span className="mt-1.5 block text-[9px] leading-4 text-slate-500">{tab.description}</span></span>
+                                  <span className="min-w-0 flex-1"><span className="flex items-center gap-2 text-xs font-extrabold"><span className="truncate">{tab.label}</span>{isRestricted && <span className="shrink-0 text-xs font-bold text-amber-600">Salt okunur</span>}</span><span className="mt-1.5 block text-xs leading-4 text-slate-500">{tab.description}</span></span>
                                   <ArrowRight className="mt-1 h-3.5 w-3.5 shrink-0 text-slate-300 transition group-hover:translate-x-0.5 group-hover:text-violet-600" />
                                 </button>
                               );
@@ -322,7 +326,7 @@ export const Navigation: React.FC<NavigationProps> = ({ activeTab, setActiveTab,
                           <div className="rounded-xl border border-dashed border-slate-300 bg-slate-50 px-5 py-10 text-center">
                             <Search className="mx-auto h-5 w-5 text-slate-400" />
                             <p className="mt-3 text-xs font-extrabold text-slate-700">Eşleşen modül bulunamadı</p>
-                            <p className="mt-1 text-[10px] text-slate-500">“Nakit”, “bilanço”, “müşteri” veya “rapor” gibi bir ifade deneyin.</p>
+                            <p className="mt-1 text-xs text-slate-500">“Nakit”, “bilanço”, “müşteri” veya “rapor” gibi bir ifade deneyin.</p>
                           </div>
                         )}
                       </section>
@@ -335,7 +339,7 @@ export const Navigation: React.FC<NavigationProps> = ({ activeTab, setActiveTab,
                 <div className="min-w-0 text-xs text-slate-500">
                   {userProfile ? <><p className="truncate font-semibold text-slate-800">{displayName}</p><p className="mt-1">{roleLabel}</p></> : <p>Örnek veriyi giriş yapmadan inceleyebilirsiniz.</p>}
                 </div>
-                {userProfile ? <button type="button" onClick={logout} className="ml-4 text-sm font-semibold text-red-600">Çıkış yap</button> : <button type="button" onClick={() => setIsAuthModalOpen(true)} className="ml-4 shrink-0 text-sm font-semibold text-violet-700">Giriş yap</button>}
+                {userProfile ? <button type="button" onClick={logout} className="ml-4 text-sm font-semibold text-red-600">Çıkış yap</button> : <button type="button" onClick={onOpenAuth} className="ml-4 shrink-0 text-sm font-semibold text-violet-700">Giriş yap</button>}
               </div>
             </div>
           </div>
@@ -350,7 +354,7 @@ export const Navigation: React.FC<NavigationProps> = ({ activeTab, setActiveTab,
                 <span className="grid h-9 w-9 shrink-0 place-items-center rounded-lg bg-violet-100 text-violet-700"><Building2 className="h-4 w-4" /></span>
                 <div className="min-w-0">
                   <p className="truncate text-xs font-extrabold text-slate-900">{userProfile?.companyName || companyName}</p>
-                  <p className="mt-1 text-[10px] font-semibold text-slate-500">{period} dönemi</p>
+                  <p className="mt-1 text-xs font-semibold text-slate-500">{period} dönemi</p>
                 </div>
               </div>
             </div>
@@ -373,7 +377,7 @@ export const Navigation: React.FC<NavigationProps> = ({ activeTab, setActiveTab,
                   <span className={`grid h-8 w-8 shrink-0 place-items-center rounded-lg transition ${isActive ? 'bg-white text-violet-700 shadow-sm' : isAi ? 'bg-violet-50 text-violet-700' : 'bg-slate-100 text-slate-500 group-hover:bg-white'}`}><Icon className="h-4 w-4" /></span>
                   <span className="min-w-0 flex-1">
                     <span className={`block truncate text-[13px] font-extrabold ${isActive ? 'text-[#0f2252]' : 'text-slate-600 group-hover:text-[#0f2252]'}`}>{ekran.label}</span>
-                    <span className="mt-0.5 block truncate text-[10px] font-medium text-slate-400">{ekran.soru}</span>
+                    <span className="mt-0.5 block truncate text-xs font-medium text-slate-400">{ekran.soru}</span>
                   </span>
                   {isAi && !isActive && <span className="h-1.5 w-1.5 shrink-0 rounded-full bg-violet-500 shadow-[0_0_0_3px_#ede9fe]" aria-label="AI aktif" />}
                 </button>
@@ -389,7 +393,6 @@ export const Navigation: React.FC<NavigationProps> = ({ activeTab, setActiveTab,
         </aside>
       )}
 
-      <AuthModal isOpen={isAuthModalOpen} onClose={() => setIsAuthModalOpen(false)} />
     </>
   );
 };

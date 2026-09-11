@@ -153,7 +153,9 @@ def calisma_alani_yukle(kullanici: KimlikBilgisi) -> Dict[str, Any]:
         snapshot = {k: v for k, v in veri.items() if k not in {
             "schemaVersion", "revision", "companyId", "updatedBy", "updatedAt", "retentionUntil", "dataClassification"
         }}
-    db.batch().set(audit_ref, _audit("workspace.read", kullanici)).commit()
+    audit_batch = db.batch()
+    audit_batch.set(audit_ref, _audit("workspace.read", kullanici))
+    audit_batch.commit()
     return {
         "durum": "hazir",
         "schema_version": veri.get("schemaVersion", 1),

@@ -477,10 +477,10 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onNavigateTab, onOpenA
                     </span>
                     <div>
                       <p className="text-sm font-extrabold text-slate-900">Finansal karar merkezi</p>
-                      <p className="mt-0.5 text-[11px] text-slate-500">Anadolu Teknoloji · örnek veri</p>
+                      <p className="mt-0.5 text-xs text-slate-500">Anadolu Teknoloji · örnek veri</p>
                     </div>
                   </div>
-                  <span className="flex items-center gap-1.5 rounded-full border border-emerald-200 bg-emerald-50 px-2.5 py-1 text-[10px] font-extrabold text-emerald-700">
+                  <span className="flex items-center gap-1.5 rounded-full border border-emerald-200 bg-emerald-50 px-2.5 py-1 text-xs font-extrabold text-emerald-700">
                     <span className="h-1.5 w-1.5 rounded-full bg-emerald-500" /> Motor aktif
                   </span>
                 </div>
@@ -495,7 +495,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onNavigateTab, onOpenA
                         role="tab"
                         aria-selected={activeInsight === index}
                         onClick={() => setActiveInsight(index)}
-                        className={`rounded-lg px-2 py-2 text-[10px] font-extrabold transition sm:text-[11px] ${activeInsight === index ? 'bg-white text-[#0f2252] shadow-sm' : 'text-slate-500 hover:text-slate-800'}`}
+                        className={`rounded-lg px-2 py-2 text-xs font-extrabold transition sm:text-xs ${activeInsight === index ? 'bg-white text-[#0f2252] shadow-sm' : 'text-slate-500 hover:text-slate-800'}`}
                       >
                         {insight.label}
                       </button>
@@ -504,17 +504,17 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onNavigateTab, onOpenA
                   <div className="rounded-2xl bg-[#0b1733] p-5 text-white shadow-xl shadow-slate-900/10">
                     <div className="flex items-start justify-between gap-4">
                       <div>
-                        <p className="text-[10px] font-bold uppercase tracking-[0.16em] text-violet-300">{heroInsight.eyebrow}</p>
+                        <p className="text-xs font-bold uppercase tracking-[0.16em] text-violet-300">{heroInsight.eyebrow}</p>
                         <p className="mt-2 max-w-md text-sm font-semibold leading-6 text-white">
                           {heroInsight.title}
                         </p>
                       </div>
-                      <span className="rounded-lg bg-amber-400/15 px-2 py-1 text-[10px] font-bold text-amber-300">İnsan onayı</span>
+                      <span className="rounded-lg bg-amber-400/15 px-2 py-1 text-xs font-bold text-amber-300">İnsan onayı</span>
                     </div>
                     <div className="mt-5 h-1.5 overflow-hidden rounded-full bg-white/10">
                       <div className="landing-progress h-full rounded-full bg-gradient-to-r from-violet-400 via-fuchsia-400 to-orange-400 transition-[width] duration-700" style={{ width: `${heroInsight.progress}%` }} />
                     </div>
-                    <div className="mt-2 flex justify-between text-[10px] text-slate-400">
+                    <div className="mt-2 flex justify-between text-xs text-slate-400">
                       <span>Örnek veri kapsamı</span><span>%{heroInsight.progress} · açıklanabilir</span>
                     </div>
                   </div>
@@ -526,9 +526,9 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onNavigateTab, onOpenA
                       ['FAVÖK', 'Veri gerekli', 'Amortisman eksik', 'text-amber-700'],
                     ].map(([label, value, note, tone], index) => (
                       <div key={label} className={`rounded-xl border border-slate-200 bg-white p-4 ${index === 2 ? 'col-span-2 sm:col-span-1' : ''}`}>
-                        <p className="text-[10px] font-semibold text-slate-500">{label}</p>
+                        <p className="text-xs font-semibold text-slate-500">{label}</p>
                         <p className={`mt-2 text-lg font-black tracking-tight ${tone}`}>{value}</p>
-                        <p className="mt-1 text-[9px] text-slate-400">{note}</p>
+                        <p className="mt-1 text-xs text-slate-400">{note}</p>
                       </div>
                     ))}
                   </div>
@@ -537,9 +537,9 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onNavigateTab, onOpenA
                     <div className="flex items-center justify-between">
                       <div>
                         <p className="text-xs font-extrabold text-slate-800">{heroInsight.metric}</p>
-                        <p className="mt-0.5 text-[10px] text-slate-500">{heroInsight.metricLabel}</p>
+                        <p className="mt-0.5 text-xs text-slate-500">{heroInsight.metricLabel}</p>
                       </div>
-                      <span className="rounded-md bg-white px-2 py-1 text-[9px] font-bold text-slate-500 shadow-sm">Örnek veri</span>
+                      <span className="rounded-md bg-white px-2 py-1 text-xs font-bold text-slate-500 shadow-sm">Örnek veri</span>
                     </div>
                     <div className="mt-4 flex h-20 items-end gap-2" aria-label="Örnek nakit eğilimi">
                       {[44, 58, 38, 71, 64, 86, 78, 96].map((height, index) => (
@@ -551,14 +551,14 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onNavigateTab, onOpenA
                         </div>
                       ))}
                     </div>
-                    <p className="mt-3 border-t border-slate-200 pt-3 text-[10px] leading-4 text-slate-500">{heroInsight.note}</p>
+                    <p className="mt-3 border-t border-slate-200 pt-3 text-xs leading-4 text-slate-500">{heroInsight.note}</p>
                   </div>
                 </div>
               </div>
 
               <div className="landing-float-delayed absolute -bottom-7 -left-5 hidden rounded-2xl border border-white bg-white/95 p-3.5 shadow-[0_18px_50px_rgba(15,34,82,.16)] backdrop-blur-xl sm:flex sm:items-center sm:gap-3">
                 <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-violet-100 text-violet-700"><Bot className="h-4 w-4" /></span>
-                <div><p className="text-[10px] font-extrabold text-slate-800">AI açıklaması hazır</p><p className="mt-0.5 text-[9px] text-slate-500">Kaynak: finans motoru</p></div>
+                <div><p className="text-xs font-extrabold text-slate-800">AI açıklaması hazır</p><p className="mt-0.5 text-xs text-slate-500">Kaynak: finans motoru</p></div>
               </div>
             </div>
           </div>
@@ -572,7 +572,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onNavigateTab, onOpenA
               ].map(([title, detail]) => (
                 <div key={title} className="border-slate-200 px-4 py-5 sm:border-r sm:last:border-r-0">
                   <p className="text-xs font-extrabold text-slate-900">{title}</p>
-                  <p className="mt-1 text-[11px] text-slate-500">{detail}</p>
+                  <p className="mt-1 text-xs text-slate-500">{detail}</p>
                 </div>
               ))}
             </div>
@@ -601,7 +601,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onNavigateTab, onOpenA
                     <div className={index === 0 ? '' : 'mt-5'}>
                       <div className="flex flex-wrap items-center justify-between gap-2">
                         <h3 className="text-base font-extrabold text-slate-900">{module.title}</h3>
-                        <span className="rounded-full bg-slate-100 px-2 py-1 text-[9px] font-bold text-slate-500">{module.tag}</span>
+                        <span className="rounded-full bg-slate-100 px-2 py-1 text-xs font-bold text-slate-500">{module.tag}</span>
                       </div>
                       <p className="mt-3 text-sm leading-6 text-slate-600">{module.text}</p>
                     </div>
@@ -632,7 +632,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onNavigateTab, onOpenA
                   <article key={item.step} className="relative rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
                     <div className="flex items-center justify-between">
                       <span className="relative z-10 flex h-14 w-14 items-center justify-center rounded-2xl border border-violet-200 bg-violet-50 text-violet-700 shadow-[0_0_0_7px_#f7f8fc]"><Icon className="h-6 w-6" /></span>
-                      <span className="font-mono text-[10px] font-extrabold text-slate-400">{item.step}</span>
+                      <span className="font-mono text-xs font-extrabold text-slate-400">{item.step}</span>
                     </div>
                     <h3 className="mt-6 text-base font-extrabold text-slate-900">{item.title}</h3>
                     <p className="mt-3 text-sm leading-6 text-slate-600">{item.text}</p>
@@ -673,7 +673,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onNavigateTab, onOpenA
               <div className="relative overflow-hidden p-7 sm:p-10 lg:p-12">
                 <div className="absolute -left-20 top-0 h-64 w-64 rounded-full bg-violet-600/25 blur-3xl" />
                 <div className="relative">
-                  <span className="inline-flex items-center gap-2 rounded-full border border-violet-300/20 bg-violet-400/10 px-3 py-1.5 text-[10px] font-bold uppercase tracking-[0.14em] text-violet-200">
+                  <span className="inline-flex items-center gap-2 rounded-full border border-violet-300/20 bg-violet-400/10 px-3 py-1.5 text-xs font-bold uppercase tracking-[0.14em] text-violet-200">
                     <Sparkles className="h-3.5 w-3.5" /> {selectedSector} görünümü
                   </span>
                   <h3 className="mt-6 max-w-xl text-3xl font-black tracking-[-0.035em] text-white sm:text-4xl">{sectorMessage.title}</h3>
@@ -685,7 +685,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onNavigateTab, onOpenA
               </div>
 
               <div className="border-t border-white/10 bg-white/[0.045] p-7 sm:p-10 lg:border-l lg:border-t-0">
-                <p className="text-[10px] font-bold uppercase tracking-[0.16em] text-slate-400">İlk incelenecek sinyal</p>
+                <p className="text-xs font-bold uppercase tracking-[0.16em] text-slate-400">İlk incelenecek sinyal</p>
                 <p className="mt-3 text-xl font-black text-white">{sectorMessage.signal}</p>
                 <div className="mt-7 space-y-3">
                   {analysisAreas.map((area) => {
@@ -693,7 +693,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onNavigateTab, onOpenA
                     return (
                       <div key={area.label} className="group flex gap-4 rounded-xl border border-white/10 bg-white/[0.045] p-4 transition hover:-translate-y-0.5 hover:border-violet-300/30 hover:bg-white/[0.07]">
                         <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-white/10 text-violet-200"><Icon className="h-4.5 w-4.5" /></span>
-                        <div><p className="text-xs font-extrabold text-white">{area.label}</p><p className="mt-1 text-[11px] leading-5 text-slate-400">{area.value}</p></div>
+                        <div><p className="text-xs font-extrabold text-white">{area.label}</p><p className="mt-1 text-xs leading-5 text-slate-400">{area.value}</p></div>
                       </div>
                     );
                   })}
@@ -722,7 +722,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onNavigateTab, onOpenA
                     <article key={agent.step} className="landing-agent-card relative flex gap-4 rounded-2xl border border-slate-200 bg-white p-5 shadow-sm transition sm:gap-6 sm:p-6">
                       <span className="relative z-10 flex h-11 w-11 shrink-0 items-center justify-center rounded-xl border border-violet-200 bg-violet-50 text-violet-700 shadow-[0_0_0_6px_#f7f8fc] sm:h-12 sm:w-12"><Icon className="h-5 w-5" /></span>
                       <div className="min-w-0 flex-1">
-                        <div className="flex items-center justify-between gap-4"><p className="text-base font-extrabold text-slate-900">{agent.title}</p><span className="font-mono text-[10px] font-bold text-slate-400">{agent.step}</span></div>
+                        <div className="flex items-center justify-between gap-4"><p className="text-base font-extrabold text-slate-900">{agent.title}</p><span className="font-mono text-xs font-bold text-slate-400">{agent.step}</span></div>
                         <p className="mt-2 text-sm leading-6 text-slate-600">{agent.description}</p>
                       </div>
                     </article>
@@ -758,7 +758,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onNavigateTab, onOpenA
               <div className="relative overflow-hidden border-b border-white/10 px-6 py-8 text-white sm:px-8 lg:flex lg:items-end lg:justify-between lg:gap-10">
                 <div className="absolute inset-0 bg-[radial-gradient(circle_at_12%_0%,rgba(124,58,237,.28),transparent_34%),radial-gradient(circle_at_92%_100%,rgba(37,99,235,.18),transparent_32%)]" />
                 <div className="relative max-w-3xl">
-                  <p className="text-[10px] font-extrabold uppercase tracking-[0.17em] text-violet-200">Doğrulanabilir güven programı</p>
+                  <p className="text-xs font-extrabold uppercase tracking-[0.17em] text-violet-200">Doğrulanabilir güven programı</p>
                   <h3 className="mt-3 text-2xl font-black tracking-[-0.035em] sm:text-3xl">Büyük vaatler, yayınlanabilir kanıta dönüşsün.</h3>
                   <p className="mt-3 text-sm leading-6 text-slate-300">Sertifika, hız, kullanıcı sayısı, müşteri sonucu ve entegrasyon iddiaları aynı kanıt kapısından geçer. Durum değiştiğinde metin değil, dayanağıyla birlikte statü güncellenir.</p>
                 </div>
@@ -770,7 +770,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onNavigateTab, onOpenA
                   ] as const).map(([value, label]) => (
                     <div key={label} className="rounded-xl border border-white/10 bg-white/[0.06] px-3 py-2.5 backdrop-blur-sm">
                       <p className="text-lg font-black text-white">{value}</p>
-                      <p className="mt-0.5 text-[9px] font-bold uppercase tracking-wide text-slate-400">{label}</p>
+                      <p className="mt-0.5 text-xs font-bold uppercase tracking-wide text-slate-400">{label}</p>
                     </div>
                   ))}
                 </div>
@@ -795,11 +795,11 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onNavigateTab, onOpenA
                     <article key={displayedProgram.title} className="group bg-[#0b1733] p-6 transition hover:bg-[#101f40]">
                       <div className="flex items-start justify-between gap-3">
                         <span className="grid h-10 w-10 shrink-0 place-items-center rounded-xl border border-white/10 bg-white/[0.07] text-violet-200 transition group-hover:border-violet-300/30 group-hover:bg-violet-400/10"><Icon className="h-5 w-5" /></span>
-                        <span className={`rounded-full border px-2.5 py-1 text-[9px] font-extrabold uppercase tracking-wide ${status.className}`}>{status.label}</span>
+                        <span className={`rounded-full border px-2.5 py-1 text-xs font-extrabold uppercase tracking-wide ${status.className}`}>{status.label}</span>
                       </div>
                       <h4 className="mt-5 text-sm font-extrabold leading-5 text-white">{displayedProgram.title}</h4>
                       <p className="mt-2 text-xs leading-5 text-slate-300">{displayedProgram.promise}</p>
-                      <div className="mt-5 space-y-3 border-t border-white/10 pt-4 text-[10px] leading-4">
+                      <div className="mt-5 space-y-3 border-t border-white/10 pt-4 text-xs leading-4">
                         <div><span className="font-extrabold uppercase tracking-[0.11em] text-slate-500">Bugün</span><p className="mt-1 text-slate-300">{displayedProgram.current}</p></div>
                         <div><span className="font-extrabold uppercase tracking-[0.11em] text-violet-300">Yayın kanıtı</span><p className="mt-1 text-slate-400">{displayedProgram.proof}</p></div>
                       </div>
@@ -808,7 +808,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onNavigateTab, onOpenA
                 })}
               </div>
 
-              <div className="flex flex-col gap-3 border-t border-white/10 bg-[#08142e] px-6 py-5 text-[11px] leading-5 text-slate-300 sm:flex-row sm:items-center sm:justify-between sm:px-8">
+              <div className="flex flex-col gap-3 border-t border-white/10 bg-[#08142e] px-6 py-5 text-xs leading-5 text-slate-300 sm:flex-row sm:items-center sm:justify-between sm:px-8">
                 <p><strong className="text-white">Yayın kuralı:</strong> Kanıtı olmayan sayı, sertifika, garanti veya müşteri sonucu kazanılmış özellik olarak gösterilmez.</p>
                 <span className="shrink-0 rounded-full border border-emerald-400/20 bg-emerald-400/10 px-3 py-1.5 font-extrabold uppercase tracking-wide text-emerald-300">Kanıt kapısı açık</span>
               </div>
@@ -819,7 +819,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onNavigateTab, onOpenA
                 <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-amber-100 text-amber-700"><FileCheck2 className="h-5 w-5" /></span>
                 <div><p className="text-sm font-extrabold text-amber-950">Metodoloji onayları şeffaf tutulur</p><p className="mt-1 text-xs leading-5 text-amber-800">FAVÖK, yatırım limiti ve borç politikası gibi başlıklar uzman onayı tamamlanmadan kesin öneri olarak gösterilmez.</p></div>
               </div>
-              <span className="shrink-0 rounded-full border border-amber-300 bg-white px-3 py-1.5 text-[10px] font-extrabold uppercase tracking-wide text-amber-800">Onay kapısı aktif</span>
+              <span className="shrink-0 rounded-full border border-amber-300 bg-white px-3 py-1.5 text-xs font-extrabold uppercase tracking-wide text-amber-800">Onay kapısı aktif</span>
             </div>
           </div>
         </section>
@@ -839,15 +839,15 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onNavigateTab, onOpenA
                   <article key={option.id} style={{ animationDelay: `${index * 90}ms` }} className={`landing-sample-card group relative flex min-h-[270px] flex-col overflow-hidden rounded-[1.5rem] border p-6 ${option.layout} ${option.featured ? 'border-violet-400 bg-[#0b1733] text-white shadow-[0_28px_70px_rgba(15,34,82,.2)]' : 'border-slate-200 bg-white text-slate-900 shadow-sm'}`}>
                     <div className="flex items-start justify-between gap-4">
                       <span className={`landing-sample-icon grid h-11 w-11 place-items-center rounded-xl ${option.featured ? 'bg-white/10 text-violet-200' : 'bg-violet-50 text-violet-700'}`}><Icon className="h-5 w-5" /></span>
-                      <span className={`rounded-full px-2.5 py-1 text-[9px] font-extrabold uppercase tracking-wide ${option.featured ? 'bg-violet-400/15 text-violet-200' : 'bg-slate-100 text-slate-500'}`}>{option.badge}</span>
+                      <span className={`rounded-full px-2.5 py-1 text-xs font-extrabold uppercase tracking-wide ${option.featured ? 'bg-violet-400/15 text-violet-200' : 'bg-slate-100 text-slate-500'}`}>{option.badge}</span>
                     </div>
                     <h3 className="mt-5 text-xl font-black sm:text-2xl">{option.title}</h3>
                     <p className={`mt-3 text-sm leading-6 ${option.featured ? 'text-slate-300' : 'text-slate-600'}`}>{option.description}</p>
-                    <div className={`mt-5 flex flex-wrap gap-2 text-[10px] font-bold ${option.featured ? 'text-slate-200' : 'text-slate-600'}`}>
+                    <div className={`mt-5 flex flex-wrap gap-2 text-xs font-bold ${option.featured ? 'text-slate-200' : 'text-slate-600'}`}>
                       <span className={`rounded-lg px-2.5 py-1.5 ${option.featured ? 'bg-white/[0.07]' : 'bg-slate-50'}`}>{option.agents}</span>
                       <span className={`rounded-lg px-2.5 py-1.5 ${option.featured ? 'bg-white/[0.07]' : 'bg-slate-50'}`}>{option.duration}</span>
                     </div>
-                    <p className={`mt-4 text-[10px] font-semibold uppercase tracking-[0.1em] ${option.featured ? 'text-violet-200' : 'text-violet-700'}`}>{option.signal}</p>
+                    <p className={`mt-4 text-xs font-semibold uppercase tracking-[0.1em] ${option.featured ? 'text-violet-200' : 'text-violet-700'}`}>{option.signal}</p>
                     <button type="button" onClick={() => void startDemo(option)} className={`mt-auto inline-flex min-h-11 items-center justify-center gap-2 rounded-xl px-4 pt-0 text-sm font-extrabold transition ${option.featured ? 'bg-white text-[#0f2252] hover:-translate-y-0.5' : 'border border-slate-300 bg-white text-slate-800 hover:border-violet-300 hover:text-violet-800'}`}>
                       {option.action} <ArrowRight className="h-4 w-4 transition group-hover:translate-x-1" />
                     </button>
@@ -866,7 +866,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onNavigateTab, onOpenA
                 <div className="landing-demo-orbit" aria-hidden="true"><span /><span /><span /></div>
                 <div className="relative z-10 flex items-start gap-4">
                   <span className="grid h-12 w-12 shrink-0 place-items-center rounded-2xl bg-white/10 text-violet-200"><activeDemo.icon className="h-6 w-6" /></span>
-                  <div><p className="text-[10px] font-extrabold uppercase tracking-[0.15em] text-violet-200">Örnek çalışma alanı hazırlanıyor</p><h3 id="demo-loading-title" className="mt-2 text-2xl font-black">{activeDemo.title}</h3><p className="mt-2 text-sm text-slate-300">{activeDemo.signal}</p></div>
+                  <div><p className="text-xs font-extrabold uppercase tracking-[0.15em] text-violet-200">Örnek çalışma alanı hazırlanıyor</p><h3 id="demo-loading-title" className="mt-2 text-2xl font-black">{activeDemo.title}</h3><p className="mt-2 text-sm text-slate-300">{activeDemo.signal}</p></div>
                 </div>
               </div>
               <div className="p-6 sm:p-8" aria-live="polite">
@@ -877,8 +877,8 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onNavigateTab, onOpenA
                     const current = index === demoStage;
                     return (
                       <div key={stage.label} className={`flex items-start gap-3 rounded-xl border px-4 py-3 transition ${current ? 'landing-demo-current border-violet-200 bg-violet-50' : complete ? 'border-emerald-100 bg-emerald-50/60' : 'border-slate-100 bg-slate-50 opacity-55'}`}>
-                        <span className={`mt-0.5 grid h-6 w-6 shrink-0 place-items-center rounded-full text-[10px] font-black ${complete ? 'bg-emerald-600 text-white' : current ? 'bg-violet-700 text-white' : 'bg-slate-200 text-slate-500'}`}>{complete ? <Check className="h-3.5 w-3.5" /> : index + 1}</span>
-                        <div><p className="text-xs font-extrabold text-slate-900">{stage.label}</p><p className="mt-1 text-[10px] leading-4 text-slate-500">{stage.detail}</p></div>
+                        <span className={`mt-0.5 grid h-6 w-6 shrink-0 place-items-center rounded-full text-xs font-black ${complete ? 'bg-emerald-600 text-white' : current ? 'bg-violet-700 text-white' : 'bg-slate-200 text-slate-500'}`}>{complete ? <Check className="h-3.5 w-3.5" /> : index + 1}</span>
+                        <div><p className="text-xs font-extrabold text-slate-900">{stage.label}</p><p className="mt-1 text-xs leading-4 text-slate-500">{stage.detail}</p></div>
                         {current && <ScanLine className="ml-auto h-4 w-4 animate-pulse text-violet-700" />}
                       </div>
                     );
@@ -941,13 +941,13 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onNavigateTab, onOpenA
           <div className="mx-auto max-w-7xl px-5 sm:px-8 lg:px-10">
             <div className="grid gap-10 lg:grid-cols-[1.25fr_.75fr_.75fr]">
               <div className="max-w-md">
-                <div className="flex items-center gap-3"><span className="flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br from-[#1f3c79] to-violet-600 font-black">✦</span><div><p className="text-lg font-black">KazKaz AI</p><p className="text-[11px] text-slate-500">Açıklanabilir dijital CFO çalışma alanı</p></div></div>
+                <div className="flex items-center gap-3"><span className="flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-br from-[#1f3c79] to-violet-600 font-black">✦</span><div><p className="text-lg font-black">KazKaz AI</p><p className="text-xs text-slate-500">Açıklanabilir dijital CFO çalışma alanı</p></div></div>
                 <p className="mt-5 text-sm leading-6 text-slate-400">KOBİ ve finans ekipleri için veri kalitesi, finans motoru ve kontrollü AI açıklamasını tek karar akışında birleştirir.</p>
               </div>
               <div><p className="text-xs font-extrabold uppercase tracking-[.14em] text-slate-500">Ürün</p><nav className="mt-4 grid gap-3 text-sm text-slate-300" aria-label="Alt ürün menüsü"><a href="#moduller" className="hover:text-white">Modüller</a><a href="#veri-yolculugu" className="hover:text-white">Nasıl çalışır?</a><a href="#pilot-secenekleri" className="hover:text-white">Pilot erişim</a><a href="#sss" className="hover:text-white">Sık sorulanlar</a></nav></div>
               <div><p className="text-xs font-extrabold uppercase tracking-[.14em] text-slate-500">Güven ve sınırlar</p><nav className="mt-4 grid gap-3 text-sm text-slate-300" aria-label="Alt güven menüsü"><a href="#guvenlik" className="hover:text-white">Güven yaklaşımı</a><span>İnsan onayı gereklidir</span><span>Sertifika iddiası yoktur</span><span>Canlı ödeme henüz yoktur</span></nav></div>
             </div>
-            <div className="mt-10 flex flex-col gap-3 border-t border-white/10 pt-6 text-[11px] text-slate-500 sm:flex-row sm:items-center sm:justify-between"><span>© 2026 KazKaz AI · Pilot V1</span><span>Karar desteği sağlar; muhasebe kaydı veya bağımsız denetim görüşü değildir.</span></div>
+            <div className="mt-10 flex flex-col gap-3 border-t border-white/10 pt-6 text-xs text-slate-500 sm:flex-row sm:items-center sm:justify-between"><span>© 2026 KazKaz AI · Pilot V1</span><span>Karar desteği sağlar; muhasebe kaydı veya bağımsız denetim görüşü değildir.</span></div>
           </div>
         </footer>
       </main>

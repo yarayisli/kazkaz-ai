@@ -40,7 +40,7 @@ export const BudgetTab: React.FC<BudgetTabProps> = ({ budgetItems, onNavigateDat
           </div>
           <div>
             <div className="flex items-center gap-2">
-              <span className="bg-[#FF4D00]/20 text-[#FF4D00] text-[10px] font-mono font-bold px-2 py-0.5 rounded-xs uppercase tracking-wider border border-[#FF4D00]/30">
+              <span className="bg-[#FF4D00]/20 text-[#FF4D00] text-xs font-mono font-bold px-2 py-0.5 rounded-xs uppercase tracking-wider border border-[#FF4D00]/30">
                 OTOMATİK BÜTÇE KORUMA PROTOKOLÜ
               </span>
             </div>
@@ -69,13 +69,13 @@ export const BudgetTab: React.FC<BudgetTabProps> = ({ budgetItems, onNavigateDat
         <div className="card-dark p-5 rounded-xs border border-white/10 space-y-1 bg-white/[0.03]">
           <span className="text-xs text-slate-400 font-bold uppercase">Planlanan Toplam Bütçe</span>
           <div className="text-2xl font-display font-extrabold text-white">{formatTRY(totalPlanned)}</div>
-          <p className="text-[11px] text-slate-500">Q1 Hedeflenen Gider Limiti</p>
+          <p className="text-xs text-slate-500">Q1 Hedeflenen Gider Limiti</p>
         </div>
 
         <div className="card-dark p-5 rounded-xs border border-white/10 space-y-1 bg-white/[0.03]">
           <span className="text-xs text-slate-400 font-bold uppercase">Gerçekleşen Harcama</span>
           <div className="text-2xl font-display font-extrabold text-white">{formatTRY(totalActual)}</div>
-          <p className="text-[11px] text-slate-500">Gerçekleşen Operasyonel Harcama</p>
+          <p className="text-xs text-slate-500">Gerçekleşen Operasyonel Harcama</p>
         </div>
 
         <div className={`card-dark p-5 rounded-xs border space-y-1 ${
@@ -85,7 +85,7 @@ export const BudgetTab: React.FC<BudgetTabProps> = ({ budgetItems, onNavigateDat
           <div className={`text-2xl font-display font-extrabold ${isTotalOverBudget ? 'text-red-400' : 'text-emerald-400'}`}>
             {formatTRY(totalVariance)}
           </div>
-          <p className={`text-[11px] font-bold ${isTotalOverBudget ? 'text-red-300' : 'text-emerald-300'}`}>
+          <p className={`text-xs font-bold ${isTotalOverBudget ? 'text-red-300' : 'text-emerald-300'}`}>
             {isTotalOverBudget ? '⚠️ Kritik Bütçe Aşımı Mevcut' : '✓ Bütçe Limitleri İçinde (Tasarruf)'}
           </p>
         </div>
@@ -136,7 +136,7 @@ export const BudgetTab: React.FC<BudgetTabProps> = ({ budgetItems, onNavigateDat
                   <div className="flex items-center gap-3 flex-wrap">
                     <span className="text-slate-400">Plan: <strong className="text-white">{formatTRY(item.planned)}</strong></span>
                     <span className="text-slate-400">Gerçekleşen: <strong className="text-white">{formatTRY(item.actual)}</strong></span>
-                    <span className={`px-2 py-0.5 rounded-xs text-[10px] font-bold ${
+                    <span className={`px-2 py-0.5 rounded-xs text-xs font-bold ${
                       isOverBudget ? 'bg-red-500/20 text-red-400 border border-red-500/30' : 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30'
                     }`}>
                       {isOverBudget ? `+%${Math.abs(item.variancePercent)} AŞIM` : `-%${Math.abs(item.variancePercent)} TASARRUF`}
@@ -145,7 +145,7 @@ export const BudgetTab: React.FC<BudgetTabProps> = ({ budgetItems, onNavigateDat
                     {/* Quick Trigger Test for this category */}
                     {showSimulationTools && <button
                       onClick={() => triggerBudgetTestAlert(item.category, Math.round(item.planned * 0.25))}
-                      className="bg-white/5 hover:bg-white/10 text-slate-300 text-[10px] px-2 py-0.5 rounded-xs border border-white/10 transition-colors cursor-pointer"
+                      className="bg-white/5 hover:bg-white/10 text-slate-300 text-xs px-2 py-0.5 rounded-xs border border-white/10 transition-colors cursor-pointer"
                       title="Bu kalem için bütçe aşım simülasyonu çalıştır"
                     >
                       ⚡ Test Et

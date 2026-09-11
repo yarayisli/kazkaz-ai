@@ -235,7 +235,7 @@ export const BenchmarkingTab: React.FC<BenchmarkingTabProps> = ({ financialData,
       <div className="bg-white p-5 rounded-xl border border-slate-200 shadow-xs flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
         <div>
           <div className="flex items-center gap-2">
-            <span className="bg-purple-100 text-purple-800 text-[10px] font-extrabold px-2 py-0.5 rounded uppercase">
+            <span className="bg-purple-100 text-purple-800 text-xs font-extrabold px-2 py-0.5 rounded uppercase">
               Referans Benchmark
             </span>
             <h2 className="text-lg font-bold text-slate-900">Piyasa Karşılaştırma ve Rekabet Analizi</h2>
@@ -260,7 +260,7 @@ export const BenchmarkingTab: React.FC<BenchmarkingTabProps> = ({ financialData,
             </select>
           </div>
 
-            <span className="rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-[10px] font-bold text-slate-500">Pilot sektör profili · ölçek filtresi yok</span>
+            <span className="rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-xs font-bold text-slate-500">Pilot sektör profili · ölçek filtresi yok</span>
           </div>
       </div>
 
@@ -282,7 +282,7 @@ export const BenchmarkingTab: React.FC<BenchmarkingTabProps> = ({ financialData,
 
           <div>
             <div className="flex items-center justify-between">
-              <span className="text-[10px] font-extrabold uppercase tracking-wider text-blue-400 bg-blue-950/80 px-2.5 py-1 rounded-md border border-blue-800">
+              <span className="text-xs font-extrabold uppercase tracking-wider text-blue-400 bg-blue-950/80 px-2.5 py-1 rounded-md border border-blue-800">
                 Referans Uyum Skoru
               </span>
               <Award className="w-5 h-5 text-amber-400" />
@@ -306,7 +306,7 @@ export const BenchmarkingTab: React.FC<BenchmarkingTabProps> = ({ financialData,
             </p>
           </div>
 
-          <div className="mt-6 pt-4 border-t border-slate-800/80 text-[11px] text-slate-400 space-y-1">
+          <div className="mt-6 pt-4 border-t border-slate-800/80 text-xs text-slate-400 space-y-1">
             <div className="flex justify-between">
               <span>Seçili Sektör:</span>
               <span className="text-white font-semibold">{sectorInfo.name}</span>
@@ -331,36 +331,36 @@ export const BenchmarkingTab: React.FC<BenchmarkingTabProps> = ({ financialData,
           {/* Quick Metrics Grid */}
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
             <div className="p-3 bg-slate-50 rounded-xl border border-slate-100">
-              <span className="text-[10px] font-bold text-slate-400 uppercase block">Brüt Kâr Marjı</span>
+              <span className="text-xs font-bold text-slate-400 uppercase block">Brüt Kâr Marjı</span>
               <div className="flex items-baseline gap-1 mt-1">
                 <span className="text-sm font-extrabold text-slate-900">%{companyGrossMargin.toFixed(1)}</span>
-                <span className="text-[10px] text-slate-500">vs %{sectorInfo.avg.grossProfitMargin} referans</span>
+                <span className="text-xs text-slate-500">vs %{sectorInfo.avg.grossProfitMargin} referans</span>
               </div>
             </div>
 
             <div className="p-3 bg-slate-50 rounded-xl border border-slate-100">
-              <span className="text-[10px] font-bold text-slate-400 uppercase block">Net Kâr Marjı</span>
+              <span className="text-xs font-bold text-slate-400 uppercase block">Net Kâr Marjı</span>
               <div className="flex items-baseline gap-1 mt-1">
                 <span className="text-sm font-extrabold text-slate-900">%{companyNetMargin.toFixed(1)}</span>
-                <span className="text-[10px] text-slate-500">vs %{sectorInfo.avg.netProfitMargin} referans</span>
+                <span className="text-xs text-slate-500">vs %{sectorInfo.avg.netProfitMargin} referans</span>
               </div>
             </div>
 
             <div className="p-3 bg-slate-50 rounded-xl border border-slate-100">
-              <span className="text-[10px] font-bold text-slate-400 uppercase block">Tahsilat Süresi (DSO)</span>
+              <span className="text-xs font-bold text-slate-400 uppercase block">Tahsilat Süresi (DSO)</span>
               <div className="flex items-baseline gap-1 mt-1">
                 <span className={`text-sm font-extrabold ${companyDso != null && companyDso <= sectorInfo.avg.dsoDays ? 'text-emerald-700' : 'text-amber-700'}`}>
                   {companyDso == null ? 'Veri gerekli' : `${companyDso} Gün`}
                 </span>
-                <span className="text-[10px] text-slate-500">vs {sectorInfo.avg.dsoDays} Gün</span>
+                <span className="text-xs text-slate-500">vs {sectorInfo.avg.dsoDays} Gün</span>
               </div>
             </div>
 
             <div className="p-3 bg-slate-50 rounded-xl border border-slate-100">
-              <span className="text-[10px] font-bold text-slate-400 uppercase block">Cari Oran</span>
+              <span className="text-xs font-bold text-slate-400 uppercase block">Cari Oran</span>
               <div className="flex items-baseline gap-1 mt-1">
                 <span className="text-sm font-extrabold text-slate-900">{companyCurrentRatio == null ? 'Veri gerekli' : `${companyCurrentRatio.toFixed(2)}x`}</span>
-                <span className="text-[10px] text-slate-500">vs {sectorInfo.avg.currentRatio}x</span>
+                <span className="text-xs text-slate-500">vs {sectorInfo.avg.currentRatio}x</span>
               </div>
             </div>
           </div>

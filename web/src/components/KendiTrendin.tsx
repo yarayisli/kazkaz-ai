@@ -36,7 +36,7 @@ const TrendSatiri: React.FC<{ d: TrendDegisimi; para: (n: number) => string }> =
 
       <div className="min-w-0 flex-1">
         <p className="text-xs font-bold text-[#0a1628]">{d.etiket}</p>
-        <p className="mt-1 text-[11px] tabular-nums text-slate-600">
+        <p className="mt-1 text-xs tabular-nums text-slate-600">
           {bicimle(d.onceki, d.birim, para)} <span className="text-slate-400">→</span>{' '}
           <strong className="text-slate-900">{bicimle(d.son, d.birim, para)}</strong>
           {d.goreli_degisim_yuzde != null && (
@@ -50,7 +50,7 @@ const TrendSatiri: React.FC<{ d: TrendDegisimi; para: (n: number) => string }> =
 
       {d.nakit_etkisi != null && d.nakit_etkisi !== 0 && (
         <div className={`shrink-0 rounded-lg px-3 py-2 text-right ${d.nakit_etkisi > 0 ? 'bg-red-100/70' : 'bg-emerald-100/70'}`}>
-          <p className={`text-[9px] font-black uppercase tracking-wide ${d.nakit_etkisi > 0 ? 'text-red-700' : 'text-emerald-700'}`}>
+          <p className={`text-xs font-black uppercase tracking-wide ${d.nakit_etkisi > 0 ? 'text-red-700' : 'text-emerald-700'}`}>
             {d.nakit_etkisi > 0 ? 'Bağlanan para' : 'Serbest kalan'}
           </p>
           <p className={`text-xs font-extrabold tabular-nums ${d.nakit_etkisi > 0 ? 'text-red-800' : 'text-emerald-800'}`}>
@@ -106,7 +106,7 @@ export const KendiTrendin: React.FC<KendiTrendinProps> = ({ trend, paraBirimi, o
             {trend.onceki_donem} → {trend.son_donem} · sektör ortalamasıyla değil, kendi geçmişinizle
           </p>
         </div>
-        <span className={`inline-flex shrink-0 items-center gap-1.5 rounded-full border px-2.5 py-1 text-[10px] font-bold ${
+        <span className={`inline-flex shrink-0 items-center gap-1.5 rounded-full border px-2.5 py-1 text-xs font-bold ${
           kotuler.length > 0
             ? 'border-red-200 bg-red-50 text-red-700'
             : 'border-emerald-200 bg-emerald-50 text-emerald-700'
@@ -126,7 +126,7 @@ export const KendiTrendin: React.FC<KendiTrendinProps> = ({ trend, paraBirimi, o
         </ul>
       )}
 
-      <p className="mt-4 border-t border-slate-100 pt-3 text-[10px] leading-4 text-slate-400">
+      <p className="mt-4 border-t border-slate-100 pt-3 text-xs leading-4 text-slate-400">
         %5 altındaki oynamalar gürültü sayılır ve listelenmez. Tahsilat süresindeki değişimin
         nakit etkisi, farkın günlük ciroyla çarpımıdır. Gün bazlı kalemler dönem gün sayısını
         ister; verilmemişse hesaplanmaz.

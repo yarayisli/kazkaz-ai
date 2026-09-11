@@ -58,7 +58,10 @@ class FakeBatch:
 
     def set(self, ref, data):
         self.operations.append(("set", ref, data))
-        return self
+        # google-cloud-firestore WriteBatch.set() dönüş değeri None'dır.
+        # Sahte istemci gerçek SDK davranışını taklit ederek zincirleme çağrı
+        # hatalarının testten kaçmasını engeller.
+        return None
 
     def delete(self, ref):
         self.operations.append(("delete", ref, None))

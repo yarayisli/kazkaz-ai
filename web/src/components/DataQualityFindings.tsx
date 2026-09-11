@@ -32,7 +32,7 @@ const BulguSatiri: React.FC<{ bulgu: VeriKalitesiBulgusu }> = ({ bulgu }) => {
       <div className="min-w-0">
         <p className={`text-xs font-bold ${hata ? 'text-red-900' : 'text-amber-900'}`}>{bulgu.mesaj}</p>
         {(beklenen !== null || gozlemlenen !== null) && (
-          <p className={`mt-1 text-[11px] tabular-nums ${hata ? 'text-red-700' : 'text-amber-800'}`}>
+          <p className={`mt-1 text-xs tabular-nums ${hata ? 'text-red-700' : 'text-amber-800'}`}>
             {beklenen !== null && <>Beklenen {beklenen}</>}
             {beklenen !== null && gozlemlenen !== null && ' ≠ '}
             {gozlemlenen !== null && <>Verilen {gozlemlenen}</>}
@@ -41,7 +41,7 @@ const BulguSatiri: React.FC<{ bulgu: VeriKalitesiBulgusu }> = ({ bulgu }) => {
         )}
         {/* Alan adı büyük harfe çevrilmez: Türkçe yerelde ASCII "i" → "İ" olur
             ve toplam_varliklar → TOPLAM_VARLİKLAR gibi yanlış okunur. */}
-        <p className="mt-1 text-[10px] font-semibold text-slate-400">Alan: {bulgu.alan.replace(/_/g, ' ')}</p>
+        <p className="mt-1 text-xs font-semibold text-slate-400">Alan: {bulgu.alan.replace(/_/g, ' ')}</p>
       </div>
     </li>
   );
@@ -80,7 +80,7 @@ export const DataQualityFindings: React.FC<DataQualityFindingsProps> = ({ kalite
           )}
           <div>
             <p className="text-xs font-bold text-slate-900">İç denetim kontrolleri</p>
-            <p className="mt-0.5 text-[11px] text-slate-500">
+            <p className="mt-0.5 text-xs text-slate-500">
               {temiz
                 ? 'Bilanço, nakit akışı ve kâr tanımı tutarlı.'
                 : 'Yapay zekâ yorum yapmadan önce tablo sorgulanır.'}
@@ -88,7 +88,7 @@ export const DataQualityFindings: React.FC<DataQualityFindingsProps> = ({ kalite
           </div>
         </div>
         <span
-          className={`shrink-0 rounded-full border px-2.5 py-1 text-[10px] font-bold ${
+          className={`shrink-0 rounded-full border px-2.5 py-1 text-xs font-bold ${
             temiz
               ? 'border-emerald-200 bg-white text-emerald-700'
               : hataSayisi > 0
@@ -117,7 +117,7 @@ export const DataQualityFindings: React.FC<DataQualityFindingsProps> = ({ kalite
       {aktarimBloke && (
         <div className="mt-3 rounded-xl border border-red-200 bg-red-50 p-3">
           <p className="text-xs font-bold text-red-900">Çalışma alanına aktarım durduruldu</p>
-          <ul className="mt-1.5 list-disc space-y-1 pl-4 text-[11px] leading-4 text-red-800">
+          <ul className="mt-1.5 list-disc space-y-1 pl-4 text-xs leading-4 text-red-800">
             {blokeNedenleri.map((neden) => <li key={neden}>{neden}</li>)}
           </ul>
         </div>
@@ -126,7 +126,7 @@ export const DataQualityFindings: React.FC<DataQualityFindingsProps> = ({ kalite
       {atlanan.length > 0 && (
         <div className="mt-3 flex gap-2.5 rounded-xl border border-slate-200 bg-slate-50 p-3">
           <FileWarning className="mt-0.5 h-3.5 w-3.5 shrink-0 text-slate-400" />
-          <p className="text-[11px] leading-4 text-slate-600">
+          <p className="text-xs leading-4 text-slate-600">
             <strong className="text-slate-800">{atlanan.length} sayfa okunmadı:</strong> {atlanan.join(', ')}.
             {taninan.length > 0 && <> Analiz {taninan.length} sayfadan yapıldı ({taninan.join(', ')}).</>}
           </p>
@@ -134,7 +134,7 @@ export const DataQualityFindings: React.FC<DataQualityFindingsProps> = ({ kalite
       )}
 
       {hataSayisi > 0 && (
-        <p className="mt-3 border-t border-slate-100 pt-3 text-[11px] leading-4 text-slate-500">
+        <p className="mt-3 border-t border-slate-100 pt-3 text-xs leading-4 text-slate-500">
           Kesin tutarsızlıklar düzeltilmeden analiz başlatılmaz. Excel dosyanızı düzeltip yeniden yükleyin.
         </p>
       )}

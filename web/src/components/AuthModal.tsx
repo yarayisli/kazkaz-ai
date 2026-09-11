@@ -244,7 +244,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose }) => {
 
         {mode !== 'reset' && <><div className="relative my-4 text-center">
           <div className="absolute inset-0 flex items-center"><div className="w-full border-t border-slate-200"></div></div>
-          <span className="relative bg-white px-3 text-[10px] text-slate-400 font-semibold uppercase tracking-wider">veya</span>
+          <span className="relative bg-white px-3 text-xs text-slate-400 font-semibold uppercase tracking-wider">veya</span>
         </div>
 
         {/* OAuth 2.0 & Google Sign In */}
@@ -274,7 +274,7 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose }) => {
         </div></>}
 
         {/* Security Note */}
-        <div className="pt-2 border-t border-slate-100 text-[10px] text-slate-400 text-center flex items-center justify-center gap-1">
+        <div className="pt-2 border-t border-slate-100 text-xs text-slate-400 text-center flex items-center justify-center gap-1">
           <Lock className="w-3 h-3 text-slate-400" />
           <span>Rol tabanlı erişim ve oturum doğrulaması</span>
         </div>

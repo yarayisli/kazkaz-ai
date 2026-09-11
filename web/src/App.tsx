@@ -19,6 +19,7 @@ import { CompanySetup } from './components/CompanySetup';
 import { ErrorBoundary } from './components/ErrorBoundary';
 import { FeedbackWidget } from './components/FeedbackWidget';
 import { ScreenTabs } from './components/ScreenTabs';
+import { AuthModal } from './components/AuthModal';
 
 const OverviewTab = lazy(() => import('./components/OverviewTab').then((module) => ({ default: module.OverviewTab })));
 const CfoAgentTab = lazy(() => import('./components/CfoAgentTab').then((module) => ({ default: module.CfoAgentTab })));
@@ -83,6 +84,7 @@ export function WorkspaceApp() {
   // Sağlık skoru zaman serisi ister; tek dönemlik görünümden hesaplanamaz.
   // Bu yüzden yalnızca Excel içe aktarımından sonra doldurulur.
   const [healthScore, setHealthScore] = useState<SaglikSkoru | null>(null);
+  const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
 
   useEffect(() => {
     try {
@@ -422,12 +424,13 @@ export function WorkspaceApp() {
             companyName={financialData.companyName}
             period={financialData.period}
             recentTabIds={recentTabIds}
+            onOpenAuth={() => setIsAuthModalOpen(true)}
           />
 
           {activeTab === 'landing' || (!isGuest && !currentUser) ? (
             <LandingPage
               onNavigateTab={navigateToTab}
-              onOpenAuth={() => navigateToTab('data-entry')}
+              onOpenAuth={() => setIsAuthModalOpen(true)}
               onSelectDemo={selectDemo}
             />
           ) : currentUser && userProfile && !isGuest && (
@@ -670,12 +673,13 @@ export function WorkspaceApp() {
                 <div>
                   KazKaz <span className="font-bold text-violet-700">AI</span> — Dijital CFO çalışma alanı © 2026
                 </div>
-                <div className="text-center text-[11px] text-slate-600 sm:text-right">
+                <div className="text-center text-xs text-slate-600 sm:text-right">
                   Karar desteği sağlar; muhasebe kaydı veya bağımsız denetim görüşü değildir.
                 </div>
               </div>
             </footer>
           )}
+          <AuthModal isOpen={isAuthModalOpen} onClose={() => setIsAuthModalOpen(false)} />
     </div>
   );
 }

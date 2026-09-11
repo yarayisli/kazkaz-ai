@@ -160,13 +160,13 @@ export const FinancialStatementsTab: React.FC<FinancialStatementsTabProps> = ({
 
       <section className={`flex items-start gap-3 rounded-xl border px-4 py-3 ${control.ready ? 'border-emerald-200 bg-emerald-50 text-emerald-900' : 'border-amber-200 bg-amber-50 text-amber-900'}`}>
         {control.ready ? <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0 text-emerald-700" /> : <CircleAlert className="mt-0.5 h-4 w-4 shrink-0 text-amber-700" />}
-        <div><p className="text-xs font-extrabold">{control.ready ? 'Kontrol başarılı' : 'İnceleme veya ek veri gerekli'}</p><p className="mt-1 text-[11px]">{control.label}</p></div>
+        <div><p className="text-xs font-extrabold">{control.ready ? 'Kontrol başarılı' : 'İnceleme veya ek veri gerekli'}</p><p className="mt-1 text-xs">{control.label}</p></div>
       </section>
 
       <section className="panel-card overflow-hidden">
         <div className="border-b border-slate-200 px-5 py-4">
           <h2 className="text-sm font-extrabold text-slate-900">{data.companyName} · {data.period}</h2>
-          <p className="mt-1 text-[11px] text-slate-500">
+          <p className="mt-1 text-xs text-slate-500">
             {mizanDonemi && mizanBolumu ? 'Girilen özet veriden · ' : ''}Raporlama para birimi: {data.currency}
           </p>
         </div>
