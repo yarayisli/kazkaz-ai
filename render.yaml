@@ -13,9 +13,9 @@ services:
       - key: ENFORCE_PLAN_LIMITS
         value: "true"
       - key: CORS_ORIGINS
-        value: https://supermantarik.com,https://www.supermantarik.com
+        sync: false
       - key: ALLOWED_HOSTS
-        value: supermantarik.com,www.supermantarik.com,*.onrender.com
+        value: "*.onrender.com"
       - key: ENFORCE_HTTPS
         value: "true"
       - key: AI_RATE_LIMIT_PER_MINUTE

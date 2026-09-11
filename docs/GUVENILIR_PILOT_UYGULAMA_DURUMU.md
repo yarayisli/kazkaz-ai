@@ -6,7 +6,9 @@ Bu kayıt, `codex/guvenilir-pilot` dalında uygulanan yol haritası adımların�
 
 - İnceleme tabanı: `cbeabeebe2ea416a5880afce48da073bd866d1a8`.
 - Kaynak dalın GitHub CI çalışması başarılıydı.
-- Yapılandırmada görülen `https://supermantarik.com/api/health` adresi bu çalışma ortamında DNS üzerinden çözülemedi. Güncel canlı/test adresi bilinmeden canlı sürüm eşleştirmesi ve geri yükleme tatbikatı tamamlanmış sayılamaz.
+- Henüz bağlı bir canlı veya test adresi yoktur. Geçmiş alan adı varsayımı dağıtım
+  yapılandırmasından kaldırıldı; ilk Render dağıtımının verdiği gerçek adres
+  `CORS_ORIGINS` olarak tanımlanmadan canlı sürüm eşleştirmesi tamamlanmış sayılamaz.
 
 ## Aşama 1 — Oturum, yetki ve eşzamanlı veri güvenliği
 

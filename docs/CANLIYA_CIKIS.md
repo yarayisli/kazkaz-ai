@@ -8,16 +8,19 @@ destekler; hukukçu, mali müşavir/CFO ve güvenlik uzmanı onayının yerine g
 
 1. Render’da bu depodan Blueprint oluşturun; `render.yaml` tek Docker servisi kurar.
 2. `sync: false` secret değerlerini Render panelinde tanımlayın.
-3. İlk dağıtımdan sonra Render Custom Domains ekranına `supermantarik.com` ve
-   `www.supermantarik.com` ekleyin; Render’ın verdiği DNS kayıtlarını alan adı
-   sağlayıcısına girin.
-4. `/api/health` 200, `/api/readiness` ise `durum: hazir` dönmeden pilot açmayın.
-5. HTTPS üzerinden giriş, Excel yükleme, rapor indirme ve çıkış smoke testini yapın.
+3. İlk dağıtımdan sonra Render'ın verdiği `*.onrender.com` servis adresini kaydedin.
+   Ayrı bir alan adı alınırsa Render Custom Domains ekranına ekleyin ve Render'ın
+   verdiği DNS kayıtlarını alan adı sağlayıcısına girin.
+4. `CORS_ORIGINS` değerini gerçek `https://...` servis adresiyle; özel alan adı
+   bağlanırsa iki adresle güncelleyin. Özel alan adını `ALLOWED_HOSTS` listesine de
+   ekleyin. Depoda örnek veya geçmiş bir alan adı bırakmayın.
+5. `/api/health` 200, `/api/readiness` ise `durum: hazir` dönmeden pilot açmayın.
+6. HTTPS üzerinden giriş, Excel yükleme, rapor indirme ve çıkış smoke testini yapın.
 
 ## 2. Firebase
 
 - Email/Password ve Google giriş sağlayıcılarını bilinçli olarak etkinleştirin.
-- Authorized Domains listesine iki canlı alan adını ekleyin.
+- Authorized Domains listesine Render servis adresini ve varsa özel alan adını ekleyin.
 - `firestore.rules` dosyasını canlı projeye dağıtın; Emulator Suite ile iki şirket
   arasında okuma/yazma izolasyonunu ayrıca çalıştırın.
 - Servis hesabı JSON dosyasını depoya koymayın; Render secret olarak tek satır JSON kullanın.
