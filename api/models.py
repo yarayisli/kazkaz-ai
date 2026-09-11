@@ -261,6 +261,11 @@ class GeriBildirimMemnuniyetIstegi(BaseModel):
     memnun: bool
 
 
+class PilotNiyetIstegi(BaseModel):
+    devam_niyeti: Literal["kesinlikle", "muhtemelen", "kararsiz", "muhtemelen_hayir", "kesinlikle_hayir"]
+    ucretli_devam: bool
+
+
 class GoogleSheetsIstegi(BaseModel):
     url: str = Field(min_length=30, max_length=500)
     sayfa_adi: Optional[str] = Field(default=None, max_length=120)

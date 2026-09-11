@@ -9,23 +9,29 @@ if [[ ! -x ".venv/bin/python" ]]; then
   exit 2
 fi
 
-echo "[1/6] Backend ve güvenlik testleri"
+echo "[1/8] Backend ve güvenlik testleri"
 .venv/bin/python -m unittest discover -s api/tests -v
 
-echo "[2/6] Finans motoru regresyon testleri"
-.venv/bin/python -m unittest test_engines -v
+echo "[2/8] Finans motoru ve kullanım sayacı regresyon testleri"
+.venv/bin/python -m unittest test_engines test_usage_tracker -v
 
-echo "[3/6] Python sözdizimi kontrolü"
+echo "[3/8] Python sözdizimi kontrolü"
 .venv/bin/python -m compileall -q api cfo_agent.py gemini_engine.py
 
-echo "[4/6] Frontend tip ve üretim derlemesi"
+echo "[4/8] Frontend davranış testleri"
+npm --prefix web test
+
+echo "[5/8] Frontend tip ve üretim derlemesi"
 npm --prefix web run lint
 npm --prefix web run build
 
-echo "[5/6] Frontend bağımlılık güvenliği"
+echo "[6/8] Masaüstü ve mobil tarayıcı kabul testleri"
+npm --prefix web run test:e2e
+
+echo "[7/8] Frontend bağımlılık güvenliği"
 npm --prefix web audit --omit=dev --audit-level=high
 
-echo "[6/6] Depo gizli anahtar kontrolü"
+echo "[8/8] Depo gizli anahtar kontrolü"
 if git ls-files | rg -i '(^|/)(\.env|.*firebase-adminsdk.*\.json|firebase-key\.json|.*service-account.*\.json|.*\.pem|.*\.key)$'; then
   echo "Gizli değer taşıyabilecek dosya Git tarafından izleniyor." >&2
   exit 3

@@ -511,12 +511,18 @@ def platform_sirketini_guncelle(istek: PlatformSirketGuncellemeIstegi, yonetici:
     """Paket/durum değişikliğini finansal verilere dokunmadan denetim iziyle uygular."""
     db = _db()
     sirket_ref = db.collection("companies").document(istek.sirket_id)
-    if not sirket_ref.get().exists:
+    mevcut_belge = sirket_ref.get()
+    if not mevcut_belge.exists:
         from fastapi import HTTPException
         raise HTTPException(status_code=404, detail="Şirket bulunamadı.")
     degisiklik: dict[str, Any] = {"updatedAt": firestore.SERVER_TIMESTAMP}
     if istek.durum is not None:
         degisiklik["status"] = istek.durum
+        onceki_durum = _durum(mevcut_belge.to_dict() or {})
+        if istek.durum == "pilot" and (onceki_durum != "pilot" or not (mevcut_belge.to_dict() or {}).get("pilotStartedAt")):
+            degisiklik["pilotStartedAt"] = firestore.SERVER_TIMESTAMP
+        elif istek.durum != "pilot" and onceki_durum == "pilot":
+            degisiklik["pilotEndedAt"] = firestore.SERVER_TIMESTAMP
     if istek.plan is not None:
         degisiklik["plan"] = istek.plan
     batch = db.batch()
@@ -525,7 +531,7 @@ def platform_sirketini_guncelle(istek: PlatformSirketGuncellemeIstegi, yonetici:
     batch.set(audit_ref, {
         "action": "company.update",
         "companyId": istek.sirket_id,
-        "changes": {key: value for key, value in degisiklik.items() if key != "updatedAt"},
+        "changes": {key: degisiklik[key] for key in ("status", "plan") if key in degisiklik},
         "reason": " ".join(istek.gerekce.split()) if istek.gerekce else None,
         "actorId": yonetici.kullanici_id,
         "createdAt": firestore.SERVER_TIMESTAMP,
@@ -553,7 +559,7 @@ def platform_sirketini_guncelle(istek: PlatformSirketGuncellemeIstegi, yonetici:
     return {
         "durum": "guncellendi" if not basarisiz else "kismen_guncellendi",
         "sirket_id": istek.sirket_id,
-        "degisiklikler": {key: value for key, value in degisiklik.items() if key != "updatedAt"},
+        "degisiklikler": {key: degisiklik[key] for key in ("status", "plan") if key in degisiklik},
         "basarili_uye": len(basarili),
         "basarisiz_uye": len(basarisiz),
         # Geriye dönük uyum: eski istemci bu alanı okuyor.

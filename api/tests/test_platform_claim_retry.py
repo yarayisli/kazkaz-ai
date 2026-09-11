@@ -175,6 +175,15 @@ class TestClaimYenidenDeneme(unittest.TestCase):
         self.assertEqual(sonuc["basarisiz_uye"], 0)
         self.assertNotIn(BEKLEYEN, self.db.store)
 
+    def test_pilot_baslatilinca_olcum_baslangici_sabitlenir(self):
+        with patch("api.platform_admin_service.firebase_auth.revoke_refresh_tokens", return_value=None):
+            sonuc = platform_sirketini_guncelle(
+                PlatformSirketGuncellemeIstegi(sirket_id="c1", durum="pilot"),
+                _yonetici(),
+            )
+        self.assertEqual(sonuc["degisiklikler"], {"status": "pilot"})
+        self.assertIn("pilotStartedAt", self.db.store[("companies", "c1")])
+
 
 if __name__ == "__main__":
     unittest.main()

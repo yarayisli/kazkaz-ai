@@ -2,11 +2,13 @@ import React from 'react';
 import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { afterEach, beforeEach, expect, it, vi } from 'vitest';
 
-const mocks = vi.hoisted(() => ({ gonder: vi.fn(), talepler: vi.fn(), memnuniyet: vi.fn() }));
+const mocks = vi.hoisted(() => ({ gonder: vi.fn(), talepler: vi.fn(), memnuniyet: vi.fn(), pilotDurum: vi.fn(), pilotKaydet: vi.fn() }));
 vi.mock('../lib/api', () => ({
   geriBildirimGonder: mocks.gonder,
   destekTaleplerim: mocks.talepler,
   destekTalebiMemnuniyeti: mocks.memnuniyet,
+  pilotNiyetDurumu: mocks.pilotDurum,
+  pilotNiyetKaydet: mocks.pilotKaydet,
 }));
 
 import { FeedbackWidget } from './FeedbackWidget';
@@ -24,6 +26,20 @@ beforeEach(() => {
     }],
   });
   mocks.memnuniyet.mockResolvedValue({ durum: 'kaydedildi', talep_no: 'T-ABC123', memnun: true });
+  mocks.pilotDurum.mockResolvedValue({ uygun: true, yanitlandi: false, asgari_gun: 21 });
+  mocks.pilotKaydet.mockResolvedValue({ durum: 'kaydedildi' });
+});
+
+it('pilot şirket yöneticisinin ücretli devam niyetini kaydeder', async () => {
+  render(<FeedbackWidget activePage="overview" />);
+  fireEvent.click(screen.getByRole('button', { name: 'Destek' }));
+  fireEvent.click(screen.getByRole('tab', { name: 'Pilot' }));
+  await screen.findByText(/pilot sonrasında kullanmaya devam/);
+  fireEvent.change(screen.getByLabelText('Devam niyeti'), { target: { value: 'kesinlikle' } });
+  fireEvent.change(screen.getByLabelText('Ücretli devam niyeti'), { target: { value: 'evet' } });
+  fireEvent.click(screen.getByRole('button', { name: 'Değerlendirmeyi kaydet' }));
+  await waitFor(() => expect(mocks.pilotKaydet).toHaveBeenCalledWith('kesinlikle', true));
+  expect(await screen.findByText(/Pilot değerlendirmeniz kaydedildi/)).toBeTruthy();
 });
 
 it('talep numarasını, çözüm yanıtını ve müşteri memnuniyetini uçtan uca gösterir', async () => {

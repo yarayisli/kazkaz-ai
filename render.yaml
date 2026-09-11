@@ -22,6 +22,8 @@ services:
         value: "20"
       - key: PUBLIC_PERFORMANCE_MIN_SAMPLES
         value: "30"
+      - key: PILOT_SURVEY_MIN_DAYS
+        value: "21"
       - key: FIREBASE_PROJECT_ID
         sync: false
       - key: FIREBASE_SERVICE_ACCOUNT_JSON

@@ -25,6 +25,7 @@ yayını ve veri işleyen sözleşmelerinin tamamlanmasından sonra kullanılmal
 | Rapor arşivi | Özgün PDF/Excel, finansal girdi ve özet | Sözleşmenin ifası | `REPORT_RETENTION_DAYS` | Şirket izolasyonu, rol kontrolü, özel Storage bucket ve SHA-256 bütünlük doğrulaması |
 | AI istemi ve yanıtı | Yönetici açıklaması | Sözleşmenin ifası | **Sağlayıcı sözleşmesine göre belirlenecek** | Finans motoru sonucu gönderilir; anahtarlar gizli |
 | Geri bildirim | Destek ve iyileştirme | Meşru menfaat / iletişim izni | **Belirlenecek** | Şirket altında backend-only kayıt |
+| Pilot değerlendirmesi | Devam ve ücretli devam niyeti | Sözleşmenin ifası / meşru menfaat adayı | **Belirlenecek** | Yalnız admin/CFO yanıtlar; finansal veri ve serbest metin alınmaz |
 | Operasyon telemetrisi | Hız ve hata ölçümü | Meşru menfaat | Süreç içi 5.000 örnek | Kullanıcı, şirket, dosya adı ve finansal değer yok |
 
 Hukukçu her satır için hukuki sebebi, zorunlu/isteğe bağlı alanı, yurtdışı aktarım

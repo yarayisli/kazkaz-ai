@@ -457,6 +457,14 @@ export interface PlatformAdminOzet {
   };
   ai: { mod: string; politika: string; finans_motoru: string; saglayicilar: Array<{ ad: string; rol: string; hazir: boolean }>; aktif_ajanlar: string[] };
   performans: { durum: string; genel?: { orneklem: number; basari_orani: number; p50_ms: number; p95_ms: number }; operasyonlar?: Record<string, { orneklem: number; basari_orani: number; p50_ms: number; p95_ms: number }> };
+  pilot: {
+    durum: string; hedef_sirket_araligi: string; pilot_sirket: number; kapsam_gecerli: boolean;
+    dort_haftayi_tamamlayan: number; asgari_kanit_hazir: boolean; finansal_veri_gosterilir: false;
+    gorev_tamamlama: { tam_yolculuk_sirket: number; tamamlanmis_tam_yolculuk_sirket: number; kontrol_noktasi: number; kontrol_noktasi_toplami: number; oran_yuzde: number | null };
+    destek: { talep: number; cozulen_sure_ornegi: number; medyan_cozum_dakika: number | null; p90_cozum_dakika: number | null; memnuniyet_yanit: number; memnuniyet_yuzde: number | null };
+    bildirilen_hata: { adet: number; tamamlanan_100_kontrol_noktasi_basina: number | null; tanim: string };
+    devam_niyeti: { yanit: number; olumlu_yuzde: number | null; ucretli_devam_yanit: number; ucretli_devam_yuzde: number | null };
+  };
   odeme: { durum: string; odeme_saglayicisi: string; eksikler: string[] };
   erp: { durum: string; saglayicilar: Record<string, { durum: string; yetki?: string }> };
   gizlilik: { finansal_veri_gosterilir: false; geri_bildirim_mesaji_gosterilir: false; kapsam: string };
@@ -1015,6 +1023,19 @@ export function destekTalebiMemnuniyeti(geriBildirimId: string, memnun: boolean)
     '/api/v1/geri-bildirim/memnuniyet',
     { geri_bildirim_id: geriBildirimId, memnun },
   );
+}
+
+export function pilotNiyetDurumu() {
+  return apiGetIstegi<{ uygun: boolean; yanitlandi: boolean; asgari_gun?: number }>('/api/v1/pilot/niyet');
+}
+
+export function pilotNiyetKaydet(
+  devamNiyeti: 'kesinlikle' | 'muhtemelen' | 'kararsiz' | 'muhtemelen_hayir' | 'kesinlikle_hayir',
+  ucretliDevam: boolean,
+) {
+  return apiIstegi<{ durum: 'kaydedildi' }>('/api/v1/pilot/niyet', {
+    devam_niyeti: devamNiyeti, ucretli_devam: ucretliDevam,
+  });
 }
 
 export async function veriSablonuIndir(): Promise<void> {

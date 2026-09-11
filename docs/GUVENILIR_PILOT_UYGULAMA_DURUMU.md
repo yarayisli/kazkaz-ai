@@ -62,9 +62,9 @@ Bu kayıt, `codex/guvenilir-pilot` dalında uygulanan yol haritası adımların�
 
 ## Doğrulama kanıtı
 
-- API, yetkilendirme, veri kalite ve işletim kanıtı testleri: **255 geçti**.
+- API, yetkilendirme, veri kalite ve işletim kanıtı testleri: **264 geçti**.
 - Kök finans motorları ve kullanım sayacı: **139 geçti**.
-- React davranış testleri: **11 geçti**.
+- React davranış testleri: **12 geçti**.
 - Masaüstü/mobil Playwright kabul senaryoları: **6 geçti**.
 - TypeScript tip kontrolü: geçti.
 - Vite üretim derlemesi: geçti.
@@ -72,9 +72,26 @@ Bu kayıt, `codex/guvenilir-pilot` dalında uygulanan yol haritası adımların�
 - Python sözdizimi ve diff biçim kontrolü: geçti.
 - Docker komutu bu bilgisayarda kurulu olmadığı için yerel imaj üretimi çalıştırılamadı; CI'daki Docker kapısı korunuyor.
 
+## Aşama 6 — Pilot müşteri kanıtı
+
+- Platform yöneticisi paneli aktif pilot şirket sayısını, 28 günü tamamlayanları,
+  uçtan uca görev oranını, destek çözüm sürelerini, memnuniyeti, bildirilen hata
+  oranını ve devam niyetini tek özette gösterir.
+- Görev başarısı dosya doğrulama, çalışma alanı kaydı, finansal analiz ve değişmez
+  rapor arşivi denetim kayıtlarından ölçülür.
+- Müşteri tarafından bildirilen hata teknik 5xx oranından açıkça ayrılır; örnek
+  sayısı olmayan oran gösterilmez.
+- Pilotun son haftasında yalnız şirket admini veya CFO'su devam ve ücretli devam
+  niyetini kaydedebilir.
+- Yönetim özeti finansal tutar, dosya adı, destek mesajı veya kullanıcı kimliği
+  taşımaz.
+- Üç ila beş şirket, en az üç tamamlanmış 28 günlük dönem, üç tam yolculuk ve üç
+  yönetici yanıtı oluşmadan sistem “asgari kanıt hazır” demez.
+
 ## Sıradaki işler
 
 1. Güncel canlı/test adresini doğrula; aynı commit'i sağlık, oturum, askı, kayıt çakışması ve geri yükleme senaryolarıyla sınayarak Aşama 0'ı kapat.
 2. Firebase Storage bucket yaşam döngüsünü `REPORT_RETENTION_DAYS` ile uyumlu kurup `REPORT_STORAGE_LIFECYCLE_CONFIGURED=true` ile doğrula.
 3. Gerçek Google Cloud kimliğiyle iki ardışık yedeği ve ayrı test projesi geri yüklemesini çalıştır; üretilen RPO/RTO kanıtını canlı ayarlara kaydet.
-4. Üç ila beş müşteriyle dört haftalık ücretli pilotta görev tamamlama, destek çözüm süresi, hata oranı ve devam niyetini ölç.
+4. Üç ila beş müşteriyle gerçek dört haftalık ücretli pilotu yürüt; paneldeki görev,
+   destek, hata ve devam niyeti sonuçlarını ürün kararı için değerlendir.

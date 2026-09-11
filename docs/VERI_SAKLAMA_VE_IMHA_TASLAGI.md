@@ -19,6 +19,8 @@ girmez.
   kullanıcı/şirket kimliği tutulmaz.
 - Güvenlik denetim kayıtları: **süre belirlenecek.**
 - Geri bildirim kayıtları: **süre belirlenecek.**
+- Pilot değerlendirmesi: devam niyeti ve ücretli devam yanıtı için **süre
+  belirlenecek**; serbest metin veya finansal veri saklanmaz.
 - Firestore export yedekleri: **bucket yaşam döngüsüyle belirlenecek.**
 - AI sağlayıcısı kayıtları: **seçilen sağlayıcı sözleşmesiyle doğrulanacak.**
 

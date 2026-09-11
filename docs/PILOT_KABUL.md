@@ -10,7 +10,8 @@ onayı anlamına gelmez.
 
 - API, yetkilendirme, finansal metrik, ajan ve veri yaşam döngüsü testleri
 - Eski finans motoru regresyon testleri
-- Frontend TypeScript kontrolü ve production build
+- Frontend davranış testleri, TypeScript kontrolü ve production build
+- Masaüstü ve mobil tarayıcı kabul senaryoları
 - Yüksek önem NPM bağımlılık denetimi
 - Depoda gerçek API anahtarı/private key taraması
 
@@ -55,10 +56,22 @@ onayı anlamına gelmez.
 
 ## Pilot sonucu
 
-Genel kullanıcı açılışı için kritik ve yüksek önem hata sıfır olmalı; en az üç
-izinli/anonim pilot şirket uçtan uca akışı tamamlamalıdır. Başarısız her bulgu
-yeni bir Kaizen maddesi olarak kayıt altına alınır, küçük değişiklikle düzeltilir
-ve bütün kabul turu yeniden çalıştırılır.
+Genel kullanıcı açılışı için kritik ve yüksek önem hata sıfır olmalıdır. Pilot
+kanıtı aşağıdaki ölçülebilir koşulların tamamını karşılamalıdır:
+
+- Aktif pilot kapsamı üç ila beş izinli şirketten oluşur.
+- En az üç şirket 28 günlük ölçüm dönemini tamamlar.
+- En az üç şirket dosya doğrulama, çalışma alanı kaydı, finansal analiz ve rapor
+  arşivleme kontrol noktalarının tamamını pilot dönemi içinde gerçekleştirir.
+- En az üç şirket yöneticisi devam niyeti ve ücretli devam sorularını yanıtlar.
+- Destek çözüm süresi, müşteri memnuniyeti ve müşteri tarafından bildirilen hata
+  oranı yönetim panelinde örnek sayılarıyla birlikte gösterilir.
+- “Bildirilen hata” müşteri talebi kategorisidir; teknik 5xx başarı oranı yerine
+  kullanılamaz. Teknik güvenilirlik operasyon panelinde ayrıca izlenir.
+
+Pilot özeti finansal tutar, dosya adı veya destek mesajı içermez. Başarısız her
+bulgu yeni bir Kaizen maddesi olarak kaydedilir, düzeltilir ve kabul turu yeniden
+çalıştırılır.
 
 ## Ticari ve entegrasyon kapısı
 

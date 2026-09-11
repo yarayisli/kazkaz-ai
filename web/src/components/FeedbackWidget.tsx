@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { CheckCircle2, Clock3, MessageSquareText, Send, ThumbsDown, ThumbsUp, X } from 'lucide-react';
-import { DestekTalebi, destekTalebiMemnuniyeti, destekTaleplerim, geriBildirimGonder } from '../lib/api';
+import { DestekTalebi, destekTalebiMemnuniyeti, destekTaleplerim, geriBildirimGonder, pilotNiyetDurumu, pilotNiyetKaydet } from '../lib/api';
 
 type Category = 'hata' | 'oneri' | 'kullanilabilirlik' | 'finansal_sonuc';
 
@@ -12,7 +12,7 @@ const durumEtiketi: Record<DestekTalebi['durum'], { ad: string; renk: string }> 
 
 export const FeedbackWidget: React.FC<{ activePage: string }> = ({ activePage }) => {
   const [open, setOpen] = useState(false);
-  const [view, setView] = useState<'gonder' | 'talepler'>('gonder');
+  const [view, setView] = useState<'gonder' | 'talepler' | 'pilot'>('gonder');
   const [category, setCategory] = useState<Category>('kullanilabilirlik');
   const [message, setMessage] = useState('');
   const [contactAllowed, setContactAllowed] = useState(false);
@@ -20,6 +20,11 @@ export const FeedbackWidget: React.FC<{ activePage: string }> = ({ activePage })
   const [talepNo, setTalepNo] = useState<string | null>(null);
   const [talepler, setTalepler] = useState<DestekTalebi[] | null>(null);
   const [talepLoading, setTalepLoading] = useState(false);
+  const [pilotStatus, setPilotStatus] = useState<{ uygun: boolean; yanitlandi: boolean; asgari_gun?: number } | null>(null);
+  const [intent, setIntent] = useState<'kesinlikle' | 'muhtemelen' | 'kararsiz' | 'muhtemelen_hayir' | 'kesinlikle_hayir'>('muhtemelen');
+  const [paidContinuation, setPaidContinuation] = useState<boolean | null>(null);
+  const [pilotSending, setPilotSending] = useState(false);
+  const [pilotError, setPilotError] = useState<string | null>(null);
 
   const submit = async (event: React.FormEvent) => {
     event.preventDefault();
@@ -42,9 +47,21 @@ export const FeedbackWidget: React.FC<{ activePage: string }> = ({ activePage })
     finally { setTalepLoading(false); }
   };
 
-  const gecisYap = (hedef: 'gonder' | 'talepler') => {
+  const gecisYap = (hedef: 'gonder' | 'talepler' | 'pilot') => {
     setView(hedef);
     if (hedef === 'talepler') void talepleriYukle();
+    if (hedef === 'pilot') void pilotNiyetDurumu().then(setPilotStatus).catch(() => setPilotStatus({ uygun: false, yanitlandi: false }));
+  };
+
+  const pilotGonder = async () => {
+    if (paidContinuation === null) return;
+    setPilotSending(true); setPilotError(null);
+    try {
+      await pilotNiyetKaydet(intent, paidContinuation);
+      setPilotStatus({ uygun: true, yanitlandi: true });
+    } catch (error) {
+      setPilotError(error instanceof Error ? error.message : 'Pilot değerlendirmesi kaydedilemedi.');
+    } finally { setPilotSending(false); }
   };
 
   const memnuniyetVer = async (talep: DestekTalebi, memnun: boolean) => {
@@ -63,9 +80,10 @@ export const FeedbackWidget: React.FC<{ activePage: string }> = ({ activePage })
         <button type="button" onClick={() => setOpen(false)} aria-label="Kapat"><X className="h-4 w-4 text-slate-400" /></button>
       </div>
 
-      <div className="mt-3 grid grid-cols-2 gap-1 rounded-lg bg-white/5 p-1" role="tablist" aria-label="Destek görünümü">
+      <div className="mt-3 grid grid-cols-3 gap-1 rounded-lg bg-white/5 p-1" role="tablist" aria-label="Destek görünümü">
         <button type="button" role="tab" aria-selected={view === 'gonder'} onClick={() => gecisYap('gonder')} className={`rounded-md py-1.5 text-[11px] font-bold ${view === 'gonder' ? 'bg-white/10 text-white' : 'text-slate-400'}`}>Yeni talep</button>
         <button type="button" role="tab" aria-selected={view === 'talepler'} onClick={() => gecisYap('talepler')} className={`rounded-md py-1.5 text-[11px] font-bold ${view === 'talepler' ? 'bg-white/10 text-white' : 'text-slate-400'}`}>Taleplerim</button>
+        <button type="button" role="tab" aria-selected={view === 'pilot'} onClick={() => gecisYap('pilot')} className={`rounded-md py-1.5 text-[11px] font-bold ${view === 'pilot' ? 'bg-white/10 text-white' : 'text-slate-400'}`}>Pilot</button>
       </div>
 
       {view === 'gonder' && <form onSubmit={submit} className="mt-3">
@@ -105,6 +123,20 @@ export const FeedbackWidget: React.FC<{ activePage: string }> = ({ activePage })
             </div> : <p className="mt-2 text-[10px] text-slate-400">{talep.memnun ? '👍 Memnuniyetiniz kaydedildi.' : '👎 Geri bildiriminiz kaydedildi; talebi yeniden açabiliriz.'}</p>)}
           </article>;
         })}
+      </div>}
+      {view === 'pilot' && <div className="mt-3 rounded-xl border border-white/10 bg-white/5 p-3">
+        {!pilotStatus && <p className="py-4 text-center text-[11px] text-slate-400">Pilot değerlendirmesi kontrol ediliyor…</p>}
+        {pilotStatus && !pilotStatus.uygun && <p className="text-[11px] leading-5 text-slate-300">Pilot devam değerlendirmesi ölçüm döneminin son haftasında şirket yöneticisine açılır.</p>}
+        {pilotStatus?.yanitlandi && <p className="text-[11px] font-bold leading-5 text-emerald-300">Pilot değerlendirmeniz kaydedildi. Teşekkürler.</p>}
+        {pilotStatus?.uygun && !pilotStatus.yanitlandi && <div>
+          <p className="text-[11px] leading-5 text-slate-300">KazKaz’ı pilot sonrasında kullanmaya devam etme niyetiniz nedir?</p>
+          <select aria-label="Devam niyeti" value={intent} onChange={(event) => setIntent(event.target.value as typeof intent)} className="mt-2 w-full rounded-lg border border-white/10 bg-[#10172b] px-3 py-2 text-xs">
+            <option value="kesinlikle">Kesinlikle devam ederiz</option><option value="muhtemelen">Muhtemelen devam ederiz</option><option value="kararsiz">Kararsızız</option><option value="muhtemelen_hayir">Muhtemelen devam etmeyiz</option><option value="kesinlikle_hayir">Devam etmeyiz</option>
+          </select>
+          <label className="mt-3 block text-[10px] text-slate-300">Ücretli planda devam etmeyi değerlendirir misiniz?<select aria-label="Ücretli devam niyeti" value={paidContinuation === null ? '' : paidContinuation ? 'evet' : 'hayir'} onChange={(event) => setPaidContinuation(event.target.value === '' ? null : event.target.value === 'evet')} className="mt-1.5 w-full rounded-lg border border-white/10 bg-[#10172b] px-3 py-2 text-xs"><option value="">Seçiniz</option><option value="evet">Evet</option><option value="hayir">Hayır</option></select></label>
+          {pilotError && <p role="alert" className="mt-2 text-[10px] text-red-300">{pilotError}</p>}
+          <button type="button" disabled={pilotSending || paidContinuation === null} onClick={() => void pilotGonder()} className="mt-3 w-full rounded-lg bg-orange-600 px-3 py-2 text-xs font-bold disabled:opacity-50">{pilotSending ? 'Kaydediliyor…' : 'Değerlendirmeyi kaydet'}</button>
+        </div>}
       </div>}
     </div>}
     <button type="button" onClick={() => setOpen((value) => !value)} className="flex items-center gap-2 rounded-full bg-orange-600 px-4 py-3 text-xs font-bold text-white shadow-xl shadow-orange-950/30"><MessageSquareText className="h-4 w-4" /> Destek</button>

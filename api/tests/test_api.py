@@ -78,6 +78,28 @@ class TestApi(unittest.TestCase):
         self.assertEqual(sil.call_args.args[0].baz_revizyon, 0)
         self.assertEqual(sil.call_args.args[1].kullanici_id, "workspace-admin")
 
+    def test_pilot_niyet_uclari_dogrulanmis_sirket_yoneticisini_iletir(self):
+        kullanici = KimlikBilgisi(
+            kullanici_id="pilot-admin",
+            sirket_id="company-pilot",
+            roller={"admin": True},
+        )
+        uygulama.dependency_overrides[mevcut_sirket_uyesi_dogrulanmis] = lambda: kullanici
+        with patch("api.main.pilot_niyet_durumu", return_value={"uygun": True, "yanitlandi": False}) as durum:
+            yanit = self.client.get("/api/v1/pilot/niyet")
+        self.assertEqual(yanit.status_code, 200)
+        self.assertEqual(yanit.json(), {"uygun": True, "yanitlandi": False})
+        self.assertEqual(durum.call_args.args[0].sirket_id, "company-pilot")
+
+        with patch("api.main.pilot_niyet_kaydet", return_value={"durum": "kaydedildi"}) as kaydet:
+            yanit = self.client.post(
+                "/api/v1/pilot/niyet",
+                json={"devam_niyeti": "muhtemelen", "ucretli_devam": True},
+            )
+        self.assertEqual(yanit.status_code, 200)
+        self.assertEqual(kaydet.call_args.args[0].devam_niyeti, "muhtemelen")
+        self.assertEqual(kaydet.call_args.args[1].kullanici_id, "pilot-admin")
+
     def test_saglik_ucu_acik(self):
         yanit = self.client.get("/api/health")
         self.assertEqual(yanit.status_code, 200)

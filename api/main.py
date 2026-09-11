@@ -48,6 +48,7 @@ from api.models import (
     KurSorgusu,
     GeriBildirimIstegi,
     GeriBildirimMemnuniyetIstegi,
+    PilotNiyetIstegi,
     SirketOlusturmaIstegi,
     UyeCikarmaIstegi,
     UyeDavetIstegi,
@@ -68,6 +69,7 @@ from api.google_sheets_service import GoogleSheetsHatasi, google_sheet_dogrula, 
 from api.fx_engine import KurHatasi, tarihsel_kurlari_getir
 from api.subscription_service import abonelik_durumu, kamuya_acik_paketler, odeme_hazirlik_durumu, ozellik_kapisi
 from api.feedback_service import geri_bildirim_kaydet, geri_bildirimlerim, geri_bildirim_memnuniyeti
+from api.pilot_service import pilot_niyet_durumu, pilot_niyet_kaydet, platform_pilot_ozeti
 from api.erp_service import erp_baglanti_durumu
 from api.compliance_readiness import (
     EsgHazirlikIstegi,
@@ -167,6 +169,7 @@ def platform_admin_ozeti(_kullanici: KimlikBilgisi = Depends(platform_yoneticisi
         "canli_hazirlik": canli_hazirlik_durumu(),
         "ai": ai_durumu(),
         "performans": performans_ozeti(kamuya_acik=False),
+        "pilot": platform_pilot_ozeti(),
         "odeme": odeme_hazirlik_durumu(),
         "erp": erp_baglanti_durumu(),
         "gizlilik": {
@@ -351,6 +354,19 @@ def geri_bildirim_memnuniyet(
     kullanici: KimlikBilgisi = Depends(mevcut_sirket_uyesi),
 ):
     return geri_bildirim_memnuniyeti(istek, kullanici)
+
+
+@uygulama.get("/api/v1/pilot/niyet")
+def pilot_degerlendirme_durumu(kullanici: KimlikBilgisi = Depends(mevcut_sirket_uyesi_dogrulanmis)):
+    return pilot_niyet_durumu(kullanici)
+
+
+@uygulama.post("/api/v1/pilot/niyet")
+def pilot_degerlendirme_kaydi(
+    istek: PilotNiyetIstegi,
+    kullanici: KimlikBilgisi = Depends(mevcut_sirket_uyesi_dogrulanmis),
+):
+    return pilot_niyet_kaydet(istek, kullanici)
 
 
 @uygulama.post("/api/v1/finans/denetim")
