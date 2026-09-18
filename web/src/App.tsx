@@ -197,8 +197,15 @@ function WorkspaceApp() {
       // Çakışma: başka bir oturum araya girdi. Kullanıcının düzenlemeleri
       // bellekte durur (sessizce ezilmez); banner "en son sürümü yükle"
       // sunar ki kullanıcı değişikliklerini görüp yeniden uygulasın.
+      //
+      // workspaceRevizyon KASITLI OLARAK güncellenmez: sunucunun mevcut
+      // revizyonuna atlarsak (içeriği getirmeden), kullanıcı "yenile"ye
+      // basmadan kör biçimde tekrar kaydettiğinde precondition sessizce
+      // eşleşir ve diğer oturumun değişikliğini ezer — optimistic lock'un
+      // engellemeye çalıştığı tam senaryo. Yerel revizyon eski kaldığı
+      // sürece her tekrar deneme yine 409 alır; ilerlemenin tek yolu
+      // calismaAlaniniYenile (içerik + revizyonu birlikte getirir).
       if (error instanceof CalismaAlaniCakismaHatasi) {
-        setWorkspaceRevizyon(error.mevcutRevizyon);
         setWorkspaceCakismasi(true);
         setPersistenceStatus('error');
         setPersistenceMessage(
