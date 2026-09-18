@@ -578,7 +578,7 @@ export function platformSirketiniGuncelle(sirketId: string, degisiklik: { durum?
 }
 
 export function platformBekleyenClaimleriYenidenDene(sirketId: string) {
-  return platformAdminPost<{ durum: 'tamamlandi' | 'kismen_tamamlandi'; sirket_id: string; cozulen_uye: number; kalan_uye: number }>(
+  return platformAdminPost<{ durum: 'tamamlandi' | 'kismen_tamamlandi'; sirket_id: string; cozulen_uye: number; kalan_uye: number; kaldirilmis_uye?: number }>(
     '/api/v1/platform-admin/claim-yeniden-dene',
     { sirket_id: sirketId },
   );

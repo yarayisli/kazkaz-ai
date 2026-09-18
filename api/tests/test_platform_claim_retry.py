@@ -164,6 +164,54 @@ class TestClaimYenidenDeneme(unittest.TestCase):
         self.assertEqual(sonuc["kalan_uye"], 0)
         self.assertNotIn(BEKLEYEN, self.db.store)
 
+    def test_yeniden_denemede_uye_cikarilmissa_eski_yetki_geri_verilmez(self):
+        # Çakışmayı oluştur (m2 iptali başarısız).
+        with patch(
+            "api.platform_admin_service.firebase_auth.revoke_refresh_tokens",
+            side_effect=self._revoke_m2_basarisiz,
+        ):
+            platform_sirketini_guncelle(
+                PlatformSirketGuncellemeIstegi(sirket_id="c1", durum="suspended"),
+                _yonetici(),
+            )
+        self.assertIn(BEKLEYEN, self.db.store)
+        # Yeniden deneme öncesi üye şirketten çıkarılıyor (members'tan silinir).
+        del self.db.store[("companies", "c1", "members", "m2")]
+        claim_guncelle = MagicMock(return_value=None)
+        with patch("api.platform_admin_service._claimleri_guncelle", claim_guncelle), \
+             patch("api.platform_admin_service.firebase_auth.revoke_refresh_tokens", return_value=None):
+            sonuc = platform_bekleyen_claimleri_yeniden_dene("c1", _yonetici())
+        # Kuyruk temizlenmeli ama m2'ye claim UYGULANMAMALI — üye artık yok.
+        claim_guncelle.assert_not_called()
+        self.assertNotIn(BEKLEYEN, self.db.store)
+        self.assertEqual(sonuc["kaldirilmis_uye"], 1)
+        self.assertEqual(sonuc["cozulen_uye"], 0)
+        self.assertEqual(sonuc["kalan_uye"], 0)
+        self.assertEqual(sonuc["durum"], "tamamlandi")
+
+    def test_yeniden_denemede_canli_rol_kullanilir_kuyruktaki_degil(self):
+        # Çakışmayı oluştur: kuyruğa "cfo" rolüyle yazılır (m2'nin o anki rolü).
+        with patch(
+            "api.platform_admin_service.firebase_auth.revoke_refresh_tokens",
+            side_effect=self._revoke_m2_basarisiz,
+        ):
+            platform_sirketini_guncelle(
+                PlatformSirketGuncellemeIstegi(sirket_id="c1", durum="suspended"),
+                _yonetici(),
+            )
+        self.assertEqual(self.db.store[BEKLEYEN]["role"], "cfo")
+        # Yeniden deneme öncesi üyenin rolü düşürülüyor (cfo → viewer).
+        self.db.store[("companies", "c1", "members", "m2")]["role"] = "viewer"
+        claim_guncelle = MagicMock(return_value=None)
+        with patch("api.platform_admin_service._claimleri_guncelle", claim_guncelle), \
+             patch("api.platform_admin_service.firebase_auth.revoke_refresh_tokens", return_value=None):
+            sonuc = platform_bekleyen_claimleri_yeniden_dene("c1", _yonetici())
+        self.assertEqual(sonuc["cozulen_uye"], 1)
+        # Claim, kuyruktaki donmuş "cfo" değil, canlı "viewer" rolüyle yazılmalı.
+        claim_guncelle.assert_called_once()
+        uygulanan_rol = claim_guncelle.call_args.args[2]
+        self.assertEqual(uygulanan_rol, "viewer")
+
     def test_tum_uyeler_basariliysa_guncellendi_doner(self):
         with patch("api.platform_admin_service.firebase_auth.revoke_refresh_tokens", return_value=None):
             sonuc = platform_sirketini_guncelle(

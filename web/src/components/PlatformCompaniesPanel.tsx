@@ -132,10 +132,14 @@ export const PlatformCompaniesPanel: React.FC = () => {
     try {
       const sonuc = await platformBekleyenClaimleriYenidenDene(detail.sirket.sirket_id);
       setBekleyenIptal(sonuc.kalan_uye);
+      const kaldirilmisNotu = sonuc.kaldirilmis_uye
+        ? ` (${sonuc.kaldirilmis_uye} kullanıcı şirketten çıkarılmış, eski yetkisi uygulanmadı.)`
+        : '';
       setMessage(
-        sonuc.kalan_uye === 0
+        (sonuc.kalan_uye === 0
           ? `Bekleyen oturum iptalleri tamamlandı (${sonuc.cozulen_uye} kullanıcı).`
-          : `${sonuc.cozulen_uye} kullanıcı çözüldü, ${sonuc.kalan_uye} kullanıcı hâlâ başarısız. Daha sonra tekrar deneyin.`,
+          : `${sonuc.cozulen_uye} kullanıcı çözüldü, ${sonuc.kalan_uye} kullanıcı hâlâ başarısız. Daha sonra tekrar deneyin.`)
+        + kaldirilmisNotu,
       );
     } catch (error) { setMessage(error instanceof Error ? error.message : 'Yeniden deneme başarısız.'); }
     finally { setActionLoading(false); }

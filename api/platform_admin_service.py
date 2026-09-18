@@ -466,6 +466,12 @@ def platform_bekleyen_claimleri_yeniden_dene(sirket_id: str, yonetici: KimlikBil
     Çözülen üyeler kuyruktan silinir; kalanlar bir sonraki denemeye bırakılır.
     Finans erişimi zaten güvenilir durum kontrolüyle kapalıdır; bu, üyelerin
     eski token'larını da bir an önce geçersiz kılmak içindir.
+
+    Kuyruk kaydındaki rol, kaydın oluştuğu andan kalma bir anlıktır — askı ile
+    yeniden deneme arasında üye çıkarılmış veya rolü düşürülmüş olabilir. Bu
+    yüzden rol her denemede members koleksiyonundan CANLI okunur; donmuş
+    kuyruk değeri asla claim'e yazılmaz. Üye artık yoksa eski yetkiyi geri
+    vermeden kuyruk kaydı silinir.
     """
     db = _db()
     sirket_ref = db.collection("companies").document(sirket_id)
@@ -475,8 +481,17 @@ def platform_bekleyen_claimleri_yeniden_dene(sirket_id: str, yonetici: KimlikBil
     hedef = _sirket_claim_hedefi(sirket_ref.get().to_dict() or {})
     cozulen = 0
     kalan = 0
+    kaldirilmis = 0
     for bekleyen in sirket_ref.collection("bekleyenClaimGuncellemeleri").limit(500).stream():
-        rol = str((bekleyen.to_dict() or {}).get("role") or "viewer")
+        uye_belgesi = sirket_ref.collection("members").document(bekleyen.id).get()
+        if not uye_belgesi.exists:
+            # Üye askı ile yeniden deneme arasında çıkarılmış: eski yetkiyi
+            # geri vermeden kuyruğu temizle. Bu ne "çözüldü" ne "kalan"dır —
+            # yeniden denenecek bir claim artık yok.
+            sirket_ref.collection("bekleyenClaimGuncellemeleri").document(bekleyen.id).delete()
+            kaldirilmis += 1
+            continue
+        rol = str((uye_belgesi.to_dict() or {}).get("role") or "viewer")
         if _uye_claimini_yenile(app, bekleyen.id, sirket_id, rol, hedef):
             sirket_ref.collection("bekleyenClaimGuncellemeleri").document(bekleyen.id).delete()
             cozulen += 1
@@ -487,6 +502,7 @@ def platform_bekleyen_claimleri_yeniden_dene(sirket_id: str, yonetici: KimlikBil
         "companyId": sirket_id,
         "resolved": cozulen,
         "remaining": kalan,
+        "removed": kaldirilmis,
         "actorId": yonetici.kullanici_id,
         "createdAt": firestore.SERVER_TIMESTAMP,
         "containsFinancialData": False,
@@ -496,6 +512,7 @@ def platform_bekleyen_claimleri_yeniden_dene(sirket_id: str, yonetici: KimlikBil
         "sirket_id": sirket_id,
         "cozulen_uye": cozulen,
         "kalan_uye": kalan,
+        "kaldirilmis_uye": kaldirilmis,
     }
 
 
