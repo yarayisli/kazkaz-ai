@@ -3,6 +3,8 @@
 import json
 import logging
 import os
+import threading
+import time
 from datetime import date
 from functools import lru_cache
 
@@ -152,27 +154,67 @@ def mevcut_sirket_uyesi(
     return sirket_uyeligini_dogrula(kullanici)
 
 
+#: sirket_durumu_guvenilir'in süreç-içi son-bilinen-durum önbelleği.
+#: Firestore geçici olarak ulaşılamazsa None (→ token'a fail-open) yerine
+#: buradaki son doğrulanmış duruma düşülür; önbellek token'dan her zaman
+#: daha güncel bir Firestore okumasını temsil eder.
+_DURUM_ONBELLEK_KILIDI = threading.Lock()
+_DURUM_ONBELLEK: dict = {}  # sirket_id -> (durum, okuma_zamani_monotonic)
+
+
+def _durum_onbellek_ttl_saniye() -> int:
+    try:
+        return max(5, int(os.getenv("SIRKET_DURUM_ONBELLEK_TTL_SANIYE", "60")))
+    except ValueError:
+        return 60
+
+
+def sirket_durumu_onbellegini_sifirla() -> None:
+    """Test ve kontrollü yeniden yükleme için süreç içi önbelleği temizler."""
+    with _DURUM_ONBELLEK_KILIDI:
+        _DURUM_ONBELLEK.clear()
+
+
 def sirket_durumu_guvenilir(sirket_id: str) -> "str | None":
     """Şirket durumunu token yerine güvenilir kaynaktan (Firestore) okur.
 
     Token claim'i askı işlemi sırasında iptal edilemeyen üyeler için eski
     kalabilir (~1 saat). Kritik uçlar bu yüzden durumu doğrudan companies
-    belgesinden doğrular. Firestore ulaşılamazsa None döner ve çağıran taraf
-    token kararına düşer: geçici bir Firestore hatası tüm kullanıcıları
-    kilitlemez, token zaten yaygın durumu (başarılı iptal) zorlar.
+    belgesinden doğrular.
+
+    Firestore ulaşılamazsa, kısa süreli (varsayılan 60 sn) bir süreç-içi
+    önbellekteki SON BİLİNEN duruma düşülür — token'a değil: önbellek her
+    zaman token'dan daha yakın zamanda Firestore'dan doğrulanmıştır, bu
+    yüzden askı sinyalini token'dan daha güvenilir taşır. Önbellekte hiç
+    kayıt yoksa veya kayıt bu pencereden eskiyse (uzun süreli kesinti),
+    None döner ve çağıran taraf token kararına düşer: sonsuza dek eski bir
+    önbellek değerine güvenip askısı çoktan kaldırılmış bir şirketi
+    kilitli tutmayız; kısa bir Firestore hıçkırığı da tüm kullanıcıları
+    kilitlemez.
     """
     if not sirket_id:
         return None
+    sirket_id = str(sirket_id)
     try:
         from firebase_admin import firestore
 
         db = firestore.client(app=_firebase_uygulamasi())
-        belge = db.collection("companies").document(str(sirket_id)).get()
+        belge = db.collection("companies").document(sirket_id).get()
         if not belge.exists:
             return None
-        return str((belge.to_dict() or {}).get("status") or "").lower() or None
-    except Exception as exc:  # noqa: BLE001 — güvenilir okuma başarısızsa token'a düş.
+        durum = str((belge.to_dict() or {}).get("status") or "").lower() or None
+        if durum is not None:
+            with _DURUM_ONBELLEK_KILIDI:
+                _DURUM_ONBELLEK[sirket_id] = (durum, time.monotonic())
+        return durum
+    except Exception as exc:  # noqa: BLE001 — güvenilir okuma başarısızsa son bilinene/token'a düş.
         logger.warning("Şirket durumu güvenilir kaynaktan okunamadı: %s", type(exc).__name__)
+        with _DURUM_ONBELLEK_KILIDI:
+            onbellek_kaydi = _DURUM_ONBELLEK.get(sirket_id)
+        if onbellek_kaydi is not None:
+            onbellekteki_durum, okuma_zamani = onbellek_kaydi
+            if time.monotonic() - okuma_zamani <= _durum_onbellek_ttl_saniye():
+                return onbellekteki_durum
         return None
 
 
