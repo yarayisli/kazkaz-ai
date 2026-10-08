@@ -3,10 +3,16 @@
 from datetime import date
 from typing import Any, Dict, List, Literal, Optional
 
-from pydantic import BaseModel, Field, model_validator
+from pydantic import BaseModel, ConfigDict, Field, model_validator
 
 
-class FinansSatiri(BaseModel):
+class SonluFinansModeli(BaseModel):
+    """NaN ve sonsuz tutarlar finans hesabına girmeden reddedilir."""
+
+    model_config = ConfigDict(allow_inf_nan=False)
+
+
+class FinansSatiri(SonluFinansModeli):
     tarih: date
     kategori: str = Field(min_length=1, max_length=120)
     gelir: float = Field(default=0, ge=0)
@@ -16,7 +22,7 @@ class FinansSatiri(BaseModel):
     musteri: Optional[str] = Field(default=None, max_length=160)
 
 
-class BilançoBilgisi(BaseModel):
+class BilançoBilgisi(SonluFinansModeli):
     baslangic_nakiti: float = Field(default=0, ge=0)
     donen_varliklar: float = Field(default=0, ge=0)
     kisa_vadeli_borc: float = Field(default=0, ge=0)
@@ -28,13 +34,13 @@ class FinansalAnalizIstegi(BaseModel):
     bilanco: BilançoBilgisi = Field(default_factory=BilançoBilgisi)
 
 
-class MusteriCiroSatiri(BaseModel):
+class MusteriCiroSatiri(SonluFinansModeli):
     musteri_id: str = Field(min_length=1, max_length=120)
     musteri_adi: str = Field(min_length=1, max_length=180)
     ciro: float = Field(ge=0)
 
 
-class FinansalGorunum(BaseModel):
+class FinansalGorunum(SonluFinansModeli):
     sirket_adi: str = Field(default="Şirket", min_length=1, max_length=160)
     sektor: str = Field(default="Belirtilmedi", max_length=120)
     donem: str = Field(default="Güncel", max_length=80)
@@ -85,7 +91,7 @@ class CfoSohbetIstegi(BaseModel):
     sirket_profili: Optional[SirketTercihBaglami] = None
 
 
-class NakitAkisSatiri(BaseModel):
+class NakitAkisSatiri(SonluFinansModeli):
     donem: str = Field(min_length=1, max_length=40)
     giris: float = Field(ge=0)
     cikis: float = Field(ge=0)
@@ -93,7 +99,7 @@ class NakitAkisSatiri(BaseModel):
     kumulatif_nakit: Optional[float] = None
 
 
-class BorcKalemi(BaseModel):
+class BorcKalemi(SonluFinansModeli):
     ad: str = Field(min_length=1, max_length=160)
     tutar: float = Field(gt=0)
     faiz_orani: Optional[float] = Field(default=None, ge=0, le=200)
@@ -106,7 +112,7 @@ class CfoAjanAnalizIstegi(BaseModel):
     borclar: List[BorcKalemi] = Field(default_factory=list, max_length=500)
 
 
-class MizanSatiri(BaseModel):
+class MizanSatiri(SonluFinansModeli):
     donem: str = Field(min_length=1, max_length=40)
     hesap_kodu: str = Field(min_length=1, max_length=40)
     hesap_adi: str = Field(min_length=1, max_length=180)
@@ -115,7 +121,7 @@ class MizanSatiri(BaseModel):
     esleme: Optional[str] = Field(default=None, max_length=60)
 
 
-class HaftalikNakitSatiri(BaseModel):
+class HaftalikNakitSatiri(SonluFinansModeli):
     hafta: date
     tahsilat: float = Field(default=0, ge=0)
     nakit_satis: float = Field(default=0, ge=0)
@@ -127,7 +133,7 @@ class HaftalikNakitSatiri(BaseModel):
     diger_cikis: float = Field(default=0, ge=0)
 
 
-class AlacakFaturasi(BaseModel):
+class AlacakFaturasi(SonluFinansModeli):
     fatura_id: str = Field(min_length=1, max_length=120)
     musteri_id: str = Field(min_length=1, max_length=120)
     musteri_adi: str = Field(min_length=1, max_length=180)
@@ -145,7 +151,7 @@ class AlacakFaturasi(BaseModel):
         return self
 
 
-class BorcServisSatiri(BaseModel):
+class BorcServisSatiri(SonluFinansModeli):
     borc_id: str = Field(min_length=1, max_length=120)
     alacakli: str = Field(min_length=1, max_length=180)
     odeme_tarihi: date
@@ -154,7 +160,7 @@ class BorcServisSatiri(BaseModel):
     para_birimi: Literal["TRY", "USD", "EUR", "GBP", "CHF"] = "TRY"
 
 
-class ButceGerceklesmeSatiri(BaseModel):
+class ButceGerceklesmeSatiri(SonluFinansModeli):
     ay: date
     kategori: str = Field(min_length=1, max_length=120)
     departman: str = Field(default="Genel", max_length=120)
@@ -164,7 +170,7 @@ class ButceGerceklesmeSatiri(BaseModel):
     onceki_tahmin: Optional[float] = Field(default=None, ge=0)
 
 
-class GelismisAjanIstegi(BaseModel):
+class GelismisAjanIstegi(SonluFinansModeli):
     finansal_veri: FinansalGorunum
     rapor_tarihi: date = Field(default_factory=date.today)
     baslangic_nakdi: float = Field(default=0, ge=0)

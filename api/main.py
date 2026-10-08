@@ -1,15 +1,19 @@
 """KazKaz AI birleşik V1 FastAPI uygulaması."""
 
 import json
+import math
 import os
 from pathlib import Path
 from typing import Optional
 
 from fastapi import Depends, FastAPI, HTTPException, Query, Request, Response
+from fastapi.encoders import jsonable_encoder
+from fastapi.exceptions import RequestValidationError
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.middleware.httpsredirect import HTTPSRedirectMiddleware
 from fastapi.staticfiles import StaticFiles
 from starlette.middleware.trustedhost import TrustedHostMiddleware
+from starlette.responses import JSONResponse
 
 from api.config import yerel_env_yukle
 
@@ -139,6 +143,23 @@ uygulama.add_middleware(
         "X-KazKaz-Report-Regenerated", "X-KazKaz-Report-Original",
     ],
 )
+
+
+def _sonlu_json(deger):
+    """Hata girdisindeki NaN/Infinity JSON yanıtını 500'e çevirmesin."""
+    if isinstance(deger, float) and not math.isfinite(deger):
+        return str(deger)
+    if isinstance(deger, dict):
+        return {anahtar: _sonlu_json(alt) for anahtar, alt in deger.items()}
+    if isinstance(deger, (list, tuple)):
+        return [_sonlu_json(alt) for alt in deger]
+    return deger
+
+
+@uygulama.exception_handler(RequestValidationError)
+async def istek_dogrulama_hatasi(_istek: Request, hata: RequestValidationError):
+    hatalar = jsonable_encoder(hata.errors())
+    return JSONResponse(status_code=422, content={"detail": _sonlu_json(hatalar)})
 
 
 @uygulama.get("/api/health")

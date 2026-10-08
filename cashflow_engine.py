@@ -14,6 +14,7 @@ Bağımlılıklar: pandas, numpy
 
 import numpy as np
 import pandas as pd
+import math
 from typing import Dict, Any, List, Optional, Tuple
 from dataclasses import dataclass, field
 import warnings
@@ -48,6 +49,26 @@ class CashFlowInput:
             raise ValueError("Giriş ve çıkış listesi aynı uzunlukta olmalı.")
         if not self.nakit_girisler:
             raise ValueError("En az bir dönem verisi gerekli.")
+
+        # Geçersiz tutarlar hesaplamaya girerse toplamlar ve skorlar da
+        # bozulur; NaN/sonsuz değerleri sıfıra dönüştürmeden açıkça reddet.
+        alanlar = {
+            "nakit_girisler": self.nakit_girisler,
+            "nakit_cikislar": self.nakit_cikislar,
+            "baslangic_nakiti": [self.baslangic_nakiti],
+            "donen_varliklar": [self.donen_varliklar],
+            "kisa_vadeli_borc": [self.kisa_vadeli_borc],
+            "stoklar": [self.stoklar],
+            "alacaklar": [self.alacaklar],
+        }
+        for alan, degerler in alanlar.items():
+            for deger in degerler:
+                try:
+                    sonlu = math.isfinite(deger)
+                except (TypeError, ValueError, OverflowError):
+                    sonlu = False
+                if not sonlu:
+                    raise ValueError(f"{alan} yalnız sonlu sayısal tutarlar içermeli.")
 
 
 # ─────────────────────────────────────────────
