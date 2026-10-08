@@ -18,52 +18,62 @@ const BOYUT_ETIKETLERI: Record<string, string> = {
 };
 
 /** 60 altı turuncu, üstü lacivert — Durum ekranının uyarı dili. */
-const boyutRengi = (deger: number) => (deger < 60 ? '#FF4D00' : '#0f2252');
+const boyutRengi = (deger: number) => (deger < 60 ? '#b54708' : '#0f2252');
 
 const SaglikSkoruKarti: React.FC<{ skor: SaglikSkoru }> = ({ skor }) => {
   const boyutlar = Object.entries(skor.alt_skorlar);
   const boyutSayisi = Number(skor.metodoloji?.boyut_sayisi) || boyutlar.length;
 
   return (
-    <article className="panel-card p-5">
-      <p className="panel-kicker">Finansal sağlık</p>
+    <article className="financial-health-card md:col-span-2" aria-label="Finansal sağlık">
+      <div className="financial-health-layout">
+        <div className="financial-health-summary">
+          <h2 className="text-lg font-bold text-[#0f2252]">Finansal sağlık</h2>
 
-      <div className="mt-3 flex items-baseline gap-2">
-        <span className="font-display text-[52px] font-bold leading-none text-[#0f2252]">
-          {skor.skor.toLocaleString('tr-TR', { maximumFractionDigits: 1 })}
-        </span>
-        <span className="text-[15px] font-semibold text-slate-400">/ 100</span>
-        <span className="ml-auto rounded-full border border-slate-200 bg-slate-50 px-2.5 py-1 text-xs font-bold text-slate-600">
-          {skor.kategori}
-        </span>
-      </div>
-      <p className="mt-2 text-xs leading-5 text-slate-500">{skor.aciklama}</p>
-
-      <div className="mt-5 flex flex-col gap-3">
-        {boyutlar.map(([ad, deger]) => (
-          <div key={ad} className="flex flex-col gap-1.5">
-            <div className="flex justify-between text-xs">
-              <span className="font-semibold text-slate-700">{BOYUT_ETIKETLERI[ad] ?? ad}</span>
-              <span className="font-bold tabular-nums" style={{ color: boyutRengi(deger) }}>
-                {deger.toLocaleString('tr-TR', { maximumFractionDigits: 1 })}
+          <div className="mt-4 flex flex-wrap items-center gap-x-4 gap-y-2">
+            <div className="flex items-baseline gap-2">
+              <span className="font-display text-[56px] font-semibold leading-none tracking-tight tabular-nums text-[#0f2252]">
+                {skor.skor.toLocaleString('tr-TR', { maximumFractionDigits: 1 })}
               </span>
-            </div>
-            <div className="h-1.5 overflow-hidden rounded-full bg-slate-100">
-              <div
-                className="h-full rounded-full"
-                style={{ width: `${Math.min(100, Math.max(0, deger))}%`, background: boyutRengi(deger) }}
-              />
-            </div>
+              <span className="text-sm font-medium text-slate-500">/ 100</span>
+              </div>
+              <span className="rounded-full bg-slate-100 px-3 py-1 text-xs font-semibold text-slate-700">
+                {skor.kategori}
+              </span>
           </div>
-        ))}
+          <p className="mt-3 max-w-sm text-sm leading-6 text-slate-600">{skor.aciklama}</p>
+        </div>
+
+        <dl className="financial-health-dimensions">
+          {boyutlar.map(([ad, deger]) => (
+            <div key={ad} className="financial-health-row">
+              <dt className="min-w-0 text-sm font-medium text-slate-700">{BOYUT_ETIKETLERI[ad] ?? ad}</dt>
+              <dd className="financial-health-value">
+                <div className="financial-health-track" aria-hidden="true">
+                  <div
+                    className="h-full rounded-full"
+                    style={{ width: `${Math.min(100, Math.max(0, deger))}%`, background: boyutRengi(deger) }}
+                  />
+                </div>
+                <span className="text-right text-sm font-semibold tabular-nums" style={{ color: boyutRengi(deger) }}>
+                  {deger.toLocaleString('tr-TR', { maximumFractionDigits: 1 })}
+                  <span className="sr-only"> / 100</span>
+                </span>
+              </dd>
+            </div>
+          ))}
+        </dl>
       </div>
 
-      <p className="mt-4 border-t border-slate-100 pt-3 text-xs leading-4 text-slate-400">
-        {boyutSayisi} boyutlu ağırlıklı skor.{' '}
-        {boyutSayisi < 5
-          ? 'Müşteri sütununu yüklerseniz konsantrasyon riski de skorlanır.'
-          : 'Müşteri konsantrasyon riski dahil.'}{' '}
-        Nominal değerlere dayanır; enflasyon düzeltmesi uygulanmaz.
+      <p className="mt-5 flex items-start gap-2 border-t border-slate-200/70 pt-4 text-xs leading-5 text-slate-500">
+        <Info className="mt-0.5 h-3.5 w-3.5 shrink-0" aria-hidden="true" />
+        <span>
+          {boyutSayisi} boyutlu ağırlıklı skor.{' '}
+          {boyutSayisi < 5
+            ? 'Müşteri sütununu yüklerseniz konsantrasyon riski de skorlanır.'
+            : 'Müşteri konsantrasyon riski dahil.'}{' '}
+          Nominal değerlere dayanır; enflasyon düzeltmesi uygulanmaz.
+        </span>
       </p>
     </article>
   );
@@ -88,7 +98,7 @@ export const DurumOzeti: React.FC<DurumOzetiProps> = ({ audit, healthScore, onNa
 
   return (
     <section
-      className={`grid gap-5 ${healthScore ? 'xl:grid-cols-[.8fr_1.1fr_.85fr]' : 'xl:grid-cols-[1.15fr_.85fr]'}`}
+      className={`grid gap-5 ${healthScore ? 'md:grid-cols-2' : 'xl:grid-cols-[1.15fr_.85fr]'}`}
     >
       {healthScore && <SaglikSkoruKarti skor={healthScore} />}
 

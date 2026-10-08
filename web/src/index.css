@@ -39,6 +39,65 @@
   text-transform: uppercase;
 }
 
+/* Sağlık özeti: göstergeler ekranla birlikte uzamaz, ortak 0–100 ölçeğini korur. */
+.financial-health-card {
+  container-type: inline-size;
+  min-width: 0;
+  border: 1px solid #e2e5eb;
+  border-radius: 0.875rem;
+  background: #fff;
+  padding: clamp(1.25rem, 2.5vw, 2rem);
+}
+
+.financial-health-layout {
+  display: grid;
+  gap: 1.5rem;
+}
+
+.financial-health-summary { min-width: 0; }
+.financial-health-dimensions { min-width: 0; margin: 0; }
+
+.financial-health-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 45%);
+  align-items: center;
+  gap: 0.75rem;
+  min-height: 2.5rem;
+  padding: 0.5rem 0;
+}
+
+.financial-health-row + .financial-health-row { border-top: 1px solid #f1f5f9; }
+
+.financial-health-value {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 2.75rem;
+  align-items: center;
+  gap: 0.75rem;
+  margin: 0;
+}
+
+.financial-health-track {
+  width: 100%;
+  max-width: 10rem;
+  height: 0.25rem;
+  overflow: hidden;
+  border-radius: 999px;
+  background: #e8edf3;
+}
+
+@container (min-width: 640px) {
+  .financial-health-layout {
+    grid-template-columns: minmax(0, 0.85fr) minmax(0, 1.15fr);
+    align-items: center;
+    gap: 2rem;
+  }
+
+  .financial-health-dimensions {
+    border-left: 1px solid #e2e5eb;
+    padding-left: 2rem;
+  }
+}
+
 .panel-primary-button,
 .panel-secondary-button {
   display: inline-flex;
