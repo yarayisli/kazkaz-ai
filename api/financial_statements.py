@@ -8,6 +8,7 @@ from typing import Any, Dict, Iterable, List, Optional
 
 from api.donem_karsilastirma import donem_karsilastirmasi
 from api.hesap_plani import kategori_bul, maliyet_hesabi_mi
+from api.nakit_aritmetik import cikar, para, topla
 from api.models import FinansalGorunum, MizanSatiri
 
 
@@ -151,19 +152,17 @@ def _nakit_koprusu(veri: FinansalGorunum) -> Dict[str, Any]:
             "eksik_alanlar": eksikler,
             "formul": "Dönem başı nakit + CFO + CFI + CFF = Dönem sonu nakit",
         }
-    beklenen = (
-        float(veri.donem_basi_nakit)
-        + float(veri.operasyonel_nakit_akisi)
-        + float(veri.yatirim_nakit_akisi)
-        + float(veri.finansman_nakit_akisi)
-    )
-    fark = beklenen - veri.nakit
+    beklenen = topla([
+        veri.donem_basi_nakit, veri.operasyonel_nakit_akisi,
+        veri.yatirim_nakit_akisi, veri.finansman_nakit_akisi,
+    ])
+    fark = cikar(beklenen, veri.nakit)
     return {
         "durum": "mutabik" if abs(fark) <= TOLERANS else "inceleme_gerekli",
         "girdiler": girdiler,
-        "beklenen_donem_sonu_nakit": round(beklenen, 2),
-        "gerceklesen_donem_sonu_nakit": round(veri.nakit, 2),
-        "fark": round(fark, 2),
+        "beklenen_donem_sonu_nakit": para(beklenen),
+        "gerceklesen_donem_sonu_nakit": para(veri.nakit),
+        "fark": para(fark),
         "formul": "Dönem başı nakit + CFO + CFI + CFF = Dönem sonu nakit",
     }
 
