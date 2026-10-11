@@ -15,6 +15,7 @@ from typing import Any, Dict, Iterable, List, Optional
 
 from api.financial_statements import finansal_tablo_paketi
 from api.models import GelismisAjanIstegi
+from api.nakit_aritmetik import cikar, ondalik, para, topla
 
 
 def _bekliyor(ajan: str, gerekenler: Iterable[str]) -> Dict[str, Any]:
@@ -139,31 +140,31 @@ def nakit_13_hafta_ajani(istek: GelismisAjanIstegi) -> Dict[str, Any]:
     baslangic_indeksi = ileri_indeksler[0] if ileri_indeksler else max(0, len(benzersiz_satirlar) - 13)
     satirlar = benzersiz_satirlar[baslangic_indeksi: baslangic_indeksi + 13]
 
-    def net_hareket(satir) -> tuple[float, float, float]:
-        giris = satir.tahsilat + satir.nakit_satis + satir.diger_giris
-        cikis = satir.tedarikci + satir.personel + satir.vergi + satir.borc_servisi + satir.diger_cikis
-        return giris, cikis, giris - cikis
+    def net_hareket(satir):
+        giris = topla([satir.tahsilat, satir.nakit_satis, satir.diger_giris])
+        cikis = topla([satir.tedarikci, satir.personel, satir.vergi, satir.borc_servisi, satir.diger_cikis])
+        return giris, cikis, cikar(giris, cikis)
 
-    bakiye = istek.baslangic_nakdi
+    bakiye = ondalik(istek.baslangic_nakdi)
     for onceki in benzersiz_satirlar[:baslangic_indeksi]:
-        bakiye += net_hareket(onceki)[2]
+        bakiye = topla([bakiye, net_hareket(onceki)[2]])
     pencere_baslangic_nakdi = bakiye
-    esik = istek.minimum_nakit_esigi
+    esik = ondalik(istek.minimum_nakit_esigi) if istek.minimum_nakit_esigi is not None else None
     projeksiyon = []
     ilk_acik = None
     for satir in satirlar:
         giris, cikis, net = net_hareket(satir)
-        bakiye += net
+        bakiye = topla([bakiye, net])
         esik_alti = esik is not None and bakiye < esik
         if esik_alti and ilk_acik is None:
             ilk_acik = satir.hafta.isoformat()
         projeksiyon.append(
             {
                 "hafta": satir.hafta.isoformat(),
-                "giris": round(giris, 2),
-                "cikis": round(cikis, 2),
-                "net": round(net, 2),
-                "donem_sonu_nakit": round(bakiye, 2),
+                "giris": para(giris),
+                "cikis": para(cikis),
+                "net": para(net),
+                "donem_sonu_nakit": para(bakiye),
                 "esik_alti": esik_alti,
             }
         )
@@ -179,24 +180,24 @@ def nakit_13_hafta_ajani(istek: GelismisAjanIstegi) -> Dict[str, Any]:
         gerekenler.append("haftalık tarih boşluklarının tamamlanması")
 
     kayan_pencereler = []
-    yuruyen_bakiye = istek.baslangic_nakdi
+    yuruyen_bakiye = ondalik(istek.baslangic_nakdi)
     pencere_baslangic_bakiyeleri = []
     for satir in benzersiz_satirlar:
         pencere_baslangic_bakiyeleri.append(yuruyen_bakiye)
-        yuruyen_bakiye += net_hareket(satir)[2]
+        yuruyen_bakiye = topla([yuruyen_bakiye, net_hareket(satir)[2]])
     for indeks in range(max(0, len(benzersiz_satirlar) - 12)):
         pencere = benzersiz_satirlar[indeks: indeks + 13]
         pencere_bakiye = pencere_baslangic_bakiyeleri[indeks]
         pencere_ilk_acik = None
         for satir in pencere:
-            pencere_bakiye += net_hareket(satir)[2]
+            pencere_bakiye = topla([pencere_bakiye, net_hareket(satir)[2]])
             if esik is not None and pencere_bakiye < esik and pencere_ilk_acik is None:
                 pencere_ilk_acik = satir.hafta.isoformat()
         kayan_pencereler.append({
             "baslangic": pencere[0].hafta.isoformat(),
             "bitis": pencere[-1].hafta.isoformat(),
-            "baslangic_nakdi": round(pencere_baslangic_bakiyeleri[indeks], 2),
-            "donem_sonu_nakit": round(pencere_bakiye, 2),
+            "baslangic_nakdi": para(pencere_baslangic_bakiyeleri[indeks]),
+            "donem_sonu_nakit": para(pencere_bakiye),
             "ilk_esik_alti_tarih": pencere_ilk_acik,
         })
 
@@ -212,9 +213,9 @@ def nakit_13_hafta_ajani(istek: GelismisAjanIstegi) -> Dict[str, Any]:
         "toplam_veri_haftasi": len(benzersiz_satirlar),
         "hafta_sayisi": len(satirlar),
         "tahmin_baslangici": satirlar[0].hafta.isoformat() if satirlar else None,
-        "baslangic_nakdi": round(pencere_baslangic_nakdi, 2),
-        "donem_sonu_nakit": round(bakiye, 2),
-        "minimum_nakit_esigi": esik,
+        "baslangic_nakdi": para(pencere_baslangic_nakdi),
+        "donem_sonu_nakit": para(bakiye),
+        "minimum_nakit_esigi": istek.minimum_nakit_esigi,
         "ilk_esik_alti_tarih": ilk_acik,
         "projeksiyon": projeksiyon,
         "kayan_13_hafta_pencereleri": kayan_pencereler,

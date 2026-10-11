@@ -15,6 +15,7 @@ Bağımlılıklar: pandas, numpy
 import numpy as np
 import pandas as pd
 import math
+from api.nakit_aritmetik import NakitHesaplamaHatasi, bol, cikar, ondalik, ortalama, ortalama_ham, para, sonlu_sayi, topla
 from typing import Dict, Any, List, Optional, Tuple
 from dataclasses import dataclass, field
 import warnings
@@ -68,7 +69,7 @@ class CashFlowInput:
                 except (TypeError, ValueError, OverflowError):
                     sonlu = False
                 if not sonlu:
-                    raise ValueError(f"{alan} yalnız sonlu sayısal tutarlar içermeli.")
+                    raise NakitHesaplamaHatasi(f"{alan} yalnız sonlu sayısal tutarlar içermeli.")
 
 
 # ─────────────────────────────────────────────
@@ -82,39 +83,36 @@ class CashFlowAnalysis:
         self.inp = inp
         self.n   = len(inp.nakit_girisler)
 
+    def _net_ondalik(self):
+        return [cikar(g, c) for g, c in zip(self.inp.nakit_girisler, self.inp.nakit_cikislar)]
+
     def net_cash_flow(self) -> List[float]:
-        """Aylık net nakit akışı."""
-        return [
-            g - c for g, c in
-            zip(self.inp.nakit_girisler, self.inp.nakit_cikislar)
-        ]
+        """Aylık net; ara hesap hassasiyetini kaybetmeden API sayısına dönüştür."""
+        return [sonlu_sayi(d) for d in self._net_ondalik()]
 
     def cumulative_cash(self) -> List[float]:
-        """Kümülatif nakit pozisyonu."""
+        """Açılış + hareketler; yalnız görünen kapanışları yuvarla."""
         kumulatif = []
-        toplam = self.inp.baslangic_nakiti
-        for ncf in self.net_cash_flow():
-            toplam += ncf
-            kumulatif.append(round(toplam, 2))
+        toplam = ondalik(self.inp.baslangic_nakiti)
+        for ncf in self._net_ondalik():
+            toplam = topla([toplam, ncf])
+            kumulatif.append(para(toplam))
         return kumulatif
 
     def operating_cash_flow(self) -> float:
-        """Toplam operasyonel nakit akışı."""
-        return round(sum(self.net_cash_flow()), 2)
+        return para(topla(self._net_ondalik()))
 
     def average_monthly_inflow(self) -> float:
-        return round(np.mean(self.inp.nakit_girisler), 2)
+        return ortalama(self.inp.nakit_girisler)
 
     def average_monthly_outflow(self) -> float:
-        return round(np.mean(self.inp.nakit_cikislar), 2)
+        return ortalama(self.inp.nakit_cikislar)
 
     def cash_flow_margin(self) -> float:
-        """Nakit akışı marjı (%)."""
-        toplam_giris = sum(self.inp.nakit_girisler)
-        toplam_ncf   = self.operating_cash_flow()
+        toplam_giris = topla(self.inp.nakit_girisler)
         if toplam_giris == 0:
             return 0.0
-        return round(toplam_ncf / toplam_giris * 100, 2)
+        return bol(topla([self.operating_cash_flow()] * 100), toplam_giris)
 
     def positive_months(self) -> int:
         """Pozitif nakit akışlı ay sayısı."""
@@ -125,16 +123,17 @@ class CashFlowAnalysis:
 
     def volatility(self) -> float:
         """Nakit akışı volatilitesi (std sapma)."""
-        return round(float(np.std(self.net_cash_flow())), 2)
+        return para(sonlu_sayi(np.std(self.net_cash_flow())))
 
     def trend(self) -> str:
         """Nakit akışı trendi."""
         ncf = self.net_cash_flow()
         if len(ncf) < 2:
             return "Belirsiz"
-        ilk = np.mean(ncf[:len(ncf)//2])
-        son  = np.mean(ncf[len(ncf)//2:])
-        degisim = (son - ilk) / max(abs(ilk), 1) * 100
+        ilk = sonlu_sayi(ortalama_ham(ncf[:len(ncf)//2]))
+        son = sonlu_sayi(ortalama_ham(ncf[len(ncf)//2:]))
+        degisim = sonlu_sayi(cikar(son, ilk)) / max(abs(ilk), 1) * 100
+        sonlu_sayi(degisim)
         if degisim > 10:   return "Güçleniyor 📈"
         if degisim < -10:  return "Zayıflıyor 📉"
         return "Stabil ➡️"
@@ -147,8 +146,8 @@ class CashFlowAnalysis:
         for i in range(self.n):
             rows.append({
                 "Dönem":         f"Ay {i+1}",
-                "Nakit Girişi":  self.inp.nakit_girisler[i],
-                "Nakit Çıkışı":  self.inp.nakit_cikislar[i],
+                "Nakit Girişi":  sonlu_sayi(self.inp.nakit_girisler[i]),
+                "Nakit Çıkışı":  sonlu_sayi(self.inp.nakit_cikislar[i]),
                 "Net Nakit":     ncf[i],
                 "Kümülatif":     kumul[i],
                 "Durum":         "✅ Pozitif" if ncf[i] >= 0 else "❌ Negatif",
@@ -166,8 +165,8 @@ class CashFlowAnalysis:
             "volatilite":         self.volatility(),
             "trend":              self.trend(),
             "son_nakit_pozisyon": self.cumulative_cash()[-1],
-            "toplam_giris":       sum(self.inp.nakit_girisler),
-            "toplam_cikis":       sum(self.inp.nakit_cikislar),
+            "toplam_giris":       sonlu_sayi(topla(self.inp.nakit_girisler)),
+            "toplam_cikis":       sonlu_sayi(topla(self.inp.nakit_cikislar)),
         }
 
 
@@ -188,27 +187,24 @@ class LiquidityMetrics:
         """Cari oran = Dönen Varlıklar / Kısa Vadeli Borçlar. Hedef: > 2."""
         if self.inp.kisa_vadeli_borc == 0:
             return None
-        return round(self.inp.donen_varliklar / self.inp.kisa_vadeli_borc, 2)
+        return bol(self.inp.donen_varliklar, self.inp.kisa_vadeli_borc)
 
     def quick_ratio(self) -> Optional[float]:
         """Asit-test oranı = (Dönen Varlıklar - Stoklar) / KVB. Hedef: > 1."""
         if self.inp.kisa_vadeli_borc == 0:
             return None
-        return round(
-            (self.inp.donen_varliklar - self.inp.stoklar)
-            / self.inp.kisa_vadeli_borc, 2)
+        return bol(cikar(self.inp.donen_varliklar, self.inp.stoklar), self.inp.kisa_vadeli_borc)
 
     def cash_ratio(self) -> Optional[float]:
         """Nakit oranı = Nakit / KVB. Hedef: > 0.2."""
         nakit = self.inp.baslangic_nakiti
         if self.inp.kisa_vadeli_borc == 0 or nakit == 0:
             return None
-        return round(nakit / self.inp.kisa_vadeli_borc, 2)
+        return bol(nakit, self.inp.kisa_vadeli_borc)
 
     def working_capital(self) -> float:
         """Net işletme sermayesi = Dönen Varlıklar - KVB."""
-        return round(
-            self.inp.donen_varliklar - self.inp.kisa_vadeli_borc, 2)
+        return para(cikar(self.inp.donen_varliklar, self.inp.kisa_vadeli_borc))
 
     def days_sales_outstanding(self) -> int:
         """Alacak tahsil süresi (gün)."""
@@ -273,7 +269,7 @@ class BurnRateAnalysis:
         Net yakma hızı = Aylık ortalama net nakit akışı.
         Negatifse şirket nakit yakıyor.
         """
-        return round(np.mean(self.cf.net_cash_flow()), 2)
+        return bol(topla(self.cf._net_ondalik()), self.cf.n)
 
     def runway_months(self) -> Optional[float]:
         """
@@ -286,7 +282,7 @@ class BurnRateAnalysis:
         nakit = self.inp.baslangic_nakiti
         if nakit <= 0:
             return 0.0
-        return round(nakit / abs(net_burn), 1)
+        return bol(nakit, abs(net_burn), 1)
 
     def cash_zero_date(self) -> Optional[int]:
         """Mevcut gidişle nakit ne kadar ayda tükenir?"""
@@ -300,10 +296,10 @@ class BurnRateAnalysis:
         Nakit verimliliği = Toplam giriş / Toplam çıkış.
         > 1 → şirket üretiyor, < 1 → şirket yakıyor.
         """
-        toplam_cikis = sum(self.inp.nakit_cikislar)
+        toplam_cikis = topla(self.inp.nakit_cikislar)
         if toplam_cikis == 0:
             return 0.0
-        return round(sum(self.inp.nakit_girisler) / toplam_cikis, 3)
+        return bol(topla(self.inp.nakit_girisler), toplam_cikis, 3)
 
     def summary(self) -> Dict[str, Any]:
         gross  = self.gross_burn_rate()
@@ -342,24 +338,28 @@ class CashFlowForecast:
         buyume_orani: Aylık beklenen büyüme oranı (0.05 = %5)
         """
         # Son 3 ayın ortalamasını baz al
+        sonlu_sayi(buyume_orani)
         son_n      = min(3, len(self.inp.nakit_girisler))
-        baz_giris  = np.mean(self.inp.nakit_girisler[-son_n:])
-        baz_cikis  = np.mean(self.inp.nakit_cikislar[-son_n:])
+        baz_giris  = sonlu_sayi(ortalama_ham(self.inp.nakit_girisler[-son_n:]))
+        baz_cikis  = sonlu_sayi(ortalama_ham(self.inp.nakit_cikislar[-son_n:]))
         son_kumulatif = self.cf.cumulative_cash()[-1]
 
         rows = []
         kumulatif = son_kumulatif
         for i in range(1, self.tahmin_ay + 1):
-            proj_giris = baz_giris * (1 + buyume_orani) ** i
-            proj_cikis = baz_cikis * (1 + buyume_orani * 0.5) ** i  # giderler daha yavaş büyür
+            try:
+                proj_giris = baz_giris * (1 + buyume_orani) ** i
+                proj_cikis = baz_cikis * (1 + buyume_orani * 0.5) ** i  # giderler daha yavaş büyür
+            except OverflowError as exc:
+                raise NakitHesaplamaHatasi("Nakit projeksiyonu desteklenen sayı aralığını aşıyor.") from exc
             net        = proj_giris - proj_cikis
             kumulatif  += net
             rows.append({
                 "Dönem":        f"T+{i}. Ay",
-                "Proj. Giriş":  round(proj_giris, 0),
-                "Proj. Çıkış":  round(proj_cikis, 0),
-                "Net":          round(net, 0),
-                "Kümülatif":    round(kumulatif, 0),
+                "Proj. Giriş":  round(sonlu_sayi(proj_giris), 0),
+                "Proj. Çıkış":  round(sonlu_sayi(proj_cikis), 0),
+                "Net":          round(sonlu_sayi(net), 0),
+                "Kümülatif":    round(sonlu_sayi(kumulatif), 0),
                 "Durum":        "✅" if net >= 0 else "❌",
             })
         return pd.DataFrame(rows)
@@ -493,8 +493,8 @@ class CashFlowEngine:
         """
         df = fin_engine.df
         monthly = df.groupby("YilAy").agg(
-            giris=("Gelir","sum"),
-            cikis=("Gider","sum"),
+            giris=("Gelir", topla),
+            cikis=("Gider", topla),
         ).sort_index()
 
         inp = CashFlowInput(

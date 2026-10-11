@@ -9,6 +9,7 @@ from typing import Optional
 from fastapi import Depends, FastAPI, HTTPException, Query, Request, Response
 from fastapi.encoders import jsonable_encoder
 from fastapi.exceptions import RequestValidationError
+from api.nakit_aritmetik import NakitHesaplamaHatasi
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.middleware.httpsredirect import HTTPSRedirectMiddleware
 from fastapi.staticfiles import StaticFiles
@@ -160,6 +161,11 @@ def _sonlu_json(deger):
 async def istek_dogrulama_hatasi(_istek: Request, hata: RequestValidationError):
     hatalar = jsonable_encoder(hata.errors())
     return JSONResponse(status_code=422, content={"detail": _sonlu_json(hatalar)})
+
+
+@uygulama.exception_handler(NakitHesaplamaHatasi)
+async def nakit_hesaplama_hatasi(_istek: Request, hata: NakitHesaplamaHatasi):
+    return JSONResponse(status_code=422, content={"detail": str(hata), "kod": "nakit_hesaplama_araligi"})
 
 
 @uygulama.get("/api/health")
