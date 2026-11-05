@@ -129,12 +129,12 @@ class ForecastEngine:
         elif n_ay < 12:
             self._veri_uyarilari.append(
                 f"⚠️ {n_ay} ay veri ile mevsimsel örüntü tam yakalanamaz. "
-                "Yıllık mevsimsellik için 12+ ay veri önerilir."
+                "Yıllık mevsimsellik için 24+ ay veri önerilir."
             )
-        elif n_ay < 24 and PROPHET_AVAILABLE:
+        elif n_ay < 24 and PROPHET_AVAILABLE and yearly_seasonality:
             self._veri_uyarilari.append(
-                f"ℹ️ {n_ay} ay veri ile Prophet mevsimsellik tespit edebilir "
-                "ancak 24+ ay veri sonuçları daha da iyileştirir."
+                f"ℹ️ {n_ay} ay veri ile yıllık mevsimsellik kapatıldı; "
+                "en az 24 ay veriyle yeniden etkinleşir."
             )
 
         self._train_data = data
@@ -163,8 +163,11 @@ class ForecastEngine:
         return self
 
     def _train_prophet(self, data, yearly_seasonality, changepoint_prior_scale):
+        # İki tam yıllık döngü olmadan aylık seride yıllık bileşen aşırı uyum
+        # yapabiliyor. Geriye dönük doğrulamada da eğitim penceresini esas al.
+        use_yearly_seasonality = yearly_seasonality and len(data) >= 24
         self._model = Prophet(
-            yearly_seasonality=yearly_seasonality,
+            yearly_seasonality=use_yearly_seasonality,
             weekly_seasonality=False,
             daily_seasonality=False,
             changepoint_prior_scale=changepoint_prior_scale,
